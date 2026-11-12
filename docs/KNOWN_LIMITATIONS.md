@@ -2,7 +2,7 @@
 
 1. **Balance provenance:** Prototype values come from the approved Game Design 3.9 first-pass baselines, but the complete v0.2 Excel data is not embedded yet. Only sample archetypes and mandatory technologies are represented.
 2. **Economic model:** Workers harvest from abstract resources at rates; no hauling/pathing or finite per-tile deposits yet. Farm/forester limits and upkeep exist as explicit commands, not physical worker navigation.
-3. **Research:** 12 mandatory nodes are implemented, plus generic optional nodes supplied at runtime. The 90-node faction technology trees are not fully installed. Mandatory research cost/time uses provisional starter numbers.
+3. **Research:** 12 mandatory nodes are implemented, plus generic optional nodes supplied at runtime. The 90-node faction technology trees are not fully installed. Mandatory research cost/time is aligned to reconciled workbook v0.2; the complete optional research catalog remains pending.
 4. **Combat:** Damage calculations and unit HP are deterministic; target movement, line of sight, projectiles, pathing, attacks per second and splash geometry are not implemented. Attack frequency must be enforced by the future authoritative order scheduler.
 5. **Production:** Simplified elapsed-time queues, pop cap checks and unique unit reservations are implemented. Production building line-of-sight and spawn collision are outside this stage.
 6. **Healing:** No passive health regen. Active healer methods and engineer repairs are explicit; specialized abilities are forthcoming.
