@@ -31,5 +31,6 @@ test("starting resources and population are the design baseline",()=>{
 test("unknown commands fail closed",()=>{
  const m=createMatch(participants);
  assert.throws(()=>command(m,{player:"a",action:"teleport"}),/Unknown action/);
+ assert.throws(()=>command(m,{player:"a",action:"income",amount:{Gold:999}}),/Developer-only/);
  assert.throws(()=>command(m,{player:"nobody",action:"allocate",workers:{}}),/Unknown player/);
 });
