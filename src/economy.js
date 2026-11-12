@@ -11,7 +11,7 @@ export function gather(player,deltaMs,{farmWorkers=0,foresterWorkers=0,materialP
   const enabled={"Food":true,"Wood":true,"Stone":true,"Metal":player.age!=="I","Gold":true,"Aether":["III","IV","V"].includes(player.age)};
   for(const k of RESOURCES){
     let amount=(enabled[k]?player.workers[k]*RATES[k]*deltaMs/1000:0);
-    if(k==="Food")amount+=farmWorkers*.7*deltaMs/1000;
+    if(k==="Food")amount+=farmWorkers*(.7-RATES.Food)*deltaMs/1000;
     if(k===materialChoice&&player.age==="V")amount+=materialPlants*(k==="Stone"?.3:.2)*deltaMs/1000;
     if(k==="Aether"&&player.age==="V")amount+=condensers*.08*deltaMs/1000;
     const combined=(player.workerIncomeRemainder[k]??0)+amount;
@@ -21,9 +21,12 @@ export function gather(player,deltaMs,{farmWorkers=0,foresterWorkers=0,materialP
   }
   // Explicit active recovery requires upkeep; never free Stone/Metal/Aether.
   if(deltaMs>0&&(materialPlants||condensers)){
-    const goldCost=Math.ceil((materialPlants*.06+condensers*.08)*deltaMs/1000);
-    const foodCost=Math.ceil(materialPlants*.04*deltaMs/1000);
+    const goldExact=player.workerUpkeepRemainder.Gold+(materialPlants*.06+condensers*.08)*deltaMs/1000;
+    const foodExact=player.workerUpkeepRemainder.Food+materialPlants*.04*deltaMs/1000;
+    const goldCost=Math.floor(goldExact+1e-10), foodCost=Math.floor(foodExact+1e-10);
     if(goldCost||foodCost)spend(player.resources,{Gold:goldCost,Food:foodCost});
+    player.workerUpkeepRemainder.Gold=goldExact-goldCost;
+    player.workerUpkeepRemainder.Food=foodExact-foodCost;
   }
 }
 export function transfer(from,to,cost){
