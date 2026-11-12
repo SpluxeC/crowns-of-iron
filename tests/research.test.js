@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createMatch,command,step} from "../src/simulation.js";
+import {createMatch,command,debugCommand,step} from "../src/simulation.js";
 const participants=[{id:"a",faction:"Humans"},{id:"b",faction:"Ursa"}];
 test("mandatory research progresses exactly three discoveries per age",()=>{
  const m=createMatch(participants);
@@ -31,6 +31,6 @@ test("cancellation refunds 100% unstarted and 75% started",()=>{
 test("future age research is locked and only correct facilities can research",()=>{
  const m=createMatch(participants);
  assert.throws(()=>command(m,{player:"a",action:"research",facility:"Town Center",id:"CIV-04"}),/age/);
- command(m,{player:"a",action:"facility",name:"Forge"});
+ debugCommand(m,{player:"a",action:"facility",name:"Forge"});
  assert.throws(()=>command(m,{player:"a",action:"research",facility:"Forge#1",id:"CIV-01"}),/Facility/);
 });
