@@ -1,6 +1,22 @@
 import {ALL_ARCHETYPES} from "./extendedCatalog.js";
 import {makeUnit,nextId} from "./state.js";
 import {assert,ageIndex,spend,refund} from "./util.js";
+const PRODUCTION_LOCATIONS={
+"Worker":["Town Center"],"Scout":["Town Center","Training Camp"],
+"Club Fighter":["Training Camp"],"Stone Slinger":["Training Camp"],"Stone Spearman":["Training Camp"],
+"Swordsman":["Barracks"],"Archer":["Archery Range"],"Pikeman":["Barracks"],"Raider":["Barracks"],
+"Heavy Infantry":["Barracks"],"Heavy Mobile":["Barracks"],
+"Battering Ram":["Siege Workshop"],"Siege Tower":["Siege Workshop"],
+"Healer":["Support Sanctuary"],"Converter":["Support Sanctuary"],"Hero":["Support Sanctuary"],
+"Gunner":["Barracks","Foundry"],"Heavy Artillery":["Siege Workshop","Foundry"],
+"Anti-Air Infantry":["Barracks"],"Mechanized Infantry":["Foundry","Grand Factory"],
+"Heavy War Machine":["Grand Factory"],"Legendary Land":["Grand Factory"],
+"Raft":["Dock"],"Fishing Vessel":["Dock"],"Trade Ship":["Dock"],"Transport Ship":["Dock"],
+"Light Warship":["Dock","Shipyard"],"Heavy Warship":["Shipyard"],"Naval Siege Ship":["Shipyard"],
+"Legendary Warship":["Advanced Shipyard"],"Scout Aircraft":["Airship Hangar"],
+"Interceptor":["Airship Hangar"],"Gunship":["Airship Hangar"],"Bomber":["Airship Hangar"],
+"Air Transport":["Airship Hangar"],"Aerial Battleship":["Airship Hangar"]
+};
 export function reserveUnique(player,role){
   const active=player.units.some(u=>u.alive&&u.archetype===role);
   const queued=Object.values(player.unitQueues).some(q=>q.some(j=>j.role===role));
@@ -10,6 +26,7 @@ export function queueUnit(player,facility,role,definition=ALL_ARCHETYPES[role]){
   assert(player.alive&&!player.defeated,"Player eliminated");
   const jobs=player.unitQueues[facility];assert(jobs,"Missing production facility");
   assert(definition,"Unknown unit role");
+  assert((PRODUCTION_LOCATIONS[role]??[]).includes(facility.split("#")[0]),"Wrong production building");
   assert(ageIndex(player.age)>=ageIndex(definition.age),"Unit age locked");
   assert(jobs.length<10,"Recruitment queue full");
   if(definition.unique)reserveUnique(player,role);
