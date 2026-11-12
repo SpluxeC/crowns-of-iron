@@ -10,6 +10,14 @@ export function queueResearch(player,facility,id,catalog=knownResearch){
   const def=researchDefinition(id,catalog);
   assert(ageIndex(player.age)>=ageIndex(def.age),"Research not unlocked by age");
   assert(!player.completed.includes(id),"Already researched");
+  if(def.exclusive){
+    for(const other of catalog.values()){
+      if(other.id===id||other.exclusive!==def.exclusive)continue;
+      assert(!player.completed.includes(other.id),"Conflicting exclusive research completed");
+      for(const queue of Object.values(player.researchQueues))
+        assert(!queue.some(j=>j.id===other.id),"Conflicting exclusive research queued");
+    }
+  }
   for(const jobs of Object.values(player.researchQueues))assert(!jobs.some(j=>j.id===id),"Already queued");
   const eligible=def.locations??(def.id.startsWith("CIV-")?["Town Center"]:[]);
   const baseName=facility.split("#")[0];
