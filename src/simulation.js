@@ -5,9 +5,10 @@ import {queueUnit,tickProduction,cancelUnit} from "./production.js";
 import {strike,heal,repair,tickStatuses} from "./combat.js";
 import {assert,clone,hash} from "./util.js";
 export {createMatch};
-export function command(match,input){
+export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
   const {player:id,action}=input;
+  if(["income","popCap","facility"].includes(action))assert(allowDebug,"Developer-only action");
   const player=getPlayer(match,id);
   assert(player.alive&&!player.defeated,"Player eliminated");
   let result;
@@ -20,13 +21,14 @@ export function command(match,input){
     case "cancelResearch":result=cancelResearch(player,input.facility,input.id);break;
     case "train":result=queueUnit(player,input.facility,input.role);break;
     case "cancelTrain":result=cancelUnit(player,input.facility,input.index);break;
-    case "attack":result=strike(player,getPlayer(match,input.targetPlayer),input.attacker,input.target,{canHitAir:input.canHitAir,specialist:input.specialist});break;
+    case "attack":result=strike(player,getPlayer(match,input.targetPlayer),input.attacker,input.target,{nowMs:match.elapsedMs});break;
     case "heal":result=heal(player,input.healers,input.target);break;
     case "repair":result=repair(player,input.workers,input.target,input.amount);break;
     default:throw new Error("Unknown action: "+action);
   }
   match.commands.push(clone(input));return result;
 }
+export function debugCommand(match,input){return command(match,input,{allowDebug:true});}
 export function checkElimination(match,deltaMs){
   for(const p of match.players){
     if(p.defeated)continue;
