@@ -12,6 +12,8 @@ Node.js 22+. No package installation or external runtime dependencies.
 npm test
 npm run demo
 npm run validate
+npm run inspect       # local 2D browser inspector (not the final game)
+npm run map-demo
 ```
 
 ## What's included
