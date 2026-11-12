@@ -8,6 +8,15 @@ export function gather(player,deltaMs,{farmWorkers=0,foresterWorkers=0,materialP
   assert(Number.isSafeInteger(materialPlants)&&materialPlants>=0&&materialPlants<=3,"Invalid recovery plant count");
   assert(["Stone","Metal"].includes(materialChoice),"Invalid recovery target");
   assert(Number.isSafeInteger(condensers)&&condensers>=0&&condensers<=2,"Invalid condenser count");
+  // If a recovery facility cannot afford upkeep, it shuts off for this tick.
+  // Preflight before any ordinary gathering to avoid partially-mutated state.
+  if(deltaMs>0&&(materialPlants||condensers)){
+    const predictedGold=Math.ceil(player.workerUpkeepRemainder.Gold+(materialPlants*.06+condensers*.08)*deltaMs/1000-1e-10);
+    const predictedFood=Math.ceil(player.workerUpkeepRemainder.Food+materialPlants*.04*deltaMs/1000-1e-10);
+    if(player.resources.Gold<predictedGold||player.resources.Food<predictedFood){
+      materialPlants=0;condensers=0;
+    }
+  }
   const enabled={"Food":true,"Wood":true,"Stone":true,"Metal":player.age!=="I","Gold":true,"Aether":["III","IV","V"].includes(player.age)};
   for(const k of RESOURCES){
     let amount=(enabled[k]?player.workers[k]*RATES[k]*deltaMs/1000:0);
