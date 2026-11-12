@@ -1,4 +1,4 @@
-import {ARCHETYPES} from "./catalog.js";
+import {ALL_ARCHETYPES} from "./extendedCatalog.js";
 import {makeUnit,nextId} from "./state.js";
 import {assert,ageIndex,spend,refund} from "./util.js";
 export function reserveUnique(player,role){
@@ -6,7 +6,7 @@ export function reserveUnique(player,role){
   const queued=Object.values(player.unitQueues).some(q=>q.some(j=>j.role===role));
   assert(!active&&!queued,"Unique unit already active or queued");
 }
-export function queueUnit(player,facility,role,definition=ARCHETYPES[role]){
+export function queueUnit(player,facility,role,definition=ALL_ARCHETYPES[role]){
   assert(player.alive&&!player.defeated,"Player eliminated");
   const jobs=player.unitQueues[facility];assert(jobs,"Missing production facility");
   assert(definition,"Unknown unit role");
