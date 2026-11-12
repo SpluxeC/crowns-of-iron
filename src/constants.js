@@ -14,18 +14,18 @@ export const COUNTERS = Object.freeze({
   Corruption:[1,1,1,.75,1.25,.75,.75,.75]
 });
 export const mandatory = Object.freeze([
-  {id:"CIV-01",name:"Toolmaking",age:"I",cost:{"Wood":90},ms:45000},
-  {id:"CIV-02",name:"Organized Gathering",age:"I",cost:{"Food":175,"Wood":70},ms:75000,requires:["CIV-01"]},
-  {id:"CIV-03",name:"Permanent Settlements",age:"I",cost:{"Food":250,"Wood":90,"Stone":100},ms:90000,requires:["CIV-02"]},
-  {id:"CIV-04",name:"Metalworking",age:"II",cost:{"Food":162,"Wood":91},ms:74000},
-  {id:"CIV-05",name:"Agriculture",age:"II",cost:{"Food":208,"Wood":117},ms:81000,requires:["CIV-04"]},
-  {id:"CIV-06",name:"Organized Warfare",age:"II",cost:{"Food":208,"Stone":117,"Metal":52},ms:88000,requires:["CIV-04"]},
-  {id:"CIV-07",name:"Advanced Engineering",age:"III",cost:{"Food":402,"Wood":210,"Stone":210,"Metal":88},ms:153000},
-  {id:"CIV-08",name:"Scholarly Institutions",age:"III",cost:{"Food":350,"Wood":210,"Stone":175,"Gold":175},ms:153000,requires:["CIV-07"]},
-  {id:"CIV-09",name:"Complex Machinery",age:"III",cost:{"Food":420,"Stone":175,"Metal":262,"Gold":140},ms:170000,requires:["CIV-07"]},
-  {id:"CIV-10",name:"Industrial Production",age:"IV",cost:{"Food":602,"Stone":280,"Metal":452,"Gold":258},ms:207000},
-  {id:"CIV-11",name:"Steam Power",age:"IV",cost:{"Food":516,"Stone":322,"Metal":538,"Gold":280},ms:216000,requires:["CIV-10"]},
-  {id:"CIV-12",name:"Experimental Aeronautics",age:"IV",cost:{"Food":538,"Wood":215,"Metal":494,"Gold":387},ms:225000,requires:["CIV-10"]}
+  {id:"CIV-01",name:"Toolmaking",age:"I",cost:{"Wood":90},ms:45000,locations:["Town Center"]},
+  {id:"CIV-02",name:"Organized Gathering",age:"I",cost:{"Food":175,"Wood":70},ms:75000,locations:["Town Center"],requires:["CIV-01"]},
+  {id:"CIV-03",name:"Permanent Settlements",age:"I",cost:{"Food":250,"Wood":90,"Stone":100},ms:90000,locations:["Town Center"],requires:["CIV-02"]},
+  {id:"CIV-04",name:"Metalworking",age:"II",cost:{"Food":162,"Wood":91},ms:74000,locations:["Town Center","Forge"]},
+  {id:"CIV-05",name:"Agriculture",age:"II",cost:{"Food":208,"Wood":117},ms:81000,locations:["Town Center","Farm"],requires:["CIV-04"]},
+  {id:"CIV-06",name:"Organized Warfare",age:"II",cost:{"Food":208,"Stone":117,"Metal":52},ms:88000,locations:["Town Center","Barracks"],requires:["CIV-04"]},
+  {id:"CIV-07",name:"Advanced Engineering",age:"III",cost:{"Food":402,"Wood":210,"Stone":210,"Metal":88},ms:153000,locations:["Town Center","Academy","Siege Workshop"]},
+  {id:"CIV-08",name:"Scholarly Institutions",age:"III",cost:{"Food":350,"Wood":210,"Stone":175,"Gold":175},ms:153000,locations:["Town Center","Academy"],requires:["CIV-07"]},
+  {id:"CIV-09",name:"Complex Machinery",age:"III",cost:{"Food":420,"Stone":175,"Metal":262,"Gold":140},ms:170000,locations:["Town Center","Academy","Forge"],requires:["CIV-07"]},
+  {id:"CIV-10",name:"Industrial Production",age:"IV",cost:{"Food":602,"Stone":280,"Metal":452,"Gold":258},ms:207000,locations:["Town Center","Foundry","Academy"]},
+  {id:"CIV-11",name:"Steam Power",age:"IV",cost:{"Food":516,"Stone":322,"Metal":538,"Gold":280},ms:216000,locations:["Town Center","Foundry"],requires:["CIV-10"]},
+  {id:"CIV-12",name:"Experimental Aeronautics",age:"IV",cost:{"Food":538,"Wood":215,"Metal":494,"Gold":387},ms:225000,locations:["Town Center","Academy","Airship Hangar"],requires:["CIV-10"]}
 ]);
 export const AGE_GATE = Object.freeze({
   I:["CIV-01","CIV-02","CIV-03"],
