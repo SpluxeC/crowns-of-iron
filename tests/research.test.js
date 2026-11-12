@@ -26,7 +26,7 @@ test("cancellation refunds 100% unstarted and 75% started",()=>{
  command(m,{player:"a",action:"research",facility:"Town Center",id:"CIV-01"});
  step(m,10000);
  command(m,{player:"a",action:"cancelResearch",facility:"Town Center",id:"CIV-01"});
- assert.equal(p.resources.Food,250-Math.ceil(75*.25)+0); // integer refunds floor; 75 spent, 56 returned =231
+ assert.equal(p.resources.Food,253); // 22 Food gathered while researching plus a 56-Food refund
 });
 test("future age research is locked and only correct facilities can research",()=>{
  const m=createMatch(participants);
