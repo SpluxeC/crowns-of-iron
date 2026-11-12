@@ -34,3 +34,11 @@ test("unknown commands fail closed",()=>{
  assert.throws(()=>command(m,{player:"a",action:"income",amount:{Gold:999}}),/Developer-only/);
  assert.throws(()=>command(m,{player:"nobody",action:"allocate",workers:{}}),/Unknown player/);
 });
+
+test("recovery plant shuts down cleanly when there is no upkeep Gold",()=>{
+ const m=createMatch(participants),p=m.players[0];
+ p.age="V";p.resources.Gold=0;
+ step(m,10000,{economy:{a:{materialPlants:3,materialChoice:"Stone"}}});
+ assert.equal(p.resources.Stone,100);
+ assert.ok(p.resources.Food>250);
+});
