@@ -6,7 +6,7 @@ export function createPlayer(id,faction,team=id){
   const player={
     id,faction,team,age:"I",resources:clone(STARTING),popUsed:4,popCap:20,
     alive:true,lastStandMs:null,defeated:false,
-    workers:{Food:3,Wood:0,Stone:0,Metal:0,Gold:0,Aether:0},workerIncomeRemainder:{},
+    workers:{Food:3,Wood:0,Stone:0,Metal:0,Gold:0,Aether:0},workerIncomeRemainder:{},workerUpkeepRemainder:{Gold:0,Food:0},
     completed:[],researchQueues:{"Town Center":[]},unitQueues:{"Town Center":[]},
     facilities:{"Town Center":1},units:[],history:[]
   };
