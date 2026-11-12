@@ -4,18 +4,22 @@ import {killUnit} from "./state.js";
 export function damage(attack,armor,type="Slash",targetCategory="Standard",specialist=0){
   assert(Number.isFinite(attack)&&attack>=0&&Number.isFinite(armor),"Invalid combat stats");
   const table=COUNTERS[type];assert(table,"Unknown damage type");
-  const index=CATEGORY.indexOf(targetCategory);assert(index>=0,"Unknown target category");
+  const index=CATEGORY.indexOf(targetCategory);assert(index>=0||targetCategory==="Air","Unknown target category");
   if(attack===0)return 0;
-  const multiplier=Math.max(table[index],specialist||0);
+  const multiplier=Math.max(index<0?1:table[index],specialist||0);
   return Math.max(1,Math.floor(attack*multiplier*100/(100+Math.max(0,armor))));
 }
-export function strike(owner,targetOwner,attackerId,targetId,{canHitAir=false,specialist=0}={}){
+export function strike(owner,targetOwner,attackerId,targetId,{nowMs=0}={}){
   const attacker=owner.units.find(u=>u.id===attackerId&&u.alive);
   const target=targetOwner.units.find(u=>u.id===targetId&&u.alive);
   assert(attacker&&target,"Missing living attacker or target");
   assert(owner.id!==targetOwner.id,"Cannot attack own unit");
-  if(target.category==="Air")assert(canHitAir,"Air target ineligible");
+  const antiAir=["Anti-Air Infantry","Interceptor","Gunship","Aerial Battleship"];
+  if(target.category==="Air")assert(antiAir.includes(attacker.archetype),"Air target ineligible");
+  assert((attacker.nextAttackAtMs??0)<=nowMs,"Attack on cooldown");
+  const specialist=target.category==="Air"&&["Anti-Air Infantry","Interceptor"].includes(attacker.archetype)?1.5:0;
   const hit=damage(attacker.attack,target.armor,attacker.type,target.category,specialist);
+  attacker.nextAttackAtMs=nowMs+2000;
   target.hp=Math.max(0,target.hp-hit);
   if(target.hp===0)killUnit(targetOwner,target.id);
   return hit;
