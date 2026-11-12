@@ -17,7 +17,7 @@ test("seeded RNG is repeatable and bounded",()=>{
  for(let i=0;i<100;i++)assert.equal(a.int(7),b.int(7));
 });
 test("identical command/tick streams have identical checksums",()=>{
- const events=[{player:"a",action:"allocate",workers:{Food:2,Wood:1}},{kind:"step",ms:10000},{player:"a",action:"research",facility:"Town Center",id:"CIV-01"},{kind:"step",ms:20000}];
+ const events=[{player:"a",action:"allocate",workers:{Food:2,Wood:1}},{kind:"step",ms:10000},{player:"a",action:"research",facility:"Town Center",id:"CIV-01"},{kind:"step",ms:45000}];
  const a=replay(participants,7,events),b=replay(participants,7,events);
  assert.equal(checksum(a),checksum(b));
  assert.deepEqual(a.players[0].completed,["CIV-01"]);
