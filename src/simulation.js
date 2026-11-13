@@ -47,6 +47,15 @@ export function command(match,input,{allowDebug=false}={}){
       ? issueAttack(match,id,input.attacker,input.targetPlayer,input.target)
       : strike(player,getPlayer(match,input.targetPlayer),input.attacker,input.target,{nowMs:match.elapsedMs});break;
     case "move":result=issueMove(match,id,input.unitId,input.x,input.y);break;
+    case "stop":{
+      assert(typeof input.unitId==="string","Invalid stop unit");
+      const own=player.units.find(u=>u.id===input.unitId&&u.alive);
+      assert(own,"Unit not owned or alive");
+      const previous=match.orders?.[own.id]??null;
+      if(match.orders)delete match.orders[own.id];
+      result={unitId:own.id,stopped:!!previous};
+      break;
+    }
     case "build":result=startConstruction(match,id,input.kind,input.x,input.y,input.workers);break;
     case "cancelBuild":result=cancelConstruction(match,id,input.siteId);break;
     case "harvest":result=harvestDeposit(match,id,input.workerId,input.x,input.y);break;

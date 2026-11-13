@@ -1,5 +1,7 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {createVersionDecoder} from "/streamProtocol.js";
+import {attackOrders,stopOrders,selectedVisibleEnemy} from "/combatOrders.js";
+import {createPerformanceTelemetry,formatTiming} from "/perfTelemetry.js";
 import {chooseAtTile,unitsInTileRectangle,updateSelection,selectByRole,recallGroup,makeFormationPayload} from "/unitSelection.js";
 import {chooseBuilder,queueSummary,formatCost,catalogBuildings,
  catalogTraining,catalogResearch,researchRequest,trainingRequest} from "/clientRules.js";
@@ -10,7 +12,7 @@ const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
 let token=null,abort=null,pollTimer=null,state=null,room=null,catalog=null,playerId=null,nextSequence=1,version=0;
 let renderer=null,view3d=false,selected=new Set(),mode="select",pending=false,refreshing=false,refreshAgain=false;
 let drag=null,boxDrag=null,ignoreClick=false;
-const controlGroups=new Map();
+const controlGroups=new Map(),telemetry=createPerformanceTelemetry({limit:120});
 function log(message){
  const div=document.createElement("div");
  div.textContent="["+new Date().toLocaleTimeString()+"] "+message;
@@ -61,10 +63,12 @@ function draw2d(){
  }
 }
 function draw(){
+ const start=performance.now();
  canvas.hidden=view3d;canvas3d.hidden=!view3d;
  if(view3d&&renderer&&state?.battlefield)
   renderer.draw(state.battlefield,{players:state.players,viewerId:playerId},selected);
  else draw2d();
+ telemetry.record(view3d?"webgl-submit":"canvas-2d",performance.now()-start);
 }
 function info(){
  const p=own(),ready=!!room?.players?.find(p=>p.id===playerId)?.ready;
@@ -89,6 +93,7 @@ function info(){
  setButton("connect",!token&&!pending);
  const playing=!!token&&!pending&&room?.started&&!state?.winner;
  for(const id of ["move","formation","attack"])setButton(id,playing&&selected.size>0);
+ setButton("stop",playing&&selected.size>0);
  setButton("workers",playing);setButton("military",playing);
  const choices=catalogTraining(catalog),buildings=catalogBuildings(catalog),
   availableResearch=catalogResearch(catalog,$("researchFilter").value);
@@ -148,6 +153,10 @@ function info(){
   .filter(Boolean).map(u=>u.archetype+" ["+u.hp+"/"+u.maxHp+" HP]");
  text("selection",details.length?selected.size+" units: "+details.slice(0,6).join(", ")+
   (details.length>6?" …":""):"No units selected");
+ text("perf","Canvas 2D: "+formatTiming(telemetry.summary("canvas-2d"))+
+  " · WebGL CPU submit: "+formatTiming(telemetry.summary("webgl-submit"))+
+  " · HTTP requests: "+formatTiming(telemetry.summary("http"))+
+  (renderer?" · Terrain GPU rebuilds: "+renderer.stats().terrainRebuilds:""));
  text("groups",Array.from({length:4},(_,i)=>
   (i+1)+": "+(controlGroups.get(String(i+1))?.length??0)).join(" · "));
  $("resources").replaceChildren();
@@ -158,10 +167,12 @@ function info(){
 }
 async function api(path,method="GET",payload){
  if(!token)throw Error("Connect first");
+ const start=performance.now();
  const result=await fetch(path,{method,
   headers:{"x-session-token":token,"Content-Type":"application/json"},
   body:method==="GET"?undefined:JSON.stringify(payload??{})});
  const data=await result.json();
+ telemetry.record("http",performance.now()-start);
  if(!result.ok)throw Error(data.error||"Request failed ("+result.status+")");
  return data;
 }
@@ -236,7 +247,7 @@ function disconnect(){
  abort?.abort();abort=null;
  if(pollTimer!==null){clearInterval(pollTimer);pollTimer=null;}
  token=null;state=null;room=null;catalog=null;playerId=null;
- selected.clear();controlGroups.clear();mode="select";view3d=false;
+ selected.clear();controlGroups.clear();telemetry.reset();mode="select";view3d=false;
  pending=false;refreshing=false;
  draw();info();log("Disconnected. No session token saved.");
 }
@@ -251,6 +262,11 @@ async function send(action,payload,description){
  if(!room?.started||!token||pending)return;
  const seq=nextSequence;
  await post("/command",{sequence:seq,action,payload},description);
+}
+async function sendBatch(orders,description){
+ if(!room?.started||!token||pending||!orders.length)return;
+ await post("/command-batch",{expectedVersion:version,orders},description+
+  " ("+orders.length+" units)");
 }
 function clickedTile(ev){
  if(!state?.battlefield||!room?.started)return;
@@ -278,13 +294,14 @@ function click(ev){
     send("build",{kind:$("buildChoice").value,...tile,
      workers:[builder.id]},"Building construction started");
    else log("Select a living, positioned Worker first.");
-  }else if(commandMode==="attack"&&selected.size===1){
-   const enemy=state.players.filter(p=>p.id!==playerId&&p.team!==own()?.team)
-    .flatMap(p=>(p.units??[]).filter(u=>u.alive&&u.x===tile.x&&u.y===tile.y)
-      .map(u=>({unit:u,owner:p.id})))[0];
-   if(enemy)send("attack",{attacker:[...selected][0],
-     targetPlayer:enemy.owner,target:enemy.unit.id},"Attack order sent");
-   else log("No visible enemy unit at that tile.");
+  }else if(commandMode==="attack"&&selected.size){
+   const enemy=selectedVisibleEnemy(state,playerId,tile.x,tile.y);
+   if(enemy){
+    const orders=attackOrders(own(),selected,enemy.targetPlayer,enemy.targetId,nextSequence);
+    if(orders.length)sendBatch(orders,"Attack orders sent");
+    else log("No living, armed and positioned attackers selected.");
+    if(selected.size>16)log("Group combat batch is limited to 16 units; split larger squads.");
+   }else log("No visible enemy unit at that tile.");
   }else log("Select one unit for this command.");
  }else{
   const ownUnit=chooseAtTile(own(),tile);
@@ -316,6 +333,11 @@ $("research").addEventListener("click",()=>{
 });
 for(const id of ["trainChoice","buildChoice","researchChoice","researchFilter"])
  $(id).addEventListener("change",()=>info());
+$("stop").addEventListener("click",()=>{
+ const orders=stopOrders(own(),selected,nextSequence);
+ if(orders.length)sendBatch(orders,"Stopped current orders");
+ if(selected.size>16)log("Stop batch limited to 16 units; select the rest separately.");
+});
 $("workers").addEventListener("click",()=>{
  selected=new Set(selectByRole(own(),"workers"));mode="select";draw();info();
 });

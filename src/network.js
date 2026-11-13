@@ -10,7 +10,7 @@ import {playerCommandCatalog} from "./commandCatalog.js";
 // Local authoritative protocol prototype; no public deployment, matchmaking,
 // dedicated authorization backend or production fog-of-war guarantees.
 const COMMANDS=new Set(["allocate","research","cancelResearch","train","cancelTrain",
-  "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","formation","siege","seaTrade","cancelSeaTrade","embark","disembark","deployRamp","assaultBattlement","convert","surveyAether","aetherPulse","disrupt","hospitalHeal","vehicleRepair","ability"]);
+  "move","stop","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","formation","siege","seaTrade","cancelSeaTrade","embark","disembark","deployRamp","assaultBattlement","convert","surveyAether","aetherPulse","disrupt","hospitalHeal","vehicleRepair","ability"]);
 export class MatchHost{
   constructor(participants,seed=1,{requireReady=false}={}){
     assert(typeof requireReady==="boolean","Invalid lobby configuration");

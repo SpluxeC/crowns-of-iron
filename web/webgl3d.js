@@ -39,6 +39,13 @@ export function terrainSignature(world){
   mix(t.occupied?1:0);mix(t.resource?1:0);
  }
  mix(world.width);mix(world.height);
+ // Building kind, position and footprint affect the cached roofline geometry
+ // even when an occupied tile remains occupied across a structure upgrade.
+ const mixText=value=>{for(const char of String(value))mix(char.charCodeAt(0));mix(0);};
+ for(const site of world.structures??[]){
+  mixText(site.id);mixText(site.kind);mix(site.x);mix(site.y);
+  mix(site.width);mix(site.height);
+ }
  return (hash>>>0).toString(16);
 }
 export const heightFor=t=>t?.terrain==="hill"?2.2:t?.terrain==="forest"?.75:
@@ -62,6 +69,29 @@ export function raycastTerrain(cam,px,py,width,height,world){
   }
  }
  return best;
+}
+/** Procedural low-poly descriptors: role-readable silhouettes, not finished art. */
+export function unitRoleVisual(unit){
+ const role=unit?.archetype??"";
+ if(role==="Worker")return {role:"worker",head:.22,shoulder:.25,accessory:"pack"};
+ if(role==="Hero"||role.startsWith("Legendary"))
+  return {role:"hero",head:.34,shoulder:.56,accessory:"banner"};
+ if(["Archer","Stone Slinger","Gunner","Anti-Air Infantry","Scout"].includes(role))
+  return {role:"ranged",head:.24,shoulder:.32,accessory:"ranged"};
+ if(["Battering Ram","Siege Tower","Heavy Artillery","Heavy War Machine"].includes(role))
+  return {role:"siege",head:0,shoulder:.60,accessory:"turret"};
+ if(["Raft","Fishing Vessel","Trade Ship","Transport Ship","Light Warship",
+ "Heavy Warship","Naval Siege Ship","Legendary Warship"].includes(role))
+  return {role:"ship",head:0,shoulder:.68,accessory:"mast"};
+ if(["Scout Aircraft","Interceptor","Gunship","Bomber","Air Transport",
+ "Aerial Battleship"].includes(role))
+  return {role:"air",head:0,shoulder:.72,accessory:"wings"};
+ return {role:"infantry",head:.24,shoulder:.36,accessory:"shield"};
+}
+export function healthSegments(unit,segments=5){
+ const maximum=Math.max(1,Number(unit?.maxHp)||1);
+ const ratio=Math.max(0,Math.min(1,(Number(unit?.hp)||0)/maximum));
+ return Array.from({length:segments},(_,i)=>i<Math.ceil(segments*ratio));
 }
 export function unitVisual(unit){
  const air=new Set(["Scout Aircraft","Interceptor","Gunship","Bomber","Air Transport","Aerial Battleship"]);
@@ -145,6 +175,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    const key=terrainSignature(world);
    if(key!==terrainKey){
     const verts=[];
+    const modeled=new Set((world.structures??[]).map(s=>s.id));
     for(const t of world.tiles){
     const base=heightFor(t);
     cube(verts,t.x+.5,t.y+.5,1,-.65,base,TERRAIN[t.terrain]??"#4b795e");
@@ -152,7 +183,22 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      cube(verts,t.x+.5,t.y+.5,.47,base,base+.3,"#dec57a");
     if(t.terrain==="forest")
      cube(verts,t.x+.5,t.y+.5,.30,base,base+1.6,"#9d8156");
-    if(t.occupied)cube(verts,t.x+.5,t.y+.5,.84,base,base+2.4,"#c2baa7");
+    if(t.occupied&&!modeled.has(t.occupied))
+     cube(verts,t.x+.5,t.y+.5,.84,base,base+2.4,"#c2baa7");
+    }
+    for(const site of world.structures??[]){
+     if(!Number.isInteger(site.x)||!Number.isInteger(site.y))continue;
+     const width=Math.max(1,Math.min(8,Number(site.width)||2)),
+      height=Math.max(1,Math.min(8,Number(site.height)||2));
+     const x=site.x+width/2,z=site.y+height/2;
+     const base=heightFor(world.tiles[site.y*world.width+site.x]);
+     const isDefense=/Wall|Gate|Tower|Fort|Rampart|Bastion|Palisade/i.test(site.kind);
+     const tower=/Tower|Fort|Bastion|Hangar/i.test(site.kind);
+     cube(verts,x,z,Math.min(width,height)*.82,base,base+(tower?3.3:isDefense?2.2:1.9),
+      isDefense?"#9eadaf":"#bda484");
+     cube(verts,x,z,Math.min(width,height)*.9,base+(tower?3.3:isDefense?2.2:1.9),
+      base+(tower?3.6:isDefense?2.35:2.25),
+      isDefense?"#74838e":"#876a52");
     }
     const data=new Float32Array(verts);
     gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
@@ -166,8 +212,34 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     const style=unitVisual(u),bottom=base+style.offset;
     if(selectedUnits.has(u.id))
       cube(verts,u.x+.5,u.y+.5,.76,base,base+.10,"#fce57d");
-    cube(verts,u.x+.5,u.y+.5,style.width,bottom,bottom+style.height,
-     selectedUnits.has(u.id)?"#fce57d":p.id===match.viewerId?"#c5eeff":"#f58a7c");
+    const teamColor=selectedUnits.has(u.id)?"#fce57d":
+     p.id===match.viewerId?"#c5eeff":"#f58a7c";
+    const detail=unitRoleVisual(u),cx=u.x+.5,cz=u.y+.5,top=bottom+style.height;
+    cube(verts,cx,cz,style.width,bottom,top,teamColor);
+    if(detail.head)cube(verts,cx,cz,detail.head,top,top+.32,
+      selectedUnits.has(u.id)?"#fff0b4":"#d3bba1");
+    if(detail.accessory==="pack")
+     cube(verts,cx-.20,cz-.14,.24,bottom+.35,bottom+.72,"#8e6b3f");
+    if(detail.accessory==="shield")
+     cube(verts,cx+.25,cz,.24,bottom+.26,bottom+.92,"#8797a3");
+    if(detail.accessory==="ranged")
+     cube(verts,cx+.25,cz,.12,bottom+.30,bottom+1.12,"#e1c390");
+    if(detail.accessory==="banner")
+     cube(verts,cx+.35,cz,.16,bottom+.3,top+.7,"#dfb967");
+    if(detail.accessory==="turret")
+     cube(verts,cx,cz,.30,top,top+.32,"#8b989e");
+    if(detail.accessory==="mast")
+     cube(verts,cx,cz,.13,top,top+.8,"#d9c3a2");
+    if(detail.accessory==="wings"){
+     cube(verts,cx-.40,cz,.33,bottom+.15,top-.12,"#859fac");
+     cube(verts,cx+.40,cz,.33,bottom+.15,top-.12,"#859fac");
+    }
+    if(u.hp<u.maxHp||selectedUnits.has(u.id)){
+     const segments=healthSegments(u);
+     for(let i=0;i<segments.length;i++)
+      cube(verts,cx+(i-2)*.15,cz,.12,top+.45,top+.55,
+       segments[i]?"#78d59a":"#b95453");
+    }
    }
    const data=new Float32Array(verts);
    gl.viewport(0,0,canvas.width,canvas.height);
