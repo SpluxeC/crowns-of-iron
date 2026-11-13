@@ -3,12 +3,17 @@ import {getPlayer} from "./state.js";
 import {ATTACK_PROFILE} from "./battlefield.js";
 import {damage} from "./combat.js";
 import {destroyToRuin} from "./ruins.js";
+import {hasLineOfSight} from "./tacticalNavigation.js";
 
 const timber=new Set(["Shelter","Resource Depot","Training Camp","Farm","Archery Range"]);
 function distToSite(unit,placement){
   const dx=Math.max(placement.x-unit.x,0,unit.x-(placement.x+placement.width-1));
   const dy=Math.max(placement.y-unit.y,0,unit.y-(placement.y+placement.height-1));
   return dx+dy;
+}
+function structureAim(unit,placement){
+ return {x:Math.max(placement.x,Math.min(unit.x,placement.x+placement.width-1)),
+   y:Math.max(placement.y,Math.min(unit.y,placement.y+placement.height-1))};
 }
 function targetSite(match,siteId){
   const site=match.constructions?.[siteId];
@@ -30,6 +35,8 @@ export function orderStructureAttack(match,owner,unitId,siteId){
   const range=unit.range??(ATTACK_PROFILE[unit.archetype]?.[0]??0);
   assert(unit.attack>0&&range>0,"Unit has no siege-capable direct attack");
   assert(distToSite(unit,location)<=range,"Target structure out of weapon range");
+  assert(range<=1||hasLineOfSight(match.battlefield,unit,structureAim(unit,location)),
+    "Structure blocked by line of sight");
   match.orders[unitId]={kind:"structure",siteId};
   return true;
 }
@@ -45,7 +52,9 @@ export function tickStructureCombat(match){
       if(!site?.completed||!loc){delete match.orders[unit.id];continue;}
       if(getPlayer(match,site.owner).team===player.team){delete match.orders[unit.id];continue;}
       const range=unit.range??(ATTACK_PROFILE[unit.archetype]?.[0]??0);
-      if(distToSite(unit,loc)>range){delete match.orders[unit.id];continue;}
+      if(distToSite(unit,loc)>range||
+        (range>1&&!hasLineOfSight(match.battlefield,unit,structureAim(unit,loc)))){
+        delete match.orders[unit.id];continue;}
       if((unit.nextAttackAtMs??0)>match.elapsedMs)continue;
       const buff=(unit.buffs??[]).filter(b=>b.expiresMs>match.elapsedMs);
       const attack=buff.reduce((sum,b)=>sum*(b.attackMultiplier??1),unit.attack);
