@@ -12,9 +12,9 @@ function matchAtAge(age="V"){
  player.age=age;player.resources={Food:20000,Wood:20000,Stone:20000,Metal:20000,Gold:20000,Aether:20000};
  return {m,player};
 }
-test("10 upgrade identities are executable for every faction, 66 rows remain pending",()=>{
+test("21 upgrade identities are executable for every faction, none pending",()=>{
  const {m}=matchAtAge();
- assert.deepEqual(upgradeCoverage(m),{catalog:126,executable:60,pending:66});
+ assert.deepEqual(upgradeCoverage(m),{catalog:126,executable:126,pending:0});
 });
 test("completed Town Center Extended Housing adds exactly five population cap",()=>{
  const {m,player}=matchAtAge("III");
