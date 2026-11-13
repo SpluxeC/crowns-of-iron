@@ -32,7 +32,7 @@ test("finished sea routes pay Gold only after physically reaching another dock",
 });
 test("sea trading cannot be assigned from an enemy dock or unsupported ship",()=>{
  const {m,ship,one,two}=fixture();
- assert.throws(()=>assignSeaTrade(m,"b",ship.id,one.id,two.id),/owned positioned/);
+ assert.throws(()=>assignSeaTrade(m,"b",ship.id,one.id,two.id),/Owned positioned/);
  assert.throws(()=>assignSeaTrade(m,"a",m.players[0].units[0].id,one.id,two.id),/Trade Ship/);
 });
 test("NAV-10, FAC-14 and ECO-09 increase actual completed trade revenue",()=>{
