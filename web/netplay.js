@@ -67,7 +67,8 @@ function draw(){
  canvas.hidden=view3d;canvas3d.hidden=!view3d;
  if(view3d&&renderer&&state?.battlefield)
   renderer.draw(state.battlefield,{players:state.players,viewerId:playerId,
-   elapsedMs:state.elapsedMs,orders:state.orders},selected);
+   // Visual-only clock drives pose interpolation between authoritative server ticks.
+   elapsedMs:performance.now(),orders:state.orders},selected);
  else draw2d();
  telemetry.record(view3d?"webgl-submit":"canvas-2d",performance.now()-start);
 }
@@ -467,3 +468,15 @@ canvas3d.addEventListener("wheel",e=>{
 },{passive:false});
 window.addEventListener("beforeunload",()=>abort?.abort());
 info();
+
+/** At most ~8 3D pose redraws/sec, only while the canvas is visible.
+ * Movement positions still come exclusively from authoritative state snapshots. */
+let lastArtFrameAt=0;
+function advanceArtFrame(timestamp){
+ if(view3d&&renderer&&state?.battlefield&&!document.hidden&&
+   timestamp-lastArtFrameAt>=125){
+  lastArtFrameAt=timestamp;draw();
+ }
+ requestAnimationFrame(advanceArtFrame);
+}
+requestAnimationFrame(advanceArtFrame);
