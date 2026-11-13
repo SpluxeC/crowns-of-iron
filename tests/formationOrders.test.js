@@ -35,7 +35,7 @@ test("siege order approaches from afar, respects cooldown and damages enemy stru
  m.constructions={[structure.id]:{siteId:structure.id,owner:"b",kind:"Shelter",completed:true,
  hp:500,maxHp:500,armor:2,cost:{Wood:60}}};
  const gun=makeUnit(p,"Heavy Artillery",ARCHETYPES["Heavy Artillery"],"gun");
- gun.x=12;gun.y=20;p.units.push(gun);p.popUsed+=gun.pop;
+ gun.x=4;gun.y=20;p.units.push(gun);p.popUsed+=gun.pop;
  const result=command(m,{player:"a",action:"siege",unitId:"gun",siteId:structure.id});
  assert.ok(result.steps>0);
  const before=m.constructions[structure.id].hp;
