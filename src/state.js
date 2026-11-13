@@ -8,7 +8,7 @@ export function createPlayer(id,faction,team=id){
     alive:true,lastStandMs:null,defeated:false,
     workers:{Food:3,Wood:0,Stone:0,Metal:0,Gold:0,Aether:0},workerIncomeRemainder:{},workerUpkeepRemainder:{Gold:0,Food:0},
     completed:[],researchQueues:{"Town Center":[]},unitQueues:{"Town Center":[]},
-    facilities:{"Town Center":1},units:[],history:[]
+    facilities:{"Town Center":1},facilitySerial:{"Town Center":1},units:[],history:[]
   };
   const worker=ARCHETYPES.Worker,scout=ARCHETYPES.Scout;
   for(let i=0;i<3;i++)player.units.push(makeUnit(player,"Worker",worker,id+"-start-worker-"+i));
@@ -32,7 +32,9 @@ export function nextId(match,prefix="u"){match.idCounter++;return prefix+"-"+mat
 export function addFacility(player,name){
   assert(player.alive&&!player.defeated,"Player eliminated");
   player.facilities[name]=(player.facilities[name]??0)+1;
-  const key=name+"#"+player.facilities[name];
+  player.facilitySerial??={};
+  player.facilitySerial[name]=(player.facilitySerial[name]??0)+1;
+  const key=name+"#"+player.facilitySerial[name];
   if(!player.researchQueues[key])player.researchQueues[key]=[];
   if(!player.unitQueues[key])player.unitQueues[key]=[];
   return key;
