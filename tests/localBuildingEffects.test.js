@@ -24,20 +24,20 @@ test("all 126 building upgrade records have typed effects",()=>{
 test("farm irrigation increases only that farm's output",()=>{
  const {m,p,site}=fixture("Farm");m.economyMode="spatial";
  const job=command(m,{player:"a",action:"upgrade",siteId:site.id,name:"Improved Irrigation"});
- step(m,job.durationMs);
+ for(let left=job.durationMs;left>0;left-=Math.min(left,60000))step(m,Math.min(left,60000));
  const before=p.resources.Food;step(m,10000);
  assert.equal(p.resources.Food-before,22);
 });
 test("watchtower emplacement creates one additional firing slot",()=>{
  const {m,site}=fixture("Watchtower");
  const job=command(m,{player:"a",action:"upgrade",siteId:site.id,name:"Archery Emplacements"});
- step(m,job.durationMs);
+ for(let left=job.durationMs;left>0;left-=Math.min(left,60000))step(m,Math.min(left,60000));
  assert.equal(m.constructions[site.id].localGarrisonSlots,1);
 });
 test("stable core increases condenser production",()=>{
  const {m,p,site}=fixture("Aether Condenser");m.economyMode="spatial";
  const job=command(m,{player:"a",action:"upgrade",siteId:site.id,name:"Stable Core"});
- step(m,job.durationMs);
+ for(let left=job.durationMs;left>0;left-=Math.min(left,60000))step(m,Math.min(left,60000));
  const before=p.resources.Aether;step(m,60000);step(m,40000);
  assert.equal(p.resources.Aether-before,33);
 });
