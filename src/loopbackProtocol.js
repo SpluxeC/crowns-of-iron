@@ -5,6 +5,8 @@ import {FACTION_SLUGS} from "../web/factionArt.js";
 import {MODEL_NAMES} from "../web/objLoader.js";
 import {ROSTER_ROLES,ROLE_SLUGS} from "../web/rosterArt.js";
 import {gltfForFaction} from "./gltfAssets.js";
+import {vehicleAssetFor} from "./vehicleAssets.js";
+import {VEHICLE_ROLES,vehicleGltfPath} from "../web/vehicleArt.js";
 import {ALL_SKINNED_ROLES,skinnedGltfPath} from "../web/skinnedRoster.js";
 
 // Same-origin loopback development transport. Never publicly bind this server.
@@ -45,6 +47,8 @@ for(const slug of FACTION_SLUGS)for(const role of ROSTER_ROLES){
   "../assets/models/roster/"+slug+"/"+name+".obj","text/plain; charset=utf-8"];
 }
 STATIC["/skinnedGltf.js"]=["../web/skinnedGltf.js","text/javascript; charset=utf-8"];
+STATIC["/vehicleArt.js"]=["../web/vehicleArt.js","text/javascript; charset=utf-8"];
+STATIC["/vehicleGltf.js"]=["../web/vehicleGltf.js","text/javascript; charset=utf-8"];
 STATIC["/skinnedRoster.js"]=["../web/skinnedRoster.js","text/javascript; charset=utf-8"];
 STATIC["/materialDetail.js"]=["../web/materialDetail.js","text/javascript; charset=utf-8"];
 STATIC["/vehicleMotion.js"]=["../web/vehicleMotion.js","text/javascript; charset=utf-8"];
@@ -99,6 +103,15 @@ export function createLoopbackProtocolServer(host){
   try{
    const u=new URL(req.url,"http://127.0.0.1"),path=u.pathname;
    const token=req.headers["x-session-token"];
+   if(req.method==="GET"&&path.startsWith("/assets/gltf-vehicles/")){
+    const slug=path.slice("/assets/gltf-vehicles/".length).split("/")[0];
+    const role=VEHICLE_ROLES.find(value=>path===vehicleGltfPath(slug,value));
+    if(FACTION_SLUGS.includes(slug)&&role){
+     const content=await vehicleAssetFor(slug,role);
+     res.writeHead(200,{"Content-Type":"model/gltf+json; charset=utf-8",...HEADERS});
+     return res.end(content);
+    }
+   }
    if(req.method==="GET"&&path.startsWith("/assets/gltf/")){
     const slug=path.slice("/assets/gltf/".length).split("/")[0];
     const role=ALL_SKINNED_ROLES.find(value=>
