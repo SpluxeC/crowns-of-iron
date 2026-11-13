@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {readFileSync,existsSync} from "node:fs";
+import {readFileSync} from "node:fs";
 import {createMatch,command,step} from "../src/simulation.js";
 import {installFullCatalog,validateFullCatalog} from "../src/fullCatalog.js";
 import {FACTIONS,mandatory} from "../src/constants.js";
@@ -47,12 +47,39 @@ test("full catalog rejects duplicate tech and missing fallback",()=>{
  const d=synthetic();d.research.rows[1][1]=d.research.rows[0][1];
  assert.throws(()=>validateFullCatalog(d),/Duplicate tech/);
 });
-test("genuine workbook JSON passes schema validation when supplied",()=>{
+test("committed full balance JSON validates in CI and installs 540 technologies",()=>{
  const path="data/balance-v0.2.json";
- if(!existsSync(path))return;
  const dataset=JSON.parse(readFileSync(path,"utf8"));
  assert.equal(validateFullCatalog(dataset),true);
  const m=createMatch(participants);
  const result=installFullCatalog(m,dataset);
  assert.equal(result.unitEntries,216);
+});
+
+test("real faction unit training uses reconciled stats without double modifiers",()=>{
+ const data=JSON.parse(readFileSync("data/balance-v0.2.json","utf8"));
+ const m=createMatch(participants),p=m.players[1];
+ installFullCatalog(m,data);
+ p.age="II";p.resources.Food=5000;p.resources.Wood=5000;
+ p.resources.Stone=5000;p.resources.Metal=5000;p.resources.Gold=5000;
+ p.facilities.Barracks=1;p.facilitySerial.Barracks=1;p.unitQueues["Barracks#1"]=[];
+ const row=data.land.rows.find(r=>r[0]==="Ursa"&&r[2]==="Swordsman");
+ assert.ok(row);
+ command(m,{player:"b",action:"train",facility:"Barracks#1",role:"Swordsman"});
+ step(m,row[17]*1000);
+ const unit=p.units.find(u=>u.archetype==="Swordsman");
+ assert.ok(unit);
+ assert.equal(unit.hp,row[4]);
+ assert.equal(unit.attack,row[5]);
+ assert.equal(unit.armor,row[7]);
+ assert.equal(unit.name,row[3]);
+});
+test("imported mutually exclusive paths cannot both be queued",()=>{
+ const data=JSON.parse(readFileSync("data/balance-v0.2.json","utf8"));
+ const m=createMatch(participants),p=m.players[0];installFullCatalog(m,data);
+ p.age="V";p.resources={Food:99999,Wood:99999,Stone:99999,Metal:99999,Gold:99999,Aether:99999};
+ p.facilities.Academy=1;p.facilitySerial.Academy=1;p.researchQueues["Academy#1"]=[];
+ command(m,{player:"a",action:"research",facility:"Academy#1",id:"FAC-11"});
+ assert.throws(()=>command(m,{player:"a",action:"research",facility:"Academy#1",id:"FAC-12"}),
+   /Conflicting exclusive research/);
 });
