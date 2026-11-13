@@ -25,6 +25,8 @@ test("sessions are per player and cannot issue other players' orders",()=>{
 test("remote combat queues spatial orders and cannot instantly damage across the map",()=>{
  const host=new MatchHost(players),a=host.credentialsFor("alice");
  const own=host.match.players[0].units[1],enemy=host.match.players[1].units[0];
+ // Simulate the enemy becoming visible before issuing the attack order.
+ enemy.x=own.x+2;enemy.y=own.y;
  const before=enemy.hp;
  const receipt=host.submit({token:a.token,sequence:1,action:"attack",payload:{
    attacker:own.id,targetPlayer:"bob",target:enemy.id
