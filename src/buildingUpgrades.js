@@ -14,7 +14,18 @@ const supported=Object.freeze({
   "Heavy Assembly":{kind:"trainingSpeed",factor:.90},
   "Advanced Slipways":{kind:"trainingSpeed",factor:.90},
   "Reinforced Ramparts":{kind:"buildingHp",factor:1.15},
-  "Automatic Feed":{kind:"trainingSpeed",factor:.90}
+  "Automatic Feed":{kind:"trainingSpeed",factor:.90},
+  "Medical Tools":{kind:"staffedHealing",factor:1.10},
+  "Patient Ward":{kind:"patientCapacity",amount:4},
+  "Sorting Sheds":{kind:"dropoff",factor:1.05},
+  "Improved Irrigation":{kind:"renewable",factor:1.10},
+  "Fast Saplings":{kind:"renewable",factor:1.125},
+  "Trade Counters":{kind:"localTrade",factor:1.05},
+  "Repair Yard":{kind:"vehicleRepair",factor:1.10},
+  "Archery Emplacements":{kind:"garrisonSlots",amount:1},
+  "Powered Winch":{kind:"gateOpening",factor:.80},
+  "Maintenance Bay":{kind:"vehicleRepair",factor:1.15},
+  "Stable Core":{kind:"renewable",factor:1.10}
 });
 export function upgradeCoverage(match){
  const records=Object.values(match.fullCatalog?.upgrades??{}).flat();
@@ -60,6 +71,14 @@ function complete(match,site,name){
    site.upgradeHousing=(site.upgradeHousing??0)+kind.amount;
    p.popCap=Math.min(300,p.popCap+kind.amount);
  }
+ if(kind.kind==="staffedHealing")site.staffedHealingMultiplier=(site.staffedHealingMultiplier??1)*kind.factor;
+ if(kind.kind==="patientCapacity")site.patientCapacityBonus=(site.patientCapacityBonus??0)+kind.amount;
+ if(kind.kind==="dropoff")site.localDropoffMultiplier=(site.localDropoffMultiplier??1)*kind.factor;
+ if(kind.kind==="renewable")site.localRenewableMultiplier=(site.localRenewableMultiplier??1)*kind.factor;
+ if(kind.kind==="localTrade")site.localTradeMultiplier=(site.localTradeMultiplier??1)*kind.factor;
+ if(kind.kind==="vehicleRepair")site.vehicleRepairMultiplier=(site.vehicleRepairMultiplier??1)*kind.factor;
+ if(kind.kind==="garrisonSlots")site.localGarrisonSlots=(site.localGarrisonSlots??0)+kind.amount;
+ if(kind.kind==="gateOpening")site.gateOpeningFactor=(site.gateOpeningFactor??1)*kind.factor;
  if(kind.kind==="buildingHp"){
    site.localHpFactor=(site.localHpFactor??1)*kind.factor;
    refreshStructureTechnology(match,getPlayer(match,site.owner));

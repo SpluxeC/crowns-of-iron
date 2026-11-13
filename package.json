@@ -1,6 +1,6 @@
 {
   "name": "crowns-of-iron",
-  "version": "4.2.0",
+  "version": "4.6.0",
   "private": true,
   "type": "module",
   "description": "Deterministic headless RTS prototype",
@@ -13,13 +13,15 @@
     "syntax-check": "node --check web/app.js && node --check scripts/server.js && node --check src/simulation.js && node --check src/network.js",
     "ai-demo": "node scripts/ai_demo.js",
     "protocol-server": "node scripts/server.js",
-    "test-milestones": "npm test && npm run validate && npm run full-data-demo && npm run spatial-demo && npm run advanced-demo && npm run batch-3.1-demo && npm run batch-3.5-demo && npm run batch-3.9-demo",
+    "test-milestones": "npm test && npm run validate && npm run syntax-check && npm run full-data-demo && npm run spatial-demo && npm run advanced-demo && npm run batch-3.1-demo && npm run batch-3.5-demo && npm run batch-3.9-demo && npm run batch-4.3-demo && npm run multiplayer-stress-demo",
     "full-data-demo": "node scripts/full_data_demo.js",
     "spatial-demo": "node scripts/spatial_demo.js",
     "advanced-demo": "node scripts/advanced_demo.js",
     "batch-3.1-demo": "node scripts/batch_3_1_demo.js",
     "batch-3.5-demo": "node scripts/batch_3_5_demo.js",
-    "batch-3.9-demo": "node scripts/batch_3_9_demo.js"
+    "batch-3.9-demo": "node scripts/batch_3_9_demo.js",
+    "batch-4.3-demo": "node scripts/batch_4_3_demo.js",
+    "multiplayer-stress-demo": "node scripts/multiplayer_stress_demo.js"
   },
   "engines": {
     "node": ">=22"

@@ -25,7 +25,7 @@ function fixture(){
 test("all 126 local upgrades are cataloged with supported and pending effects separated",()=>{
  const m=createMatch([{id:"a",faction:"Humans"},{id:"b",faction:"Orcs"}]);
  installFullCatalog(m,data);const c=upgradeCoverage(m);
- assert.equal(c.catalog,126);assert.ok(c.executable>=12);assert.ok(c.pending>0);
+ assert.equal(c.catalog,126);assert.ok(c.executable>=12);assert.equal(c.pending,0);
 });
 test("training upgrade is queued, researched, and shortens later unit production",()=>{
  const {m,p,siteId}=fixture(),site=m.constructions[siteId];

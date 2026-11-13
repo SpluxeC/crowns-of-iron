@@ -5,6 +5,7 @@ import {issueMove} from "./battlefield.js";
 import {ATTACK_PROFILE} from "./battlefield.js";
 import {hasLineOfSight} from "./tacticalNavigation.js";
 import {mayAttackStructure} from "./engagementRules.js";
+import {isOccupiedByUnit} from "./unitCollision.js";
 
 const OFFSETS=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1],
  [2,0],[-2,0],[0,2],[0,-2],[2,1],[-2,-1],[2,-1],[-2,1],
@@ -24,7 +25,7 @@ export function orderFormation(match,owner,ids,x,y){
   let chosen=null;
   for(const [dx,dy] of OFFSETS){
    const goal={x:x+dx,y:y+dy},key=goal.x+","+goal.y;
-   if(reserved.has(key))continue;
+   if(reserved.has(key)||isOccupiedByUnit(match,unit,goal.x,goal.y)&&!ids.some(id=>p.units.find(u=>u.id===id&&u.x===goal.x&&u.y===goal.y)))continue;
    const path=pathForUnit(match,owner,unit.archetype,
      {x:unit.x,y:unit.y},goal);
    if(path&&path.at(-1).x===goal.x&&path.at(-1).y===goal.y){

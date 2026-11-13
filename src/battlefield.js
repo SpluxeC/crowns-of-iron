@@ -6,6 +6,7 @@ import {hasLineOfSight} from "./tacticalNavigation.js";
 import {pathForUnit,tileTraversable,movementDomain} from "./movementDomains.js";
 import {canEngage} from "./engagementRules.js";
 import {refreshSiegePath} from "./formationOrders.js";
+import {isOccupiedByUnit} from "./unitCollision.js";
 
 export const ATTACK_PROFILE=Object.freeze({
   Worker:[1,2000],Scout:[1,1600],"Club Fighter":[1,1800],"Stone Slinger":[5,2200],
@@ -68,7 +69,7 @@ function neighborsInRange(a,b,range){
 function walkOne(match,owner,u,order){
   if(!order.path?.length)return false;
   const next=order.path[0];
-  if(!tileTraversable(match,owner,u.archetype,next.x,next.y))return false;
+  if(!tileTraversable(match,owner,u.archetype,next.x,next.y)||isOccupiedByUnit(match,u,next.x,next.y))return false;
   u.x=next.x;u.y=next.y;order.path.shift();return true;
 }
 export function tickBattlefield(match,deltaMs){

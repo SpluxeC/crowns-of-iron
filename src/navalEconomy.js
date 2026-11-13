@@ -82,7 +82,12 @@ export function tickNavalEconomy(match,deltaMs){
    // Orders can be interrupted by manual commands. Resume only after explicit reassignment.
    continue;
   }
-  const factor=researchMultiplier(player,"tradeRevenue");
+  const arrived=match.battlefield.structures.find(s=>s.id===job.targetSite);
+  const market=Object.values(match.constructions??{}).find(s=>s.completed&&s.owner===player.id&&
+    s.kind==="Market"&&s.localTradeMultiplier>1&&
+    match.battlefield.structures.some(loc=>loc.id===s.siteId&&arrived&&
+      Math.abs(loc.x-arrived.x)+Math.abs(loc.y-arrived.y)<=8));
+  const factor=researchMultiplier(player,"tradeRevenue")*(market?.localTradeMultiplier??1);
   const raw=40*factor+job.fraction,award=Math.floor(raw+1e-9);
   job.fraction=raw-award;player.resources.Gold+=award;job.completed++;
   events.push({kind:"seaTrade",owner:player.id,unitId:vessel.id,amount:award});

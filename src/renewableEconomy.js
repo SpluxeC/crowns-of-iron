@@ -18,7 +18,7 @@ export function tickRenewables(match,deltaMs){
   site.renewableFraction??=0;
   while(site.renewableProgressMs>=10000){
    site.renewableProgressMs-=10000;
-   const raw=recipe.per10Seconds*researchMultiplier(p,recipe.modifier);
+   const raw=recipe.per10Seconds*researchMultiplier(p,recipe.modifier)*(site.localRenewableMultiplier??1);
    const amount=Math.floor(raw+site.renewableFraction+1e-9);
    site.renewableFraction+=raw-amount;
    if(amount>0){p.resources[recipe.resource]+=amount;produced.push({owner:p.id,kind:site.kind,resource:recipe.resource,amount});}

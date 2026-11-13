@@ -3,7 +3,7 @@
 A five-age fantasy RTS with Humans, Orcs, Dwarfs, Tree Elves, Corrupt Elves, and Ursa.
 
 ## Status
-**Headless simulation prototype, milestones 0.1–4.2.** This is not a playable 3D game or tested network multiplayer. Work is isolated on a development branch for review.
+**Headless simulation plus interactive 2.5D browser prototype, milestones 0.1–4.6.** This is not a playable 3D game or tested network multiplayer. Work is isolated on a development branch for review.
 
 ## Requirements
 Node.js 22+. No package installation or external runtime dependencies.
@@ -62,3 +62,6 @@ Opt-in connected island sea lanes, finite ship fishing and completed dock-to-doc
 
 ## Milestones 3.9–4.2
 Real population-counted transport boarding/unloading, Siege Tower passenger ramps and defensive garrison assaults, **78 of 78 executable optional research handlers per faction** (prototype interpretations), and atomic authenticated local command batches with enhanced state filtering. The full 3D game, production networking, real collision, faction-specialized upgrades and complete gameplay balance remain unfinished. Run `npm run batch-3.9-demo` and consult [Milestones 3.9–4.2](docs/MILESTONES_3_9_TO_4_2.md) for exact coverage.
+
+## Milestones 4.3–4.6
+All **126 local faction building-upgrade records** now have executable prototype effects. Opt-in collision separates ground/sea units and blocks destination stacking; eight-player/2,400-population in-process host stress and extra loopback reconnect/batch endpoints are included. The browser inspector now has a selectable isometric 2.5D view and group movement controls. Run `npm run batch-4.3-demo` and `npm run multiplayer-stress-demo`; use `npm run inspect` to try the UI. See [milestone details and limitations](docs/MILESTONES_4_3_TO_4_6.md). This is **not yet a full 3D or production multiplayer game**.

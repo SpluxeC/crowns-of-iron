@@ -97,7 +97,7 @@ export function tickFortificationFire(match){
    enemies.sort((a,b)=>distance(a.unit,loc)-distance(b.unit,loc)||
       a.unit.hp-b.unit.hp||a.unit.id.localeCompare(b.unit.id));
    if(!enemies.length)continue;
-   const slots=Math.min(site.garrisonIds.length,rule.slots+(owner.completed.includes("BLD-07")?1:0));
+   const slots=Math.min(site.garrisonIds.length, rule.slots+(owner.completed.includes("BLD-07")?1:0)+(site.localGarrisonSlots??0));
    const target=enemies[0];
    const hit=damage(rule.attack*slots,target.unit.armor,rule.type,target.unit.category,
      site.kind==="Anti-Air Tower"&&target.unit.category==="Air"?1.5:0);

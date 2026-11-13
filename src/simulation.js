@@ -21,6 +21,7 @@ import {disruptFortification} from "./siegeDisruption.js";
 import {refreshStructureTechnology} from "./technologyEffects.js";
 import {garrisonUnit,ungarrisonUnit,tickFortificationFire} from "./fortifications.js";
 import {tickRenewables} from "./renewableEconomy.js";
+import {staffedHospitalHeal,staffedVehicleRepair} from "./localBuildingEffects.js";
 import {orderFormation,orderSiege} from "./formationOrders.js";
 import {assignSeaTrade,cancelSeaTrade,tickNavalEconomy} from "./navalEconomy.js";
 import {embark,disembark,transportLosses} from "./transports.js";
@@ -58,7 +59,9 @@ export function command(match,input,{allowDebug=false}={}){
     case "cancelUpgrade":result=cancelBuildingUpgrade(match,id,input.siteId,input.name);break;
     case "attackStructure":result=orderStructureAttack(match,id,input.unitId,input.siteId);break;
     case "repairBuilding":result=repairBuilding(match,id,input.siteId,input.workers,input.amount);break;
-    case "gate":result=setGateOpen(match,id,input.siteId,input.open,input.autoClose??false);break;
+    case "gate":result=setGateOpen(match,id,input.siteId,input.open,input.autoClose??false,input.timed??false);break;
+    case "hospitalHeal":result=staffedHospitalHeal(match,id,input.siteId,input.healers,input.targetId);break;
+    case "vehicleRepair":result=staffedVehicleRepair(match,id,input.siteId,input.workers,input.targetId,input.amount);break;
     case "convert":result=startConversion(match,id,input.converterId,input.targetPlayer,input.targetId);break;
     case "surveyAether":result=surveyAether(match,id,input.workerId);break;
     case "aetherPulse":result=aetherPulse(match,id,input.workerId,input.x,input.y);break;
