@@ -17,6 +17,7 @@ export class MatchHost{
     this.events=[];
     this.sequence=0;
     this.version=0;
+    this.maxCommandsPerVersion=64;
     for(const p of this.match.players){
       const token=randomBytes(24).toString("hex");
       this.sessions.set(token,{playerId:p.id,lastSequence:0});
@@ -33,6 +34,10 @@ export class MatchHost{
     assert(Number.isSafeInteger(sequence)&&sequence>session.lastSequence,
       "Out-of-order or duplicate command");
     assert(COMMANDS.has(action),"Command forbidden by network protocol");
+    assert(session.budgetTick!==this.match.tick||
+      (session.commandsThisTick??0)<this.maxCommandsPerVersion,
+      "Per-player command budget exhausted");
+    assert(JSON.stringify(payload).length<=8192,"Command payload too large");
     assert(payload&&typeof payload==="object"&&!Array.isArray(payload),"Invalid command payload");
     assert(!("player" in payload)||payload.player===session.playerId,"Spoofed player");
     // Healing/repair are withheld from this remote protocol until server-verified\n    // healer range, casting interval and engineer work loops are implemented.\n    // Assign owner based solely on the authenticated session.
@@ -59,12 +64,50 @@ export class MatchHost{
       const target=defender?.units.find(u=>u.id===payload.targetId&&u.alive);
       assert(target&&this.isVisible(viewer,target),"Conversion target is not visible");
     }
+    if(action==="assaultBattlement"){
+      const tower=this.match.players.find(p=>p.id===session.playerId)?.units.find(u=>u.id===payload.towerId);
+      const site=this.match.constructions?.[tower?.rampSiteId];
+      const loc=this.match.battlefield?.structures?.find(s=>s.id===tower?.rampSiteId);
+      const viewer=this.match.players.find(p=>p.id===session.playerId);
+      assert(site?.completed&&loc&&this.isVisible(viewer,loc),
+        "Battlement attack target not visible");
+    }
     const result=command(this.match,order);
     session.lastSequence=sequence;
+    session.commandsThisTick=(session.budgetTick===this.match.tick?
+      (session.commandsThisTick??0):0)+1;
+    session.budgetTick=this.match.tick;
     this.sequence++;
     this.version++;
     this.events.push({sequence:this.sequence,version:this.version,player:session.playerId,action,atMs:this.match.elapsedMs});
-    return {accepted:true,sequence,matchChecksum:checksum(this.match),result:result??null};
+    return {accepted:true,sequence,version:this.version,matchChecksum:this.view(token).checksum,result:result??null};
+  }
+  submitBatch({token,expectedVersion,orders}){
+    const session=this.sessions.get(token);
+    assert(session,"Unauthorized session");
+    assert(Number.isSafeInteger(expectedVersion)&&expectedVersion===this.version,
+      "Client state version is stale");
+    assert(Array.isArray(orders)&&orders.length>=1&&orders.length<=16,
+      "Batch must contain 1–16 commands");
+    const backup=snapshot(this.match),oldSequence=this.sequence,oldVersion=this.version,
+      oldEvents=this.events.length,oldLast=session.lastSequence,
+      oldBudget=session.commandsThisTick,oldBudgetVersion=session.budgetTick;
+    const replies=[];
+    try{
+      for(const order of orders){
+        assert(order&&typeof order==="object"&&!Array.isArray(order),
+          "Invalid batched command");
+        replies.push(this.submit({token,sequence:order.sequence,
+          action:order.action,payload:order.payload??{}}));
+      }
+    }catch(e){
+      this.match=backup;this.sequence=oldSequence;this.version=oldVersion;
+      this.events.length=oldEvents;session.lastSequence=oldLast;
+      session.commandsThisTick=oldBudget;session.budgetTick=oldBudgetVersion;
+      throw e;
+    }
+    return {accepted:true,version:this.version,commands:replies.length,
+      checksum:this.view(token).checksum};
   }
   advance(ms){
     assert(Number.isSafeInteger(ms)&&ms>0&&ms<=60000,"Invalid host tick");
@@ -104,8 +147,13 @@ export class MatchHost{
       if(state.battlefield.coastalPads)state.battlefield.coastalPads=state.battlefield.coastalPads.filter(t=>{
         const player=this.match.players[t.player];return player?.team===team||inVision(t.x,t.y);
       });
-      state.battlefield.tiles=state.battlefield.tiles.map(t=>inVision(t.x,t.y)?t:
-        {x:t.x,y:t.y,terrain:"unknown",resource:null,amount:0,occupied:null});
+      state.battlefield.tiles=state.battlefield.tiles.map(t=>{
+        if(inVision(t.x,t.y))return t;
+        const surveyed=viewer.aetherSurveys?.some(p=>p.x===t.x&&p.y===t.y)&&
+          t.resource==="Aether";
+        return surveyed?{x:t.x,y:t.y,terrain:"unknown",resource:"Aether",amount:null,occupied:null}:
+          {x:t.x,y:t.y,terrain:"unknown",resource:null,amount:0,occupied:null};
+      });
       state.battlefield.structures=state.battlefield.structures.filter(s=>
         s.owner===viewer.id||inVision(s.x,s.y));
       state.battlefield.starts=state.battlefield.starts.filter(s=>{
@@ -115,7 +163,13 @@ export class MatchHost{
     }
     if(state.constructions)state.constructions=Object.fromEntries(
       Object.entries(state.constructions).filter(([id,c])=>
-        c.owner===viewer.id||state.battlefield?.structures?.some(s=>s.id===id)));
+        c.owner===viewer.id||state.battlefield?.structures?.some(s=>s.id===id))
+       .map(([id,c])=>{
+         if(c.owner===viewer.id)return [id,c];
+         const {garrisonIds,upgradeQueue,workerIds,renewableFraction,
+           nextFireAtMs, ...publicSite}=c;
+         return [id,publicSite];
+       }));
     if(state.ruins)state.ruins=Object.fromEntries(
       Object.entries(state.ruins).filter(([id,r])=>r.owner===viewer.id||inVision(r.x,r.y)));
     if(state.orders)state.orders=Object.fromEntries(
@@ -123,6 +177,10 @@ export class MatchHost{
     delete state.commands;
     delete state.bots;
     delete state.fullCatalog;
+    if(state.harvestJobs)state.harvestJobs=Object.fromEntries(
+      Object.entries(state.harvestJobs).filter(([id,j])=>j.owner===viewer.id));
+    if(state.seaTradeJobs)state.seaTradeJobs=Object.fromEntries(
+      Object.entries(state.seaTradeJobs).filter(([id,j])=>j.owner===viewer.id));
     return {playerId:viewer.id,version:this.version,state,checksum:checksum(state)};
   }
   resync({token,afterVersion=0}){
