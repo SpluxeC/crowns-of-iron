@@ -1,9 +1,12 @@
 import {MatchHost} from "../src/network.js";
+import {enableUnitCollision} from "../src/unitCollision.js";
 import {createLoopbackProtocolServer} from "../src/loopbackProtocol.js";
 
 // Deliberately loopback-only: credentials are developer test secrets, not accounts.
 const host=new MatchHost([{id:"human",faction:"Humans"},
  {id:"orc",faction:"Orcs"}],2026,{requireReady:process.env.REQUIRE_READY==="1"});
+// Unlike the benchmark host defaults, interactive local play enables occupancy.
+enableUnitCollision(host.match);
 const {server,publish}=createLoopbackProtocolServer(host);
 const port=Number(process.env.PORT||5190);
 const timer=setInterval(()=>{
