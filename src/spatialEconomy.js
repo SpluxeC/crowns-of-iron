@@ -65,7 +65,11 @@ export function deliverCargo(match,owner,workerId){
  if(!held.amount)return 0;
  p.resources[held.resource]+=held.amount;
  const amount=held.amount;held.amount=0;held.resource=null;
- worker.nextDeliveryAtMs=match.elapsedMs+Math.ceil(1000/researchMultiplier(p,"dropoff"));
+ const depot=match.battlefield.structures.find(site=>site.owner===owner&&site.kind==="Resource Depot"&&
+    match.constructions?.[site.id]?.completed&&
+    Math.abs(worker.x-site.x)+Math.abs(worker.y-site.y)<=3);
+ const handling=depot?match.constructions[depot.id].localDropoffMultiplier??1:1;
+ worker.nextDeliveryAtMs=match.elapsedMs+Math.ceil(1000/(researchMultiplier(p,"dropoff")*handling));
  return amount;
 }
 function travel(match,owner,worker,target){
