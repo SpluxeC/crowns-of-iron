@@ -7,6 +7,7 @@ import {FACTION_SLUGS,factionMeshPath} from "../web/factionArt.js";
 import {ROSTER_ROLES,rosterMeshPath} from "../web/rosterArt.js";
 import {parsePpm} from "../web/factionTextures.js";
 import {validateSkinnedGltf} from "../web/skinnedGltf.js";
+import {SKINNED_ROLES} from "../web/skinnedRoster.js";
 
 /** Real localhost HTTP delivery/interaction contract, not a graphical browser runner. */
 export async function runBrowserDeliverySmoke(){
@@ -23,7 +24,7 @@ export async function runBrowserDeliverySmoke(){
   "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js",
   "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js",
   "/rosterArt.js","/rosterLoader.js","/animationClips.js",
-  "/skinnedGltf.js","/textureShader.js"];
+  "/skinnedGltf.js","/textureShader.js","/skinnedRoster.js","/materialDetail.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
@@ -100,8 +101,9 @@ export async function runBrowserDeliverySmoke(){
    rosterSmokeMeshes++;
   }
   let gltfSkins=0;
-  for(const faction of ["humans","ursa"]){
-   const response=await fetch(base+"/assets/gltf/"+faction+"/swordsman.gltf");
+  for(const faction of ["humans","ursa"])for(const role of SKINNED_ROLES){
+   const slug=role.toLowerCase().replace(/[^a-z0-9]+/g,"-");
+   const response=await fetch(base+"/assets/gltf/"+faction+"/"+slug+".gltf");
    assert(response.status===200,"Skinned glTF endpoint unavailable "+faction);
    assert(response.headers.get("content-type")?.includes("model/gltf+json"),
     "Incorrect glTF content-type");

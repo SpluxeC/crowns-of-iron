@@ -48,7 +48,7 @@ void main(){
  const buffer=gl.createBuffer(),textures=new Map();
  function textureFor(faction,ppm){
   if(textures.has(faction))return textures.get(faction);
-  if(!ppm||ppm.width>64||ppm.height>64)throw Error("Invalid GPU texture");
+  if(!ppm||ppm.width>256||ppm.height>256)throw Error("Invalid GPU texture");
   const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);
   gl.pixelStorei?.(gl.UNPACK_ALIGNMENT,1);
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGB,ppm.width,ppm.height,0,

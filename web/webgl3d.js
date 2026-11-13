@@ -8,6 +8,7 @@ import {rigForFaction} from "./rigProfiles.js";
 import {createRosterMeshLoader} from "./rosterLoader.js";
 import {createSkinnedGltfLoader,sampleSkinnedGltf} from "./skinnedGltf.js";
 import {SKINNED_ROLES} from "./skinnedRoster.js";
+import {refineFactionTexture} from "./materialDetail.js";
 import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
@@ -191,7 +192,12 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     return Promise.resolve({factionModels:60});
    if(factionPromise)return factionPromise;
    factionPromise=loadFactionObjSet(fetcher).then(async variants=>{
-    try{textures=await loadFactionTextures(fetcher);textureFailure=null;}
+    try{
+     const source=await loadFactionTextures(fetcher);
+     textures=Object.fromEntries(Object.entries(source).map(([slug,img])=>
+      [slug,refineFactionTexture(img,slug)]));
+     textureFailure=null;
+    }
     catch(error){textures=null;textureFailure=error.message;}
     models={...(models??{}),...variants};modelFailure=null;terrainKey=null;
     if(typeof notify==="function")notify();

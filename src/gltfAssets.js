@@ -5,6 +5,7 @@ import {FACTION_SLUGS} from "../web/factionArt.js";
 import {skinnedRoleSlug,SKINNED_ROLES} from "../web/skinnedRoster.js";
 import {rigForFaction} from "../web/rigProfiles.js";
 import {ANIMATION_CLIPS} from "../web/animationClips.js";
+import {refineFactionTexture} from "../web/materialDetail.js";
 import {exportSkinnedGltf} from "../scripts/export_skinned_gltf.js";
 /** Cached, deterministic generated glTF assets, served from the allowlisted
  * development server. npm run export-skinned-gltf also writes real .gltf files. */
@@ -23,10 +24,10 @@ export async function gltfForFaction(slug,role="Swordsman"){
   const raw=await readFile(new URL("../assets/models/roster/"+slug+
    "/"+unitSlug+".obj",import.meta.url),"utf8");
   const mesh=parseObj(raw,materials);
-  const img=parsePpm(await readFile(new URL("../assets/textures/factions/"+
-   slug+".ppm",import.meta.url),"utf8"));
+  const img=refineFactionTexture(parsePpm(await readFile(new URL(
+   "../assets/textures/factions/"+slug+".ppm",import.meta.url),"utf8")),slug);
   const text=JSON.stringify(exportSkinnedGltf(mesh,rigForFaction(slug),
-   ANIMATION_CLIPS,img,{name:slug+" "+role}));
+   ANIMATION_CLIPS,img,{name:slug+" "+role,role}));
   if(text.length>8_000_000)throw Error("Generated glTF exceeds response budget");
   cache.set(key,text);return text;
  })().finally(()=>pending.delete(key));

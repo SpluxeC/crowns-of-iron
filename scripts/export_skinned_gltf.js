@@ -10,6 +10,7 @@ import {FACTION_SLUGS} from "../web/factionArt.js";
 import {SKINNED_ROLES,skinnedRoleSlug} from "../web/skinnedRoster.js";
 import {RIG_BONE_NAMES,rigForFaction,boneForPosition} from "../web/rigProfiles.js";
 import {ANIMATION_CLIPS} from "../web/animationClips.js";
+import {refineFactionTexture,roleMaterialProfile} from "../web/materialDetail.js";
 const ALIGN=4;
 function crc32(data){
  let crc=0xffffffff;
@@ -56,7 +57,8 @@ function makeMatrixInverse(pos){
  return [1,0,0,0,0,1,0,0,0,0,1,0,-pos[0],-pos[1],-pos[2],1];
 }
 function quaternionX(angle){return [Math.sin(angle/2),0,0,Math.cos(angle/2)];}
-export function exportSkinnedGltf(mesh,rig,clips,texture,{name="Infantry"}={}){
+export function exportSkinnedGltf(mesh,rig,clips,texture,
+ {name="Infantry",role="Swordsman"}={}){
  const count=mesh.vertexCount;
  if(count<3||count>20000||mesh.uvs.length!==count*2||!mesh.textured)
   throw Error("Valid UV mapped OBJ mesh required");
@@ -144,8 +146,8 @@ export function exportSkinnedGltf(mesh,rig,clips,texture,{name="Infantry"}={}){
     buffer.toString("base64")}],
   bufferViews:views,accessors,
   materials:[{name:"Faction PBR baseColor",doubleSided:true,
-   pbrMetallicRoughness:{baseColorTexture:{index:0},metallicFactor:0.12,
-    roughnessFactor:0.82}}],
+   pbrMetallicRoughness:{baseColorTexture:{index:0},
+    ...roleMaterialProfile(role)}}],
   images:[{uri:"data:image/png;base64,"+image.toString("base64"),
    mimeType:"image/png"}],samplers:[{magFilter:9729,minFilter:9987,
    wrapS:10497,wrapT:10497}],textures:[{sampler:0,source:0}],animations};
@@ -157,15 +159,15 @@ export async function exportSkinnedRoster(){
   new URL("../assets/models/crowns-palette.mtl",import.meta.url),"utf8"));
  const result=[];
  for(const faction of FACTION_SLUGS){
-  const texture=parsePpm(await readFile(new URL(
-   "../assets/textures/factions/"+faction+".ppm",import.meta.url),"utf8"));
+  const texture=refineFactionTexture(parsePpm(await readFile(new URL(
+   "../assets/textures/factions/"+faction+".ppm",import.meta.url),"utf8")),faction);
   for(const role of SKINNED_ROLES){
    const slug=skinnedRoleSlug(role);
    const source=await readFile(new URL(
     "../assets/models/roster/"+faction+"/"+slug+".obj",import.meta.url),"utf8");
    const mesh=parseObj(source,palette);
    const doc=exportSkinnedGltf(mesh,rigForFaction(faction),
-    ANIMATION_CLIPS,texture,{name:faction+" "+role});
+    ANIMATION_CLIPS,texture,{name:faction+" "+role,role});
    const url=new URL("../assets/gltf/"+faction+"/"+slug+".gltf",import.meta.url);
    await mkdir(new URL("./",url),{recursive:true});
    await writeFile(url,JSON.stringify(doc));
