@@ -157,7 +157,10 @@ function info(){
  text("perf","Canvas 2D: "+formatTiming(telemetry.summary("canvas-2d"))+
   " · WebGL CPU submit: "+formatTiming(telemetry.summary("webgl-submit"))+
   " · HTTP requests: "+formatTiming(telemetry.summary("http"))+
-  (renderer?" · Terrain GPU rebuilds: "+renderer.stats().terrainRebuilds:""));
+  (renderer?" · Mesh models: "+renderer.stats().loadedModels+
+   " · Mesh units: "+renderer.stats().modelUnits+
+   " · Fallback units: "+renderer.stats().fallbackUnits+
+   " · Terrain GPU rebuilds: "+renderer.stats().terrainRebuilds:""));
  text("groups",Array.from({length:4},(_,i)=>
   (i+1)+": "+(controlGroups.get(String(i+1))?.length??0)).join(" · "));
  $("resources").replaceChildren();
@@ -364,7 +367,12 @@ for(const id of ["move","formation","attack","attackMove","select"]){
 }
 $("view").addEventListener("click",()=>{
  if(!view3d&&!renderer){
-  try{renderer=createWebGLRenderer(canvas3d);}catch(e){log("WebGL: "+e.message);}
+  try{
+   renderer=createWebGLRenderer(canvas3d);
+   renderer?.loadAssets({notify:()=>{if(view3d)draw();}}).then(
+    info=>log("Loaded "+info.models+" genuine OBJ mesh models."),
+    e=>log("OBJ loading failed; showing fallback proxies: "+e.message));
+  }catch(e){log("WebGL: "+e.message);}
  }
  if(renderer)view3d=!view3d;
  else log("WebGL unavailable; continuing in 2D.");
