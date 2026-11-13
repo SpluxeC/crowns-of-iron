@@ -31,6 +31,11 @@ export function makeIslandMap({width=64,height=64,seed=1,players=2}={}){
   }
  }
  map.islandMap=true;
+ map.fishShoals=[
+   {x:Math.floor(width/4),y:height-1,amount:240},
+   {x:Math.floor(width*3/4),y:height-1,amount:240},
+   {x:cx,y:cy-half,amount:360}
+ ];
  map.navalObjectives=[{id:"central-lagoon",x:cx,y:cy-half},
    {id:"north-approach",x:cx,y:1}];
  const sea=verifySeaConnectivity(map);
