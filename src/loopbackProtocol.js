@@ -44,6 +44,7 @@ for(const slug of FACTION_SLUGS)for(const role of ROSTER_ROLES){
   "../assets/models/roster/"+slug+"/"+name+".obj","text/plain; charset=utf-8"];
 }
 STATIC["/skinnedGltf.js"]=["../web/skinnedGltf.js","text/javascript; charset=utf-8"];
+STATIC["/textureShader.js"]=["../web/textureShader.js","text/javascript; charset=utf-8"];
 STATIC["/rosterArt.js"]=["../web/rosterArt.js","text/javascript; charset=utf-8"];
 STATIC["/rosterLoader.js"]=["../web/rosterLoader.js","text/javascript; charset=utf-8"];
 STATIC["/factionArt.js"]=["../web/factionArt.js","text/javascript; charset=utf-8"];
