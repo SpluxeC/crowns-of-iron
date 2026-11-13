@@ -1,4 +1,5 @@
 /** WebGL 3D prototype: GPU-shaded block geometry with a mouse-orbit camera. */
+import {assetForUnit,assetForBuilding} from "./assetManifest.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
@@ -71,23 +72,7 @@ export function raycastTerrain(cam,px,py,width,height,world){
  return best;
 }
 /** Procedural low-poly descriptors: role-readable silhouettes, not finished art. */
-export function unitRoleVisual(unit){
- const role=unit?.archetype??"";
- if(role==="Worker")return {role:"worker",head:.22,shoulder:.25,accessory:"pack"};
- if(role==="Hero"||role.startsWith("Legendary"))
-  return {role:"hero",head:.34,shoulder:.56,accessory:"banner"};
- if(["Archer","Stone Slinger","Gunner","Anti-Air Infantry","Scout"].includes(role))
-  return {role:"ranged",head:.24,shoulder:.32,accessory:"ranged"};
- if(["Battering Ram","Siege Tower","Heavy Artillery","Heavy War Machine"].includes(role))
-  return {role:"siege",head:0,shoulder:.60,accessory:"turret"};
- if(["Raft","Fishing Vessel","Trade Ship","Transport Ship","Light Warship",
- "Heavy Warship","Naval Siege Ship","Legendary Warship"].includes(role))
-  return {role:"ship",head:0,shoulder:.68,accessory:"mast"};
- if(["Scout Aircraft","Interceptor","Gunship","Bomber","Air Transport",
- "Aerial Battleship"].includes(role))
-  return {role:"air",head:0,shoulder:.72,accessory:"wings"};
- return {role:"infantry",head:.24,shoulder:.36,accessory:"shield"};
-}
+export function unitRoleVisual(unit){return assetForUnit(unit);}
 export function healthSegments(unit,segments=5){
  const maximum=Math.max(1,Number(unit?.maxHp)||1);
  const ratio=Math.max(0,Math.min(1,(Number(unit?.hp)||0)/maximum));
@@ -192,13 +177,11 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
       height=Math.max(1,Math.min(8,Number(site.height)||2));
      const x=site.x+width/2,z=site.y+height/2;
      const base=heightFor(world.tiles[site.y*world.width+site.x]);
-     const isDefense=/Wall|Gate|Tower|Fort|Rampart|Bastion|Palisade/i.test(site.kind);
-     const tower=/Tower|Fort|Bastion|Hangar/i.test(site.kind);
-     cube(verts,x,z,Math.min(width,height)*.82,base,base+(tower?3.3:isDefense?2.2:1.9),
-      isDefense?"#9eadaf":"#bda484");
-     cube(verts,x,z,Math.min(width,height)*.9,base+(tower?3.3:isDefense?2.2:1.9),
-      base+(tower?3.6:isDefense?2.35:2.25),
-      isDefense?"#74838e":"#876a52");
+     const style=assetForBuilding(site.kind);
+     cube(verts,x,z,Math.min(width,height)*.82,base,base+style.height,
+      style.wallColor);
+     cube(verts,x,z,Math.min(width,height)*.9,base+style.height,
+      base+style.height+.3,style.roofColor);
     }
     const data=new Float32Array(verts);
     gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);

@@ -7,6 +7,7 @@ const STATIC={
  "/client":["../web/netplay.html","text/html; charset=utf-8"],
  "/netplay.js":["../web/netplay.js","text/javascript; charset=utf-8"],
  "/webgl3d.js":["../web/webgl3d.js","text/javascript; charset=utf-8"],
+ "/assetManifest.js":["../web/assetManifest.js","text/javascript; charset=utf-8"],
  "/clientRules.js":["../web/clientRules.js","text/javascript; charset=utf-8"],
  "/unitSelection.js":["../web/unitSelection.js","text/javascript; charset=utf-8"],
  "/combatOrders.js":["../web/combatOrders.js","text/javascript; charset=utf-8"],
