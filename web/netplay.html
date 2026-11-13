@@ -50,9 +50,17 @@ p{line-height:1.5} .hint{color:#abc2ce;font-size:12px} .pill{color:#f0d592;borde
 <h3>Construction</h3><label for="buildChoice">Building</label>
 <select id="buildChoice" aria-label="Structure to construct"></select>
 <div class="controls"><button id="build" disabled>Place with selected Worker</button></div>
-<h3>Research</h3><div id="researchChoice" class="hint">No next mandatory research</div>
-<div class="controls"><button id="research" disabled>Research next discovery</button></div>
+<h3>Research</h3><label for="researchFilter">Research filter</label>
+<select id="researchFilter" aria-label="Technology filter">
+<option value="available">Available now</option><option value="age">Unlocked this age</option>
+<option value="queued">Queued</option><option value="completed">Completed</option>
+<option value="all">All technologies</option></select>
+<label for="researchChoice">Technology</label>
+<select id="researchChoice" aria-label="Technology to research"></select>
+<div class="controls"><button id="research" disabled>Queue selected research</button></div>
+<div id="catalogStatus" class="hint" aria-live="polite"></div>
 <h3>Production queues</h3><div id="queues" class="hint">No queued jobs</div>
+<p class="hint">Click Cancel on a queued recruitment or research job to request a server-side refund.</p>
 <h3>Network log</h3><div id="log" aria-live="polite"></div>
 </aside></main>
 <script type="module" src="/netplay.js"></script>

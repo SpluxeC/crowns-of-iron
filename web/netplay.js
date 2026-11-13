@@ -1,12 +1,12 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {createVersionDecoder} from "/streamProtocol.js";
-import {availableBuildings,chooseBuilder,nextMandatoryResearch,
- eligibleTrainingSites,queueSummary} from "/clientRules.js";
+import {chooseBuilder,queueSummary,formatCost,catalogBuildings,
+ catalogTraining,catalogResearch,researchRequest,trainingRequest} from "/clientRules.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map"),ctx=canvas.getContext("2d",{alpha:false}),canvas3d=$("map3d");
 const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
  water:"#204767",deposit:"#b69a47",unknown:"#122938"};
-let token=null,abort=null,pollTimer=null,state=null,room=null,playerId=null,nextSequence=1,version=0;
+let token=null,abort=null,pollTimer=null,state=null,room=null,catalog=null,playerId=null,nextSequence=1,version=0;
 let renderer=null,view3d=false,selected=new Set(),mode="select",pending=false,refreshing=false,refreshAgain=false;
 let drag=null,ignoreClick=false;
 function log(message){
@@ -77,34 +77,60 @@ function info(){
  setButton("connect",!token&&!pending);
  const playing=!!token&&!pending&&room?.started&&!state?.winner;
  for(const id of ["move","formation","attack"])setButton(id,playing&&selected.size>0);
- const choices=eligibleTrainingSites(p),buildings=availableBuildings(p);
+ const choices=catalogTraining(catalog),buildings=catalogBuildings(catalog),
+  availableResearch=catalogResearch(catalog,$("researchFilter").value);
  const trainValue=$("trainChoice").value,buildValue=$("buildChoice").value;
  $("trainChoice").replaceChildren();
  for(const choice of choices){
   const item=document.createElement("option");item.value=choice.facility+"|"+choice.role;
-  item.textContent=choice.label;$("trainChoice").append(item);
+  item.textContent=(choice.name??choice.role)+" · "+choice.facility+
+   " · "+formatCost(choice.cost)+(choice.available?"":" (locked/unaffordable)");
+  $("trainChoice").append(item);
  }
  if(choices.some(c=>c.facility+"|"+c.role===trainValue))$("trainChoice").value=trainValue;
  $("buildChoice").replaceChildren();
  for(const building of buildings){
   const item=document.createElement("option");item.value=building.kind;
-  item.textContent=building.kind+" ("+building.cost+")";
+  item.textContent=building.kind+" ("+formatCost(building.cost)+")"+
+   (building.affordable?"":" · insufficient resources");
   $("buildChoice").append(item);
  }
  if(buildings.some(b=>b.kind===buildValue))$("buildChoice").value=buildValue;
- const research=nextMandatoryResearch(p);
- text("researchChoice",research?research.name+" · "+research.id:"No research available at this age");
+ const researchValue=$("researchChoice").value;
+ $("researchChoice").replaceChildren();
+ for(const tech of availableResearch){
+  const item=document.createElement("option");item.value=tech.id;
+  item.textContent=tech.name+" ("+tech.id+") · "+formatCost(tech.cost)+
+   (tech.available?"":" · unavailable");
+  $("researchChoice").append(item);
+ }
+ if(availableResearch.some(r=>r.id===researchValue))$("researchChoice").value=researchValue;
+ const chosenTech=availableResearch.find(t=>t.id===$("researchChoice").value);
+ const currentTrain=choices.find(t=>t.facility+"|"+t.role===$("trainChoice").value);
+ const currentBuild=buildings.find(t=>t.kind===$("buildChoice").value);
+ text("catalogStatus",catalog?("Catalog "+catalog.revision+" · "+catalog.buildings.length+
+  " buildings · "+catalog.training.length+" recruit options · "+
+  catalog.research.length+" technologies"):"No authoritative catalog");
  const jobs=queueSummary(p);
  $("queues").replaceChildren();
  for(const job of jobs.slice(0,20)){
   const item=document.createElement("div");
-  item.textContent=job.type+" · "+job.name+" · "+job.facility+" · "+Math.floor(job.progressMs/1000)+"s";
-  $("queues").append(item);
+  item.textContent=job.type+" · "+job.name+" · "+job.facility+" · "+
+   Math.floor(job.progressMs/1000)+"s ";
+  const cancel=document.createElement("button");
+  cancel.type="button";cancel.textContent="Cancel";
+  cancel.disabled=!playing;cancel.addEventListener("click",()=>{
+   if(job.type==="Research")send("cancelResearch",{facility:job.facility,id:job.name},
+    "Cancelled research: "+job.name);
+   else send("cancelTrain",{facility:job.facility,index:job.index},
+    "Cancelled recruitment: "+job.name);
+  });
+  item.append(cancel);$("queues").append(item);
  }
  if(!jobs.length)text("queues","No queued jobs");
- setButton("trainWorker",playing&&choices.length>0);
- setButton("build",playing&&buildings.length>0&&!!chooseBuilder(p,[...selected]));
- setButton("research",playing&&!!research);
+ setButton("trainWorker",playing&&!!currentTrain?.available);
+ setButton("build",playing&&!!currentBuild?.affordable&&!!chooseBuilder(p,[...selected]));
+ setButton("research",playing&&!!chosenTech?.available);
  const details=[...selected].map(id=>p?.units?.find(u=>u.id===id))
   .filter(Boolean).map(u=>u.archetype+" ["+u.hp+"/"+u.maxHp+" HP]");
  text("selection",details.length?details.join(", "):"No units selected");
@@ -131,11 +157,10 @@ async function refresh(){
   do{
    refreshAgain=false;
    const currentToken=token;
-   const [snapshot,lobby]=await Promise.all([api("/state"),api("/lobby")]);
+   const [snapshot,lobby,options]=await Promise.all([api("/state"),api("/lobby"),api("/catalog")]);
    if(token!==currentToken)return;
-   state=snapshot.state;room=lobby;playerId=snapshot.playerId;
-   // Older racing snapshots cannot roll back authoritative client state.
    if(snapshot.version<version&&snapshot.playerId===playerId)continue;
+   state=snapshot.state;room=lobby;catalog=options;playerId=snapshot.playerId;
    version=snapshot.version;nextSequence=snapshot.nextSequence;
    const ids=new Set(own()?.units?.filter(u=>u.alive).map(u=>u.id)??[]);
    selected=new Set([...selected].filter(id=>ids.has(id)));
@@ -194,7 +219,7 @@ async function connect(){
 function disconnect(){
  abort?.abort();abort=null;
  if(pollTimer!==null){clearInterval(pollTimer);pollTimer=null;}
- token=null;state=null;room=null;playerId=null;
+ token=null;state=null;room=null;catalog=null;playerId=null;
  selected.clear();mode="select";view3d=false;pending=false;refreshing=false;
  draw();info();log("Disconnected. No session token saved.");
 }
@@ -231,7 +256,8 @@ function click(ev){
    send("formation",{units:[...selected].slice(0,24),...tile},"Formation order sent");
   }else if(commandMode==="build"){
    const builder=chooseBuilder(own(),[...selected]);
-   if(builder)send("build",{kind:$("buildChoice").value,...tile,
+   if(builder&&catalogBuildings(catalog).some(b=>b.kind===$("buildChoice").value&&b.affordable))
+    send("build",{kind:$("buildChoice").value,...tile,
      workers:[builder.id]},"Building construction started");
    else log("Select a living, positioned Worker first.");
   }else if(commandMode==="attack"&&selected.size===1){
@@ -259,17 +285,21 @@ $("ready").addEventListener("click",()=>post("/lobby/ready",
 $("start").addEventListener("click",()=>post("/lobby/start",{},"Host launched match"));
 $("trainWorker").addEventListener("click",()=>{
  const [facility,role]=$("trainChoice").value.split("|");
- if(facility&&role)send("train",{facility,role},role+" queued");
+ const payload=trainingRequest(catalog,facility,role);
+ if(payload)send("train",payload,role+" queued");
+ else log("Recruitment option is unavailable.");
 });
 $("build").addEventListener("click",()=>{
  if(!chooseBuilder(own(),[...selected])){log("Select a Worker to build.");return;}
  mode="build";log("Click a valid site for "+$("buildChoice").value);
 });
 $("research").addEventListener("click",()=>{
- const tech=nextMandatoryResearch(own());
- if(tech)send("research",{facility:"Town Center",id:tech.id},
-  "Research queued: "+tech.name);
+ const payload=researchRequest(catalog,$("researchChoice").value);
+ if(payload)send("research",payload,"Research queued: "+payload.id);
+ else log("Technology is unavailable.");
 });
+for(const id of ["trainChoice","buildChoice","researchChoice","researchFilter"])
+ $(id).addEventListener("change",()=>info());
 for(const id of ["move","formation","attack","select"]){
  $(id).addEventListener("click",()=>{
   mode=id;log(id==="select"?"Selection enabled":"Choose a target tile for "+id);
