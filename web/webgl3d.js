@@ -169,7 +169,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   models=null,textures=null,textureFailure=null,
   modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
   skinnedLoader=null,vehicleLoader=null,
-  modelUnits=0,modelBuildings=0,fallbackUnits=0;
+  modelUnits=0,modelBuildings=0,fallbackUnits=0,lastArtStats=null;
  const animationStates=new Map(),vehicleStates=new Map(),combatStates=new Map();
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
@@ -426,6 +426,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     animationStates.delete(key);
    for(const key of vehicleStates.keys())if(!visibleAnimKeys.has(key))
     vehicleStates.delete(key);
+   lastArtStats=frameBudget.stats();
    const data=new Float32Array(verts);
    gl.viewport(0,0,canvas.width,canvas.height);
    gl.clearColor(.06,.12,.19,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -458,6 +459,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    gpuTextures:uvRenderer?.stats().textures??0,
    gpuTexturedVertices:uvRenderer?.stats().texturedVertices??0,
    cosmeticVfxMax:ART_BUDGETS.combatBursts,
+   artBudget:lastArtStats,
    factionModels:models?Object.keys(models).filter(k=>k.includes("/")).length:0,
    factionTextures:textures?Object.keys(textures).length:0,
    textureFailure,
