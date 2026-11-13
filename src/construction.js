@@ -42,7 +42,7 @@ export function startConstruction(match,owner,kind,x,y,workerIds){
   const site=placeBuilding(map,{owner,kind,x,y,width,height});
   match.constructions??={};
   match.constructions[site.id]={siteId:site.id,owner,kind,workerIds:[...workerIds],elapsedMs:0,
-    durationMs:def.ms,cost:structuredClone(def.cost),hp:def.hp,armor:def.armor,completed:false};
+    durationMs:def.ms,cost:structuredClone(def.cost),hp:def.hp,maxHp:def.hp,armor:def.armor,completed:false};
   return site.id;
 }
 export function cancelConstruction(match,owner,siteId){
