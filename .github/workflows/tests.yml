@@ -68,3 +68,13 @@ jobs:
           path: artifacts/browser-qa/*.png
           if-no-files-found: error
           retention-days: 30
+
+      - run: npm run all-216-art-demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crowns-of-iron-all-216-animated-gltf
+          path: |
+            assets/gltf/**/*.gltf
+            assets/gltf-vehicles/**/*.gltf
+          if-no-files-found: error
+          retention-days: 30

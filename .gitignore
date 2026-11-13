@@ -9,3 +9,6 @@ dist/
 
 # Generated self-contained glTF export outputs; CI uploads these as downloadable artifacts.
 /assets/gltf/
+
+# Generated specialized non-humanoid glTF exports
+/assets/gltf-vehicles/

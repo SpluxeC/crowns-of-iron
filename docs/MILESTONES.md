@@ -118,3 +118,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **9.6 Specialized vehicle motion:** per-domain naval rocking, aircraft banking/hovering and siege firing recoil, applied to OBJ mesh vertices without changing simulation.
 - **9.7 Actual browser screenshot smoke:** headless Chromium with SwiftShader checks model gallery, skinned meshes, vehicle fallback and start-screen client; screenshots uploaded to CI.
 - **9.8 Artifact pipeline QA:** export/validate and upload 96 skinned glTF models, preserve earlier art milestone tests and document hardware/browser limitations.
+
+- **9.9 Separate vehicle glTF pipeline:** 120 original non-humanoid unit variations exported as glTF 2.0 with embedded 128×128 PNGs and three node transform tracks, complementing 96 humanoid skinned models.
+- **10.0 Runtime vehicle glTF animation:** browser-safe parser and real animated geometry, allowlisted HTTP, selective GPU UV uploads and unique OBJ fallback; full 216-unit glTF representation.
+- **10.1 Cosmetic combat feedback:** bounded damage color flash and visual death pose, only from explicitly visible/known snapshot units; gallery preview with no gameplay effect.
+- **10.2 Full art CI and Chromium:** regenerate and validate all 216 physical glTF assets, archived GitHub Actions artifact, browser screenshots for infantry, naval, air and siege examples; no hand-authoring or native hardware certification claimed.

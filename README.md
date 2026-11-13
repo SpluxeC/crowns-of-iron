@@ -147,3 +147,11 @@ The other **180 roster units** retain their unique OBJ asset pipeline. These are
 Ships, aircraft and siege vehicles now use **specialized procedural rocking, banking, hovering and recoil** instead of humanoid joint animations. These effects are client-side and do not alter unit positions or authoritative combat.
 
 A dedicated **real headless Chromium/SwiftShader screenshot smoke** now validates the WebGL gallery, multiple faction archetypes, skinned glTF loading, vehicle OBJ fallback and the main client start screen. CI uploads the screenshots; it is not yet pixel-diff baseline regression, hardware GPU performance certification or native iOS/console QA. See [Art Stage 9.5–9.8](docs/ART_STAGE_9_5_TO_9_8.md).
+
+### Complete animated glTF roster — Art Milestones 9.9–10.2
+
+Every one of the **216 faction/unit archetype combinations** now has an actual exportable, original low-poly **glTF 2.0** mesh and three first-pass animation clips: the previous **96 seven-joint humanoid skins** plus **120 specialized animated non-skinned mesh-node vehicles** for large land/siege, naval and air units. The models are still procedural first-pass art rather than final hand-painted or physically rigged production assets. Original Wavefront OBJ files and vertex-color fallbacks remain intact.
+
+The WebGL client loads only visible faction/archetype assets using exact allowlisted localhost URLs, with GPU UV texture sampling and a conservative mesh budget. Naval rocking, aircraft banking/hovering and siege recoil now travel in their actual standard glTF node animation curves. Client-only hit flash and death transitions can be previewed in `/model-gallery` and do not affect server-authoritative gameplay. Death posing is only shown for explicitly dead units present in a sanitized game snapshot.
+
+Run `npm run all-216-art-demo` to generate and validate all 216 physical `.gltf` files. CI publishes the `crowns-of-iron-all-216-animated-gltf` artifact. The real Chromium visual smoke now checks selected ships, aircraft and artillery, in addition to skinned humanoid models. See [Art Stage 9.9–10.2](docs/ART_STAGE_9_9_TO_10_2.md) for exact scope, animation/texture limitations and browser QA.
