@@ -45,7 +45,7 @@ export function issueMove(match,pid,unitId,x,y){
   assert(Number.isInteger(u.x)&&Number.isInteger(u.y),"Unit lacks a position");
   const path=findPath(map,{x:u.x,y:u.y},{x,y});
   assert(path,"No route to destination");
-  match.orders[unitId]={kind:"move",path:path.slice(1),carryMs:0};
+  match.orders[unitId]={kind:"move",path:path.slice(1),carryMs:0,destination:{x,y}};
   return path.length-1;
 }
 export function issueAttack(match,pid,unitId,targetPlayer,targetId){

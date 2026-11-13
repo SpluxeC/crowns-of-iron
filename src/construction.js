@@ -87,7 +87,8 @@ export function destroyStructure(match,siteId){
     if(p.researchQueues[job.facilityKey])destroyResearchFacility(p,job.facilityKey);
     p.facilities[job.kind]=Math.max(0,(p.facilities[job.kind]??0)-1);
   }
-  if(job.housing)p.popCap=Math.max(0,p.popCap-job.housing);
+  const gainedHousing=(job.housing??0)+(job.upgradeHousing??0);
+  if(gainedHousing)p.popCap=Math.max(0,p.popCap-gainedHousing);
   if(job.kind==="Great Monument"&&match.mode==="GreatMonument"&&match.modeState?.monuments?.[job.owner])
     removeMonument(match,job.owner);
   removeBuilding(match.battlefield,siteId);

@@ -6,7 +6,14 @@ import {getPlayer} from "./state.js";
 const supported=Object.freeze({
   "Training Equipment I":{kind:"trainingSpeed",factor:.90},
   "Reinforced Barracks":{kind:"buildingHp",factor:1.15},
-  "Assembly Equipment":{kind:"trainingSpeed",factor:.95}
+  "Assembly Equipment":{kind:"trainingSpeed",factor:.95},
+  "Extended Housing":{kind:"housing",amount:5},
+  "Reinforced Command Hall":{kind:"buildingHp",factor:1.15},
+  "Training Equipment":{kind:"trainingSpeed",factor:.90},
+  "Heavy Assembly":{kind:"trainingSpeed",factor:.90},
+  "Advanced Slipways":{kind:"trainingSpeed",factor:.90},
+  "Reinforced Ramparts":{kind:"buildingHp",factor:1.15},
+  "Automatic Feed":{kind:"trainingSpeed",factor:.90}
 });
 export function upgradeCoverage(match){
  const records=Object.values(match.fullCatalog?.upgrades??{}).flat();
@@ -23,7 +30,7 @@ export function queueBuildingUpgrade(match,owner,siteId,name){
  assert(ageIndex(p.age)>=ageIndex(def.age),"Building upgrade age locked");
  const active=site.upgrades??[],pending=site.upgradeQueue??[];
  assert(!active.includes(name)&&!pending.some(q=>q.name===name),"Upgrade already owned or queued");
- assert(pending.length<4,"Building upgrade queue full");
+ assert(pending.length<3,"Building upgrade queue full");
  spend(p.resources,def.cost);
  site.upgradeQueue??=[];
  const job={name,elapsedMs:0,started:false,durationMs:def.ms,cost:structuredClone(def.cost)};
@@ -39,11 +46,19 @@ export function cancelBuildingUpgrade(match,owner,siteId,name){
  refund(getPlayer(match,owner).resources,job.cost,job.started?.75:1);
  return job;
 }
-function complete(site,name){
+function complete(match,site,name){
  const kind=supported[name];
  site.upgrades??=[];
  site.upgrades.push(name);
- if(kind.kind==="trainingSpeed")site.trainTimeFactor=(site.trainTimeFactor??1)*kind.factor;
+ if(kind.kind==="trainingSpeed"){
+   site.localTrainingReduction=(site.localTrainingReduction??0)+(1-kind.factor);
+   site.trainTimeFactor=1-Math.min(.25,site.localTrainingReduction);
+ }
+ if(kind.kind==="housing"){
+   const p=getPlayer(match,site.owner);
+   site.upgradeHousing=(site.upgradeHousing??0)+kind.amount;
+   p.popCap=Math.min(300,p.popCap+kind.amount);
+ }
  if(kind.kind==="buildingHp"){
    const original=site.maxHp??site.hp;
    site.maxHp=Math.round(original*kind.factor);
@@ -61,7 +76,7 @@ export function tickBuildingUpgrades(match,deltaMs){
      const step=Math.min(remaining,job.durationMs-job.elapsedMs);
      job.elapsedMs+=step;remaining-=step;
      if(job.elapsedMs<job.durationMs)break;
-     site.upgradeQueue.shift();complete(site,job.name);
+     site.upgradeQueue.shift();complete(match,site,job.name);
    }
  }
 }
