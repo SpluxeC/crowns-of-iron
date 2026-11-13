@@ -18,8 +18,9 @@ export function harvestDeposit(match,owner,workerId,x,y){
   if(tile.resource==="Metal")assert(player.age!=="I","Metal extraction age locked");
   if(tile.resource==="Aether")assert(["III","IV","V"].includes(player.age),"Aether extraction age locked");
   const result=Math.min(10,tile.amount);
-  tile.amount-=result;player.resources[tile.resource]+=result;
+  const resource=tile.resource;
+  tile.amount-=result;player.resources[resource]+=result;
   worker.nextHarvestAtMs=match.elapsedMs+2000;
   if(tile.amount===0)tile.resource=null;
-  return {resource:tile.resource??"depleted",amount:result,remaining:tile.amount};
+  return {resource,amount:result,remaining:tile.amount};
 }

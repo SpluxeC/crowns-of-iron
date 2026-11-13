@@ -28,6 +28,10 @@ export function startConstruction(match,owner,kind,x,y,workerIds){
   assert(Array.isArray(workerIds)&&workerIds.length>0&&new Set(workerIds).size===workerIds.length,"Invalid worker assignment");
   const workers=workerIds.map(id=>p.units.find(u=>u.id===id&&u.alive&&u.archetype==="Worker"));
   assert(workers.every(Boolean),"Construction requires live workers");
+  match.constructions??={};
+  const busy=new Set(Object.values(match.constructions).filter(site=>!site.completed)
+    .flatMap(site=>site.workerIds));
+  assert(workerIds.every(id=>!busy.has(id)),"Worker already assigned to a construction site");
   [x,y]=[Math.round(x),Math.round(y)];
   const [width,height]=def.footprint;
   assert(canPlace(map,x,y,width,height),"Invalid building placement");
