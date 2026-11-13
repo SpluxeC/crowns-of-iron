@@ -39,6 +39,9 @@ for(const slug of FACTION_SLUGS)for(const role of MODEL_NAMES){
 STATIC["/factionArt.js"]=["../web/factionArt.js","text/javascript; charset=utf-8"];
 STATIC["/meshAnimation.js"]=["../web/meshAnimation.js","text/javascript; charset=utf-8"];
 STATIC["/factionTextures.js"]=["../web/factionTextures.js","text/javascript; charset=utf-8"];
+STATIC["/rigProfiles.js"]=["../web/rigProfiles.js","text/javascript; charset=utf-8"];
+STATIC["/assets/rigs/faction-rigs.json"]=["../assets/rigs/faction-rigs.json",
+ "application/json; charset=utf-8"];
 for(const slug of FACTION_SLUGS){
  STATIC["/assets/textures/factions/"+slug+".ppm"]=[
   "../assets/textures/factions/"+slug+".ppm","text/plain; charset=utf-8"];

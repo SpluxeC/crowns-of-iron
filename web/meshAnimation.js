@@ -1,3 +1,4 @@
+import {boneForPosition,rotateAroundJointX} from "./rigProfiles.js";
 /** Lightweight procedural pseudo-rig animation for Y-up OBJ geometry.
  * Not a skinning/armature implementation: vertices are deformed by regions. */
 export const ANIMATION_MODES=Object.freeze(["idle","walk","attack"]);
@@ -15,16 +16,26 @@ export function animationModeForUnit(unit,order){
  if(order?.path?.length>0)return "walk";
  return "idle";
 }
-export function deformVertex(x,y,z,pose,maxHeight=1.5){
+export function deformVertex(x,y,z,pose,maxHeight=1.5,rig=null){
  if(!pose)return [x,y,z];
- const height=Math.max(0.1,maxHeight);
- const t=y/height;
+ const height=Math.max(.1,maxHeight),t=y/height;
  if(pose.mode==="idle")return [x+.008*t*pose.swing,
   y+.012*pose.bounce,z];
- if(pose.mode==="walk"){
-  const leg=t<.36&&Math.abs(x)>.07?Math.sign(x)*pose.swing*.1:0;
-  const arm=t>.36&&t<.82&&Math.abs(x)>.28?-Math.sign(x)*pose.swing*.08:0;
-  return [x,y+.026*pose.bounce+leg*.2,z+leg+arm];
+ if(!rig){
+  if(pose.mode==="walk")return [x,y+.026*pose.bounce,z+.06*pose.swing*t];
+  return [x,y+.016*pose.recoil,z-.08*pose.recoil*t];
  }
- return [x,y+.016*pose.recoil,z-.08*pose.recoil*t];
+ const bone=boneForPosition(x,y,height,rig),
+  left=bone.startsWith("left"),right=bone.startsWith("right");
+ let angle=0,pivotY=rig.hipY*height;
+ if(bone==="leftArm"||bone==="rightArm"){
+  pivotY=rig.shoulderY*height;
+  angle=pose.mode==="walk"?(left?-1:1)*rig.armSwing*pose.swing:
+   (right?-1:1)*rig.attackSwing*pose.recoil;
+ }else if(bone==="leftLeg"||bone==="rightLeg"){
+  angle=pose.mode==="walk"?(left?1:-1)*rig.legSwing*pose.swing:0;
+ }
+ const [yy,zz]=rotateAroundJointX(y,z,pivotY,angle);
+ return [x,yy+(pose.mode==="walk"?.025*pose.bounce:.014*pose.recoil),
+  zz-(pose.mode==="attack"?.03*pose.recoil*t:0)];
 }

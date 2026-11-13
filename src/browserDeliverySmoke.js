@@ -19,7 +19,7 @@ export async function runBrowserDeliverySmoke(){
  const requiredScripts=["/netplay.js","/webgl3d.js","/assetManifest.js",
   "/clientRules.js","/unitSelection.js","/combatOrders.js",
   "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js",
-  "/factionArt.js","/meshAnimation.js","/factionTextures.js"];
+  "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
@@ -77,6 +77,11 @@ export async function runBrowserDeliverySmoke(){
    assert(image.width===32&&image.height===32,"Faction pattern size changed");
    factionTextures++;
   }
+  const rigResponse=await fetch(base+"/assets/rigs/faction-rigs.json");
+  assert(rigResponse.status===200,"Rig metadata unavailable");
+  const rigs=await rigResponse.json();
+  assert(rigs.bones?.length===7&&Object.keys(rigs.factions??{}).length===6,
+   "Incomplete faction rigs");
   const forbidden=await fetch(base+"/assets/models/factions/not-a-faction/worker.obj");
   assert(forbidden.status===404,"Unknown faction asset path accepted");
   const illegal=await fetch(base+"/assets/models/unknown.obj");
@@ -101,7 +106,7 @@ export async function runBrowserDeliverySmoke(){
   assert(host.match.players[0].units.find(u=>u.id===unit.id).combatStance==="aggressive");
   return {htmlControls:requiredIds.length,servedModules:requiredScripts.length,
    servedMeshes:MODEL_NAMES.length,assetTriangles,factionMeshes,factionTriangles,
-   factionTextures,
+   factionTextures,factionRigProfiles:6,
    contractsChecked:checked,anonymousRejected:true,authenticatedBatch:true,
    scope:"localhost HTTP delivery and server interaction; NOT real browser GPU/DOM automation"};
  }finally{

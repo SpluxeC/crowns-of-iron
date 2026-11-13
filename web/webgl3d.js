@@ -4,6 +4,7 @@ import {loadObjAssetSet,loadFactionObjSet,appendObjVertices} from "./objLoader.j
 import {factionMeshKey} from "./factionArt.js";
 import {poseAt,animationModeForUnit} from "./meshAnimation.js";
 import {loadFactionTextures,textureForFaction} from "./factionTextures.js";
+import {rigForFaction} from "./rigProfiles.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
@@ -263,7 +264,9 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
        p.id===match.viewerId?[.82,1,1]:[1,.79,.79],
       pose:poseAt(previewPose??animationModeForUnit(u,match.orders?.[u.id]),
        match.elapsedMs??0,(u.id?.length??0)*.07),
-      texture:textureForFaction(textures,p.faction)});
+      texture:textureForFaction(textures,p.faction),
+      rig:["worker","infantry","ranged","hero"].includes(role)?
+       rigForFaction(p.faction):null});
      modelUnits++;
     }else{
      fallbackUnits++;
