@@ -1,6 +1,8 @@
 import {assert,affordable,spend,refund,ageIndex} from "./util.js";
 import {at,canPlace,placeBuilding,removeBuilding,findPath} from "./map.js";
 import {getPlayer,addFacility} from "./state.js";
+import {destroyResearchFacility} from "./research.js";
+import {destroyProductionFacility} from "./production.js";
 
 export const STRUCTURES=Object.freeze({
   "Training Camp":{age:"I",cost:{Wood:100,Stone:40},ms:40000,footprint:[3,3],hp:800,armor:5},
@@ -71,8 +73,11 @@ export function destroyStructure(match,siteId){
   const job=match.constructions?.[siteId];assert(job,"Unknown constructed structure");
   const p=getPlayer(match,job.owner);
   if(!job.completed){return cancelConstruction(match,job.owner,siteId);}
-  if(job.facilityKey){delete p.unitQueues[job.facilityKey];delete p.researchQueues[job.facilityKey];
-    p.facilities[job.kind]=Math.max(0,(p.facilities[job.kind]??0)-1);}
+  if(job.facilityKey){
+    if(p.unitQueues[job.facilityKey])destroyProductionFacility(p,job.facilityKey);
+    if(p.researchQueues[job.facilityKey])destroyResearchFacility(p,job.facilityKey);
+    p.facilities[job.kind]=Math.max(0,(p.facilities[job.kind]??0)-1);
+  }
   if(STRUCTURES[job.kind]?.housing)p.popCap=Math.max(0,p.popCap-STRUCTURES[job.kind].housing);
   removeBuilding(match.battlefield,siteId);
   delete match.constructions[siteId];return true;
