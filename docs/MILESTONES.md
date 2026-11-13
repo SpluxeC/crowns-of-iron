@@ -43,3 +43,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **3.6 Research effect expansion:** 70 of 78 optional tech handlers per faction; eight effect types remain descriptive. Transport capacity attributes and trade/scouting specializations included.
 - **3.7 Military formations and siege:** atomic multi-unit move assignment and reachable siege approach/attack orders; collision-aware formation retention remains pending.
 - **3.8 Multiplayer resynchronization prototype:** monotonic host versions, fog-filtered resync snapshots and credential rotation; full Internet networking and secure sessions pending.
+
+- **3.9 Transport passengers:** owned units can board/unload Ship/Air Transports and Siege Towers, reserve population, and suffer casualty outcomes on carrier destruction; collision-accurate transport remains pending.
+- **4.0 Research effect completion:** 78/78 optional technology IDs have executable shared prototype handlers across all six civilizations, including XP, defensive unlocks, conversion, Aether, and siege disruption; effect balance/UX incomplete.
+- **4.1 Siege Tower ramp:** five-second deployment, abstract battlement garrison assaults and tower collapse passenger evacuation; no pathable wall-top geometry.
+- **4.2 Local network hardening:** atomic authenticated command batches, per-tick command budget, restricted client checksums and fogged enemy-unit metadata; public multiplayer architecture remains pending.
