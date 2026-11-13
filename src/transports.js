@@ -2,7 +2,7 @@ import {assert} from "./util.js";
 import {getPlayer,killUnit} from "./state.js";
 import {movementDomain,tileTraversable} from "./movementDomains.js";
 import {at} from "./map.js";
-const CARRIERS=new Set(["Transport Ship","Air Transport"]);
+const CARRIERS=new Set(["Transport Ship","Air Transport","Siege Tower"]);
 const distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 function carrierAndPassenger(match,owner,carrierId,passengerId){
  const player=getPlayer(match,owner),carrier=player.units.find(u=>u.id===carrierId&&u.alive);
@@ -23,7 +23,8 @@ export function embark(match,owner,carrierId,passengerId){
   passenger.archetype!=="Legendary Land"&&passenger.archetype!=="Siege Tower"&&
   passenger.archetype!=="Heavy War Machine"&&passenger.archetype!=="Battering Ram",
   "Only eligible land units can embark");
- assert(distance(carrier,passenger)<=2,"Transport is too far from passenger");
+ assert(distance(carrier,passenger)<=(carrier.archetype==="Siege Tower"?1:2),"Transport is too far from passenger");
+ if(carrier.archetype==="Siege Tower")assert(["Club Fighter","Stone Spearman","Stone Slinger","Swordsman","Archer","Pikeman","Heavy Infantry","Gunner","Anti-Air Infantry"].includes(passenger.archetype),"Siege Tower accepts infantry only");
  assert(carriedPop(player,carrierId)+passenger.pop<=carrier.passengerCapacity,
   "Transport passenger population capacity exceeded");
  carrier.passengerIds??=[];
@@ -64,13 +65,26 @@ export function disembark(match,owner,carrierId,passengerIds){
  carrier.passengerIds=(carrier.passengerIds??[]).filter(id=>!passengerIds.includes(id));
  return owned.map(u=>({unitId:u.id,x:u.x,y:u.y}));
 }
+function exitsForWreck(match,owner,carrier){
+ return exits(match,owner,carrier);
+}
 export function transportLosses(match){
  // Destroyed transports cannot retain invulnerable, hidden living passengers.
  for(const player of match.players)for(const unit of player.units){
   if(!unit.alive||!unit.embarkedAt)continue;
-  const carrier=player.units.find(u=>u.id===unit.embarkedAt&&u.alive);
-  if(carrier)continue;
+  const carrier=player.units.find(u=>u.id===unit.embarkedAt);
+  if(carrier?.alive)continue;
   unit.embarkedAt=null;
+  if(carrier?.archetype==="Siege Tower"&&Number.isInteger(carrier.x)){
+    const exits=exitsForWreck(match,player.id,carrier);
+    const taken=new Set(match.players.flatMap(p=>p.units.filter(u=>u.alive&&Number.isInteger(u.x)).map(u=>u.x+","+u.y)));
+    const point=exits.find(t=>!taken.has(t.x+","+t.y));
+    if(point){
+      unit.x=point.x;unit.y=point.y;
+      unit.hp=Math.max(1,unit.hp-Math.ceil(unit.maxHp*.35));
+      continue;
+    }
+  }
   killUnit(player,unit.id);
  }
 }

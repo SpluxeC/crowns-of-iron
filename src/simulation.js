@@ -22,6 +22,7 @@ import {tickRenewables} from "./renewableEconomy.js";
 import {orderFormation,orderSiege} from "./formationOrders.js";
 import {assignSeaTrade,cancelSeaTrade,tickNavalEconomy} from "./navalEconomy.js";
 import {embark,disembark,transportLosses} from "./transports.js";
+import {deploySiegeRamp,assaultBattlement,resetInvalidRamps} from "./siegeTowers.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -62,6 +63,8 @@ export function command(match,input,{allowDebug=false}={}){
     case "cancelSeaTrade":result=cancelSeaTrade(match,id,input.vesselId);break;
     case "embark":result=embark(match,id,input.carrierId,input.passengerId);break;
     case "disembark":result=disembark(match,id,input.carrierId,input.passengers);break;
+    case "deployRamp":result=deploySiegeRamp(match,id,input.towerId,input.siteId);break;
+    case "assaultBattlement":result=assaultBattlement(match,id,input.towerId,input.attackerId,input.targetId);break;
     case "garrison":result=garrisonUnit(match,id,input.siteId,input.unitId);break;
     case "ungarrison":result=ungarrisonUnit(match,id,input.unitId);break;
     case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
@@ -105,6 +108,7 @@ function substep(match,ms,opts){
   tickFortificationFire(match);
   tickStructureCombat(match);
   transportLosses(match);
+  resetInvalidRamps(match);
   checkElimination(match,ms);
   tickMode(match,ms);
   match.elapsedMs+=ms;match.tick++;

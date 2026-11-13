@@ -8,7 +8,7 @@ import {researchMultiplier} from "./technologyEffects.js";
 // Local authoritative protocol prototype; no public deployment, matchmaking,
 // dedicated authorization backend or production fog-of-war guarantees.
 const COMMANDS=new Set(["allocate","research","cancelResearch","train","cancelTrain",
-  "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","formation","siege","seaTrade","cancelSeaTrade","embark","disembark","ability"]);
+  "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","formation","siege","seaTrade","cancelSeaTrade","embark","disembark","deployRamp","assaultBattlement","ability"]);
 export class MatchHost{
   constructor(participants,seed=1){
     this.match=createMatch(participants,seed);
@@ -45,7 +45,7 @@ export class MatchHost{
       assert(target&&(enemy.team===viewer.team||this.isVisible(viewer,target)),
         "Enemy target is not visible");
     }
-    if(action==="attackStructure"||action==="siege"){
+    if(action==="attackStructure"||action==="siege"||action==="deployRamp"){
       const site=this.match.constructions?.[payload.siteId];
       const location=this.match.battlefield?.structures?.find(s=>s.id===payload.siteId);
       const viewer=this.match.players.find(p=>p.id===session.playerId);
