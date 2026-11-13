@@ -1,6 +1,6 @@
 {
   "name": "crowns-of-iron",
-  "version": "7.0.0",
+  "version": "7.4.0",
   "private": true,
   "type": "module",
   "description": "Deterministic headless RTS prototype",
@@ -10,10 +10,10 @@
     "validate": "node scripts/validate.js",
     "inspect": "node scripts/serve.js",
     "map-demo": "node scripts/map_demo.js",
-    "syntax-check": "node --check web/app.js && node --check web/webgl3d.js && node --check scripts/server.js && node --check src/simulation.js && node --check src/network.js && node --check src/groupNavigation.js && node --check src/loopbackProtocol.js && node --check web/netplay.js && node --check web/clientRules.js && node --check web/streamProtocol.js && node --check src/hostStore.js && node --check src/commandCatalog.js && node --check src/armyRehearsal.js && node --check scripts/batch_5_9_demo.js && node --check web/unitSelection.js && node --check scripts/batch_6_3_demo.js && node --check web/combatOrders.js && node --check web/perfTelemetry.js && node --check src/localHttpBenchmark.js && node --check scripts/batch_6_7_demo.js",
+    "syntax-check": "node --check web/app.js && node --check web/webgl3d.js && node --check scripts/server.js && node --check src/simulation.js && node --check src/network.js && node --check src/groupNavigation.js && node --check src/loopbackProtocol.js && node --check web/netplay.js && node --check web/clientRules.js && node --check web/streamProtocol.js && node --check src/hostStore.js && node --check src/commandCatalog.js && node --check src/armyRehearsal.js && node --check scripts/batch_5_9_demo.js && node --check web/unitSelection.js && node --check scripts/batch_6_3_demo.js && node --check web/combatOrders.js && node --check web/perfTelemetry.js && node --check src/localHttpBenchmark.js && node --check scripts/batch_6_7_demo.js && node --check src/combatDirectives.js && node --check web/assetManifest.js && node --check src/browserDeliverySmoke.js && node --check src/largeArmyMovementProfile.js && node --check scripts/batch_7_1_demo.js",
     "ai-demo": "node scripts/ai_demo.js",
     "protocol-server": "node scripts/server.js",
-    "test-milestones": "npm test && npm run validate && npm run syntax-check && npm run full-data-demo && npm run spatial-demo && npm run advanced-demo && npm run batch-3.1-demo && npm run batch-3.5-demo && npm run batch-3.9-demo && npm run batch-4.3-demo && npm run multiplayer-stress-demo && npm run batch-4.7-demo && npm run batch-5.1-demo && npm run batch-5.5-demo && npm run batch-5.9-demo && npm run batch-6.3-demo && npm run batch-6.7-demo",
+    "test-milestones": "npm test && npm run validate && npm run syntax-check && npm run full-data-demo && npm run spatial-demo && npm run advanced-demo && npm run batch-3.1-demo && npm run batch-3.5-demo && npm run batch-3.9-demo && npm run batch-4.3-demo && npm run multiplayer-stress-demo && npm run batch-4.7-demo && npm run batch-5.1-demo && npm run batch-5.5-demo && npm run batch-5.9-demo && npm run batch-6.3-demo && npm run batch-6.7-demo && npm run batch-7.1-demo",
     "full-data-demo": "node scripts/full_data_demo.js",
     "spatial-demo": "node scripts/spatial_demo.js",
     "advanced-demo": "node scripts/advanced_demo.js",
@@ -28,7 +28,10 @@
     "batch-5.9-demo": "node scripts/batch_5_9_demo.js",
     "batch-6.3-demo": "node scripts/batch_6_3_demo.js",
     "batch-6.7-demo": "node scripts/batch_6_7_demo.js",
-    "local-http-benchmark": "node scripts/local_http_benchmark.js"
+    "local-http-benchmark": "node scripts/local_http_benchmark.js",
+    "browser-delivery-smoke": "node scripts/browser_delivery_smoke.js",
+    "large-army-profile": "node scripts/large_army_movement_profile.js",
+    "batch-7.1-demo": "node scripts/batch_7_1_demo.js"
   },
   "engines": {
     "node": ">=22"

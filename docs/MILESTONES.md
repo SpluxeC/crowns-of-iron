@@ -83,3 +83,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **6.8 Atomic group combat controls:** browser target-focused up-to-16 combat batch, server-validated Stop orders and rollback tests for invalid ownership or visibility; not attack-move or auto-targeting.
 - **6.9 Live browser performance telemetry:** bounded p50/p95 for CPU-render submission and authenticated HTTP round trips, no server upload, not GPU FPS.
 - **7.0 Actual localhost HTTP benchmark:** up to eight authenticated simulated sessions, fog-filtered private-resource checks and response size/duration p50/p95. No WAN/TLS/remote client load.
+
+- **7.1 Attack-move and combat stances:** server-validated attack-move that resumes destination routing after an enemy is defeated, Guard/Aggressive/Hold stances and 16-unit atomic browser batches. No full formation-level combat AI.
+- **7.2 Declarative asset manifest:** seven versioned procedural unit silhouettes and three building proxy families, with geometry registry validation. Not an imported 3D asset pipeline.
+- **7.3 Real HTTP browser-delivery smoke:** verify all client modules, visible controls, CSP, authenticated stance round-trip and opponent privacy. No actual browser event/visual automation.
+- **7.4 2,400-unit local CPU profile:** eight players with 300 units each, 64 ordered moving units, collision validation and per-tick timing. Not 2,400 simultaneously moving fighters or GPU/Internet benchmarking.

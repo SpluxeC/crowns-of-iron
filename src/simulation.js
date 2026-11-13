@@ -23,6 +23,7 @@ import {garrisonUnit,ungarrisonUnit,tickFortificationFire} from "./fortification
 import {tickRenewables} from "./renewableEconomy.js";
 import {staffedHospitalHeal,staffedVehicleRepair} from "./localBuildingEffects.js";
 import {orderFormation,orderSiege} from "./formationOrders.js";
+import {issueAttackMove,setCombatStance} from "./combatDirectives.js";
 import {assignSeaTrade,cancelSeaTrade,tickNavalEconomy} from "./navalEconomy.js";
 import {embark,disembark,transportLosses} from "./transports.js";
 import {deploySiegeRamp,assaultBattlement,resetInvalidRamps} from "./siegeTowers.js";
@@ -47,6 +48,8 @@ export function command(match,input,{allowDebug=false}={}){
       ? issueAttack(match,id,input.attacker,input.targetPlayer,input.target)
       : strike(player,getPlayer(match,input.targetPlayer),input.attacker,input.target,{nowMs:match.elapsedMs});break;
     case "move":result=issueMove(match,id,input.unitId,input.x,input.y);break;
+    case "attackMove":result=issueAttackMove(match,id,input.unitId,input.x,input.y);break;
+    case "stance":result=setCombatStance(match,id,input.unitId,input.stance);break;
     case "stop":{
       assert(typeof input.unitId==="string","Invalid stop unit");
       const own=player.units.find(u=>u.id===input.unitId&&u.alive);
