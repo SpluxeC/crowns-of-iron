@@ -1,7 +1,7 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {MODEL_NAMES} from "/objLoader.js";
 import {ROSTER_ROLES,roleFamily} from "/rosterArt.js";
-import {SKINNED_ROLES} from "/skinnedRoster.js";
+import {ALL_SKINNED_ROLES} from "/skinnedRoster.js";
 const canvas=document.getElementById("preview"),select=document.getElementById("model");
 const details=document.getElementById("details"),
  roleChoice=document.getElementById("unitRole");
@@ -25,11 +25,11 @@ async function loadSelectedRoster(){
  const faction=factionChoice.value,role=roleChoice.value;
  if(!renderer||!assetsReady||!role||faction==="base"||rosterSelectionLoading)return;
  if(renderer.rosterMeshInfo(faction,role)&&
-   (!SKINNED_ROLES.includes(role)||renderer.skinnedMeshInfo(faction,role)))return;
+   (!ALL_SKINNED_ROLES.includes(role)||renderer.skinnedMeshInfo(faction,role)))return;
  rosterSelectionLoading=true;
  try{
   await renderer.loadRosterAssets({requests:[{faction,role}],notify:draw});
-  if(SKINNED_ROLES.includes(role)){
+  if(ALL_SKINNED_ROLES.includes(role)){
    const skin=await renderer.loadSkinnedAssets({requests:[{faction,role}],notify:draw});
    loadMessage=skin.loaded?"Skinned glTF + PBR source asset ready":"OBJ fallback";
   }else loadMessage="Roster OBJ model loaded";
@@ -52,7 +52,7 @@ function draw(){
   players:[{id:"p0",faction,units:building?[]:[unit]}]},new Set(),
   {previewPose:clipChoice.value});
  const roster=!!specificRole&&!!faction,
- mesh=roster?(SKINNED_ROLES.includes(specificRole)?
+ mesh=roster?(ALL_SKINNED_ROLES.includes(specificRole)?
   renderer?.skinnedMeshInfo(faction,specificRole):null)??
   renderer?.rosterMeshInfo(faction,specificRole):
   renderer?.meshInfo(name,faction);

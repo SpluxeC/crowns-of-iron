@@ -5,7 +5,7 @@ import {FACTION_SLUGS} from "../web/factionArt.js";
 import {MODEL_NAMES} from "../web/objLoader.js";
 import {ROSTER_ROLES,ROLE_SLUGS} from "../web/rosterArt.js";
 import {gltfForFaction} from "./gltfAssets.js";
-import {SKINNED_ROLES,skinnedGltfPath} from "../web/skinnedRoster.js";
+import {ALL_SKINNED_ROLES,skinnedGltfPath} from "../web/skinnedRoster.js";
 
 // Same-origin loopback development transport. Never publicly bind this server.
 const STATIC={
@@ -100,7 +100,7 @@ export function createLoopbackProtocolServer(host){
    const token=req.headers["x-session-token"];
    if(req.method==="GET"&&path.startsWith("/assets/gltf/")){
     const slug=path.slice("/assets/gltf/".length).split("/")[0];
-    const role=SKINNED_ROLES.find(value=>
+    const role=ALL_SKINNED_ROLES.find(value=>
       path===skinnedGltfPath(slug,value));
     if(FACTION_SLUGS.includes(slug)&&role){
      const content=await gltfForFaction(slug,role);

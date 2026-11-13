@@ -7,7 +7,7 @@ import {loadFactionTextures,textureForFaction} from "./factionTextures.js";
 import {rigForFaction} from "./rigProfiles.js";
 import {createRosterMeshLoader} from "./rosterLoader.js";
 import {createSkinnedGltfLoader,sampleSkinnedGltf} from "./skinnedGltf.js";
-import {SKINNED_ROLES} from "./skinnedRoster.js";
+import {ALL_SKINNED_ROLES} from "./skinnedRoster.js";
 import {refineFactionTexture} from "./materialDetail.js";
 import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
@@ -305,7 +305,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      animationStates.set(animKey,{clip,from:previous?.clip??clip,changedAt:now});
     const transition=animationStates.get(animKey),
      blend=Math.max(0,Math.min(1,(now-transition.changedAt)/160)),
-     skin=modelUnits<160&&SKINNED_ROLES.includes(u.archetype)?
+     skin=modelUnits<160&&ALL_SKINNED_ROLES.includes(u.archetype)?
        skinnedLoader?.get(p.faction,u.archetype):null,
      mesh=skin?sampleSkinnedGltf(skin,clip,now,
        {transitionFrom:transition.from,transitionAlpha:blend}):

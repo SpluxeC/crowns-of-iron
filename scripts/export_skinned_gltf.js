@@ -7,7 +7,7 @@ import {deflateSync} from "node:zlib";
 import {parseMtl,parseObj} from "../web/objLoader.js";
 import {parsePpm} from "../web/factionTextures.js";
 import {FACTION_SLUGS} from "../web/factionArt.js";
-import {SKINNED_ROLES,skinnedRoleSlug} from "../web/skinnedRoster.js";
+import {SKINNED_ROLES,ALL_SKINNED_ROLES,skinnedRoleSlug} from "../web/skinnedRoster.js";
 import {RIG_BONE_NAMES,rigForFaction,boneForPosition} from "../web/rigProfiles.js";
 import {ANIMATION_CLIPS} from "../web/animationClips.js";
 import {refineFactionTexture,roleMaterialProfile} from "../web/materialDetail.js";
@@ -155,7 +155,7 @@ export function exportSkinnedGltf(mesh,rig,clips,texture,
 }
 /** Regenerate all skinned assets from exactly the six selected roles per faction. */
 export async function exportSkinnedRoster(roles=SKINNED_ROLES){
- if(!Array.isArray(roles)||roles.some(role=>!SKINNED_ROLES.includes(role)))
+ if(!Array.isArray(roles)||roles.some(role=>!ALL_SKINNED_ROLES.includes(role)))
   throw Error("Unrecognized skinned role export request");
  const palette=parseMtl(await readFile(
   new URL("../assets/models/crowns-palette.mtl",import.meta.url),"utf8"));
