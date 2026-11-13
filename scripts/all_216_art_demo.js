@@ -28,7 +28,7 @@ for(const faction of FACTION_SLUGS){
    ROLE_SLUGS[role]+".gltf",import.meta.url),"utf8");
   const model=parseVehicleGltf(JSON.parse(source));
   assert(model.embeddedPng&&model.count>50&&model.componentCount>=36&&model.attachmentCount===3);
-  for(const mode of ["hit","death"])assert.ok(model.animations[mode]);
+  for(const mode of ["hit","death"])assert(model.animations[mode]);
   const still=sampleVehicleGltf(model,"idle",0),moving=sampleVehicleGltf(model,"attack",245);
   assert(still.vertices.some((v,i)=>v!==moving.vertices[i]),
    "Vehicle animation absent "+faction+"/"+role);
