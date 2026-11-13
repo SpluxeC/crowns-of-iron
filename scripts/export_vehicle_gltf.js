@@ -12,6 +12,7 @@ import {VEHICLE_ROLES,vehicleDomain} from "../web/vehicleArt.js";
 import {vehicleMotion} from "../web/vehicleMotion.js";
 import {vehicleComponent,componentQuaternion} from "../web/vehicleComponents.js";
 import {vehicleAccessories,accessoryQuaternion} from "../web/vehicleAccessories.js";
+import {finishVehicleComponent} from "../web/vehicleFinish.js";
 function quaternion(pitch,roll,yaw){
  const sx=Math.sin(pitch/2),cx=Math.cos(pitch/2),sy=Math.sin(yaw/2),
   cy=Math.cos(yaw/2),sz=Math.sin(roll/2),cz=Math.cos(roll/2);
@@ -57,7 +58,7 @@ export function exportVehicleGltf(mesh,texture,{faction="humans",role="Bomber"}=
   n=accessor(normals,"VEC3",{target:34962}),
   uv=accessor(mesh.uvs,"VEC2",{target:34962}),
   color=accessor(colors,"VEC4",{target:34962});
- const part=vehicleComponent(role,mesh.bounds);
+ const part=finishVehicleComponent(vehicleComponent(role,mesh.bounds),faction,"metal");
  const partPosition=accessor(new Float32Array(part.positions),"VEC3",{target:34962}),
   partUv=accessor(new Float32Array(part.uvs),"VEC2",{target:34962}),
   partColors=accessor(new Float32Array(part.colors),"VEC4",{target:34962});
@@ -69,7 +70,8 @@ export function exportVehicleGltf(mesh,texture,{faction="humans",role="Bomber"}=
   for(let j=0;j<3;j++)partNormals.set(v,(i+j)*3);
  }
  const partNormal=accessor(partNormals,"VEC3",{target:34962});
- const accessories=vehicleAccessories(role,mesh.bounds);
+ const accessories=vehicleAccessories(role,mesh.bounds).map((item,i)=>
+  finishVehicleComponent(item,faction,i===0?"wood":"trim"));
  const accessoryMeshes=accessories.map(item=>{
   const positions=accessor(new Float32Array(item.positions),"VEC3",{target:34962});
   const uvs=accessor(new Float32Array(item.uvs),"VEC2",{target:34962});
@@ -120,7 +122,7 @@ export function exportVehicleGltf(mesh,texture,{faction="humans",role="Bomber"}=
  }
  const image=ppmToPng(texture);
  const buffer=Buffer.concat(parts);
- return {asset:{version:"2.0",generator:"Crowns of Iron articulated vehicle art 10.5"},
+ return {asset:{version:"2.0",generator:"Crowns of Iron faction-finished vehicle art 10.6"},
   scene:0,scenes:[{nodes:[0]}],nodes:[{name:faction+" "+role,mesh:0,children:[1,2,3]},
    {name:part.domain+" weapon assembly",mesh:1,translation:part.anchor},
    ...accessories.map((item,i)=>({name:item.name,mesh:i+2,translation:item.anchor}))],

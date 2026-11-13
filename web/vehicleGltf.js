@@ -109,13 +109,35 @@ function rotate(point,[qx,qy,qz,qw]){
  return [x+qw*tx+qy*tz-qz*ty,y+qw*ty+qz*tx-qx*tz,
   z+qw*tz+qx*ty-qy*tx];
 }
-export function sampleVehicleGltf(model,mode="idle",timeMs=0){
+function blendRotation(a,b,t){
+ const sign=a.reduce((sum,v,i)=>sum+v*b[i],0)<0?-1:1;
+ const v=a.map((x,i)=>x*(1-t)+b[i]*sign*t),n=Math.hypot(...v)||1;
+ return v.map(x=>x/n);
+}
+function sampleTransforms(curves,timeMs,loop){
+ return {translation:evaluate(curves.translation,timeMs,loop),
+  quat:evaluate(curves.rotation,timeMs,loop),
+  parts:[1,2,3].map(i=>evaluate(curves["rotation"+i],timeMs,loop))};
+}
+export function sampleVehicleGltf(model,mode="idle",timeMs=0,options={}){
  const curves=model?.animations?.[mode];
  if(!curves||!Number.isFinite(timeMs))throw Error("Invalid vehicle animation sample");
- const loop=mode!=="hit"&&mode!=="death",
-  translation=evaluate(curves.translation,timeMs,loop),
-  quat=evaluate(curves.rotation,timeMs,loop),
-  partQuats=[1,2,3].map(i=>evaluate(curves["rotation"+i],timeMs,loop)),
+ const from=options?.transitionFrom,alpha=options?.transitionAlpha??1;
+ if(!Number.isFinite(alpha)||alpha<0||alpha>1||
+  from!==undefined&&!model.animations[from])
+  throw Error("Invalid vehicle transition");
+ const loop=mode!=="hit"&&mode!=="death",target=sampleTransforms(curves,timeMs,loop);
+ let pose=target;
+ if(from!==undefined&&from!==mode&&alpha<1){
+  const fromTime=options.transitionFromTimeMs??timeMs;
+  if(!Number.isFinite(fromTime))throw Error("Invalid transition time");
+  const prior=sampleTransforms(model.animations[from],fromTime,
+   from!=="hit"&&from!=="death");
+  pose={translation:target.translation.map((v,k)=>prior.translation[k]*(1-alpha)+v*alpha),
+   quat:blendRotation(prior.quat,target.quat,alpha),
+   parts:target.parts.map((q,k)=>blendRotation(prior.parts[k],q,alpha))};
+ }
+ const translation=pose.translation,quat=pose.quat,partQuats=pose.parts,
   vertices=new Float32Array(model.count*6);
  const min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
  for(let i=0;i<model.count;i++){
