@@ -27,23 +27,25 @@ for(const faction of FACTION_SLUGS){
   const source=await readFile(new URL("../assets/gltf-vehicles/"+faction+"/"+
    ROLE_SLUGS[role]+".gltf",import.meta.url),"utf8");
   const model=parseVehicleGltf(JSON.parse(source));
-  assert(model.embeddedPng&&model.count>50&&model.componentCount>=36);
+  assert(model.embeddedPng&&model.count>50&&model.componentCount>=36&&model.attachmentCount===3);
   for(const mode of ["hit","death"])assert.ok(model.animations[mode]);
   const still=sampleVehicleGltf(model,"idle",0),moving=sampleVehicleGltf(model,"attack",245);
   assert(still.vertices.some((v,i)=>v!==moving.vertices[i]),
    "Vehicle animation absent "+faction+"/"+role);
   const hit=sampleVehicleGltf(model,"hit",110),death=sampleVehicleGltf(model,"death",650);
   const idle0=sampleVehicleGltf(model,"idle",0),idle1=sampleVehicleGltf(model,"idle",235);
-  assert(idle0.vertices.some((v,i)=>i>=model.baseCount*6&&v!==idle1.vertices[i]),
-   "Missing articulated component motion "+faction+"/"+role);
+  for(const region of model.regions.slice(1))
+   assert(idle0.vertices.some((v,i)=>i>=region.start*6&&i<region.end*6&&
+    v!==idle1.vertices[i]),
+    "Missing independently animated part "+region.node+" "+faction+"/"+role);
   assert(still.vertices.some((v,i)=>v!==hit.vertices[i]));
   assert(still.vertices.some((v,i)=>v!==death.vertices[i]));
   bytes+=Buffer.byteLength(source);vertices+=model.count;animated++;
  }
 }
 assert(animated===216);
-console.log(JSON.stringify({milestones:"9.9–10.4",
- exportedGltfModels:animated,humanoidSkinned:96,specializedVehicles:120,
+console.log(JSON.stringify({milestones:"9.9–10.5",
+ exportedGltfModels:animated,humanoidSkinned:96,specializedVehicles:120,articulatedAttachmentsPerVehicle:3,
  sourceVertexCount:vertices,totalJsonBytes:bytes,
  animationFamilies:["humanoid bones","animated non-skinned vehicle mesh nodes"],
  notes:"Stylized procedural mesh art and first-pass clip curves. GPU shader is diffuse; no hardware GPU certification, artist PBR or hand-keyed death."},null,2));
