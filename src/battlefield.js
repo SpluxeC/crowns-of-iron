@@ -2,6 +2,7 @@ import {assert} from "./util.js";
 import {at,findPath,walkable} from "./map.js";
 import {strike} from "./combat.js";
 import {getPlayer} from "./state.js";
+import {hasLineOfSight,findAttackApproach} from "./tacticalNavigation.js";
 
 export const ATTACK_PROFILE=Object.freeze({
   Worker:[1,2000],Scout:[1,1600],"Club Fighter":[1,1800],"Stone Slinger":[5,2200],
@@ -45,7 +46,7 @@ export function issueMove(match,pid,unitId,x,y){
   assert(Number.isInteger(u.x)&&Number.isInteger(u.y),"Unit lacks a position");
   const path=findPath(map,{x:u.x,y:u.y},{x,y});
   assert(path,"No route to destination");
-  match.orders[unitId]={kind:"move",path:path.slice(1),carryMs:0};
+  match.orders[unitId]={kind:"move",path:path.slice(1),carryMs:0,destination:{x,y}};
   return path.length-1;
 }
 export function issueAttack(match,pid,unitId,targetPlayer,targetId){
@@ -81,7 +82,8 @@ export function tickBattlefield(match,deltaMs){
         const [fallbackRange,fallbackInterval]=ATTACK_PROFILE[unit.archetype]??[1,2000];
         const range=unit.range??fallbackRange,interval=unit.intervalMs||fallbackInterval;
         if(!range){delete match.orders[unit.id];continue;}
-        if(neighborsInRange(unit,target,range)){
+        if(neighborsInRange(unit,target,range)&&
+          (range<=1||hasLineOfSight(map,unit,target))){
           if((unit.nextAttackAtMs??0)<=match.elapsedMs){
             try{
               const amount=strike(p,enemy,unit.id,target.id,{nowMs:match.elapsedMs});
@@ -95,7 +97,7 @@ export function tickBattlefield(match,deltaMs){
           continue;
         }
         // Melee/ranged units approach the target until their weapon can fire.
-        const path=findPath(map,{x:unit.x,y:unit.y},{x:target.x,y:target.y});
+        const path=findAttackApproach(map,{x:unit.x,y:unit.y},{x:target.x,y:target.y},range);
         if(!path){delete match.orders[unit.id];continue;}
         order.path=path.slice(1);
       }

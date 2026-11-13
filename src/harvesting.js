@@ -6,6 +6,7 @@ import {getPlayer} from "./state.js";
 // Unlike abstract income this cannot conjure material beyond a map deposit.
 export function harvestDeposit(match,owner,workerId,x,y){
   assert(match.battlefield,"No map attached");
+  assert(match.economyMode!=="spatial","Direct deposit credit disabled in spatial economy");
   assert(Number.isInteger(x)&&Number.isInteger(y),"Invalid deposit coordinates");
   const player=getPlayer(match,owner);
   const worker=player.units.find(u=>u.id===workerId&&u.alive&&u.archetype==="Worker");

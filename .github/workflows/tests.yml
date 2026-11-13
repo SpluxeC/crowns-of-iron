@@ -18,3 +18,4 @@ jobs:
       - run: npm run ai-demo
       - run: npm run syntax-check
       - run: npm run full-data-demo
+      - run: npm run spatial-demo

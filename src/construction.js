@@ -4,6 +4,8 @@ import {getPlayer,addFacility} from "./state.js";
 import {destroyResearchFacility} from "./research.js";
 import {destroyProductionFacility} from "./production.js";
 import {refundDestroyedBuildingUpgrades} from "./buildingUpgrades.js";
+import {constructionDefinition} from "./structureCatalog.js";
+import {addMonument,removeMonument} from "./modes.js";
 
 export const STRUCTURES=Object.freeze({
   "Training Camp":{age:"I",cost:{Wood:100,Stone:40},ms:40000,footprint:[3,3],hp:800,armor:5},
@@ -24,7 +26,7 @@ export const STRUCTURES=Object.freeze({
 export function startConstruction(match,owner,kind,x,y,workerIds){
   const map=match.battlefield;assert(map,"Battlefield required");
   const p=getPlayer(match,owner);
-  const def=STRUCTURES[kind];assert(def,"Unknown building type");
+  const def=constructionDefinition(match,p,kind,STRUCTURES);assert(def,"Unknown building type");
   assert(ageIndex(p.age)>=ageIndex(def.age),"Building age locked");
   assert(Array.isArray(workerIds)&&workerIds.length>0&&new Set(workerIds).size===workerIds.length,"Invalid worker assignment");
   const workers=workerIds.map(id=>p.units.find(u=>u.id===id&&u.alive&&u.archetype==="Worker"));
@@ -42,7 +44,8 @@ export function startConstruction(match,owner,kind,x,y,workerIds){
   const site=placeBuilding(map,{owner,kind,x,y,width,height});
   match.constructions??={};
   match.constructions[site.id]={siteId:site.id,owner,kind,workerIds:[...workerIds],elapsedMs:0,
-    durationMs:def.ms,cost:structuredClone(def.cost),hp:def.hp,maxHp:def.hp,armor:def.armor,completed:false};
+    durationMs:def.ms,cost:structuredClone(def.cost),hp:def.hp,maxHp:def.hp,armor:def.armor,
+    housing:def.housing??0,completed:false};
   return site.id;
 }
 export function cancelConstruction(match,owner,siteId){
@@ -69,8 +72,8 @@ export function tickConstruction(match,deltaMs){
       job.elapsedMs=job.durationMs;job.completed=true;
       job.facilityKey=addFacility(p,job.kind);
       p.history.push("Built "+job.kind+" at "+siteId);
-      const profile=STRUCTURES[job.kind];
-      if(profile.housing)p.popCap=Math.min(300,p.popCap+profile.housing);
+      if(job.housing)p.popCap=Math.min(300,p.popCap+job.housing);
+      if(job.kind==="Great Monument"&&match.mode==="GreatMonument")addMonument(match,job.owner);
     }
   }
 }
@@ -84,7 +87,10 @@ export function destroyStructure(match,siteId){
     if(p.researchQueues[job.facilityKey])destroyResearchFacility(p,job.facilityKey);
     p.facilities[job.kind]=Math.max(0,(p.facilities[job.kind]??0)-1);
   }
-  if(STRUCTURES[job.kind]?.housing)p.popCap=Math.max(0,p.popCap-STRUCTURES[job.kind].housing);
+  const gainedHousing=(job.housing??0)+(job.upgradeHousing??0);
+  if(gainedHousing)p.popCap=Math.max(0,p.popCap-gainedHousing);
+  if(job.kind==="Great Monument"&&match.mode==="GreatMonument"&&match.modeState?.monuments?.[job.owner])
+    removeMonument(match,job.owner);
   removeBuilding(match.battlefield,siteId);
   delete match.constructions[siteId];return true;
 }

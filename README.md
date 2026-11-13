@@ -3,7 +3,7 @@
 A five-age fantasy RTS with Humans, Orcs, Dwarfs, Tree Elves, Corrupt Elves, and Ursa.
 
 ## Status
-**Headless simulation prototype, milestones 0.1–1.4.** This is not a playable 3D game or tested network multiplayer. Work is isolated on a development branch for review.
+**Headless simulation prototype, milestones 0.1–2.6.** This is not a playable 3D game or tested network multiplayer. Work is isolated on a development branch for review.
 
 ## Requirements
 Node.js 22+. No package installation or external runtime dependencies.
@@ -47,3 +47,6 @@ The reconciled six-faction data is now committed in `data/balance-v0.2.json`; ru
 
 ## Milestones 1.9–2.2
 Executable optional technologies (37 shared tech IDs), three supported building-upgrade types, building siege damage and material-funded worker repairs are now in the headless simulation. Detailed support boundaries are recorded in [Milestones 1.9–2.2](docs/MILESTONES_1_9_TO_2_2.md). Unsupported tech and upgrades are **not** represented as implemented.
+
+## Milestones 2.3–2.6
+All 38 canonical structure names per faction can be constructed with the expanded data-backed system (the original 14 prototype definitions still override overlapping workbook values for compatibility). The simulation supports 60/126 local upgrade records, an opt-in finite cargo-and-delivery economy, and obstacle-aware ranged firing positions with line-of-sight checks. Use `npm run spatial-demo` to verify cargo hauling. See [milestone details and limitations](docs/MILESTONES_2_3_TO_2_6.md). The default economy remains abstract until spatial AI/UX is implemented.

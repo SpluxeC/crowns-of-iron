@@ -2,6 +2,7 @@ import {FACTIONS,mandatory} from "./constants.js";
 import {ALL_ARCHETYPES} from "./extendedCatalog.js";
 import {canonicalName,ROLE_ORDER,FACTION_STAT_MODIFIERS} from "./factionRoster.js";
 import {assert,ageIndex} from "./util.js";
+import {buildFactionStructures} from "./structureCatalog.js";
 
 // Portable, browser-safe data adapter. Accepts the JSON emitted by
 // scripts/import_balance.py. Never accepts definitions from client commands.
@@ -43,9 +44,10 @@ export function installFullCatalog(match,data){
   validateFullCatalog(data);
   assert(match.elapsedMs===0&&match.tick===0,"Catalog must be installed before simulation");
   assert(!match.fullCatalog,"Catalog already installed");
-  const units={},techs={},upgrades={};
+  const units={},techs={},upgrades={},buildings={};
   for(const f of FACTIONS){
     units[f]={};techs[f]={};
+    buildings[f]=buildFactionStructures(data,f);
     upgrades[f]=data.upgrades.rows.filter(x=>x[0]===f).map(row=>({
       building:row[1],age:row[2],name:row[3],cost:resources(row,4),
       ms:Math.round(number(row[10],"Upgrade time")*1000),effect:row[11]
@@ -88,7 +90,7 @@ export function installFullCatalog(match,data){
       if(t.id.startsWith("CIV-"))assert(t.locations.includes("Town Center"),"Mandatory TC fallback missing");
     }
   }
-  match.fullCatalog={units,techs,upgrades,revision:"reconciled-v0.2"};
+  match.fullCatalog={units,techs,upgrades,buildings,revision:"reconciled-v0.2"};
   return {factions:6,unitEntries:216,techEntries:540};
 }
 export function unitDefinition(match,player,role){

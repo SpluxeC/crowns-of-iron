@@ -2,6 +2,7 @@ import {assert,affordable,spend,refund,clone} from "./util.js";
 import {at,canPlace} from "./map.js";
 import {getPlayer} from "./state.js";
 import {STRUCTURES,startConstruction,destroyStructure} from "./construction.js";
+import {constructionDefinition} from "./structureCatalog.js";
 
 // Ruins persist for five minutes. Only one outcome is permitted:
 // salvage or rebuild. New construction at the same location invalidates the ruin.
@@ -14,6 +15,7 @@ export function destroyToRuin(match,siteId){
   assert(placement,"Structure footprint is unavailable");
   const building=clone(job),location=clone(placement);
   destroyStructure(match,siteId);
+  if(building.kind==="Great Monument")return null; // never discount unique victory monument
   match.ruins??={};
   match.ruins[siteId]={siteId,owner:building.owner,kind:building.kind,
     x:location.x,y:location.y,width:location.width,height:location.height,
@@ -32,7 +34,7 @@ function blocked(match,ruin){
 export function salvageRuin(match,owner,siteId){
   const ruin=activeRuin(match,owner,siteId);
   assert(!blocked(match,ruin),"Ruin site has been reused");
-  const def=STRUCTURES[ruin.kind];assert(def,"Unknown original structure");
+  const def=constructionDefinition(match,getPlayer(match,owner),ruin.kind,STRUCTURES);assert(def,"Unknown original structure");
   const ratio=["Grand Factory","Foundry","Airship Hangar"].includes(ruin.kind)?.20:
     ["Shelter","Resource Depot","Training Camp"].includes(ruin.kind)?.10:.15;
   const materials=Object.fromEntries(materialKeys.map(k=>[k,Math.floor((def.cost[k]??0)*ratio)]));
@@ -45,7 +47,7 @@ export function salvageRuin(match,owner,siteId){
 export function rebuildRuin(match,owner,siteId,workerIds){
   const ruin=activeRuin(match,owner,siteId);
   assert(!blocked(match,ruin),"Ruin site has been reused");
-  const def=STRUCTURES[ruin.kind];assert(def,"Unknown original building");
+  const def=constructionDefinition(match,getPlayer(match,owner),ruin.kind,STRUCTURES);assert(def,"Unknown original building");
   const discounted=Object.fromEntries(Object.entries(def.cost).map(([key,v])=>[key,Math.ceil(v*.75)]));
   const p=getPlayer(match,owner);
   assert(affordable(p.resources,discounted),"Insufficient reconstruction resources");

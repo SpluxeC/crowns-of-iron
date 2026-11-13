@@ -11,6 +11,7 @@ import {startConstruction,cancelConstruction,tickConstruction} from "./construct
 import {useHeroAbility} from "./abilities.js";
 import {unitDefinition,researchCatalog} from "./fullCatalog.js";
 import {harvestDeposit} from "./harvesting.js";
+import {assignHarvestJob,cancelHarvestJob,deliverCargo,tickSpatialHarvest} from "./spatialEconomy.js";
 import {destroyToRuin,salvageRuin,rebuildRuin,tickRuins} from "./ruins.js";
 import {queueBuildingUpgrade,cancelBuildingUpgrade,tickBuildingUpgrades} from "./buildingUpgrades.js";
 import {orderStructureAttack,tickStructureCombat,repairBuilding} from "./structureCombat.js";
@@ -38,6 +39,9 @@ export function command(match,input,{allowDebug=false}={}){
     case "build":result=startConstruction(match,id,input.kind,input.x,input.y,input.workers);break;
     case "cancelBuild":result=cancelConstruction(match,id,input.siteId);break;
     case "harvest":result=harvestDeposit(match,id,input.workerId,input.x,input.y);break;
+    case "assignHarvest":result=assignHarvestJob(match,id,input.workerId,input.x,input.y);break;
+    case "cancelHarvest":result=cancelHarvestJob(match,id,input.workerId);break;
+    case "deliverCargo":result=deliverCargo(match,id,input.workerId);break;
     case "salvage":result=salvageRuin(match,id,input.siteId);break;
     case "rebuild":result=rebuildRuin(match,id,input.siteId,input.workers);break;
     case "upgrade":result=queueBuildingUpgrade(match,id,input.siteId,input.name);break;
@@ -69,13 +73,14 @@ export function checkElimination(match,deltaMs){
 function substep(match,ms,opts){
   tickBots(match,ms);
   for(const player of match.players.filter(x=>!x.defeated)){
-    gather(player,ms,opts.economy?.[player.id]??{});
+    if(match.economyMode!=="spatial")gather(player,ms,opts.economy?.[player.id]??{});
     tickResearch(player,ms,researchCatalog(match,player));
     tickProduction(match,player,ms);
     tickStatuses(player,ms);
   }
   tickConstruction(match,ms);
   tickBuildingUpgrades(match,ms);
+  tickSpatialHarvest(match);
   tickBattlefield(match,ms);
   tickStructureCombat(match);
   checkElimination(match,ms);

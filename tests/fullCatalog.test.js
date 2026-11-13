@@ -30,7 +30,7 @@ function synthetic(){
        i>=88?"Exclusive Path":null,null,"+5%"]);
    }
  }
- return {...units,buildings:{columns:["Faction"],rows:Array(228).fill(["Humans"])},
+ return {...units,buildings:{columns:["Faction"],rows:Array.from({length:228},(_,i)=>[FACTIONS[Math.floor(i/38)],"I","Synthetic Building "+(i%38),500,4,0,50,30,0,0,0,30,"2x2","Fixture"])},
  research:tech,upgrades:{columns:["Faction"],rows:Array.from({length:126},(_,i)=>[FACTIONS[Math.floor(i/21)],"Barracks","II","Training Equipment I",0,100,0,50,0,0,40,"-10% training time"])}};
 }
 test("install complete 216-unit and 540-tech synthetic catalog and exercise queue",()=>{

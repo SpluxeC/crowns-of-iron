@@ -23,3 +23,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **2.0 Local building upgrades:** 126 data rows loaded; three local upgrade types have purchase/queue/execution handlers (18 faction-specific rows), remainder deliberately unavailable.
 - **2.1 Structure combat:** actual completed building HP takes attack damage with counters; destruction creates rebuildable or salvageable ruins.
 - **2.2 Repair/cooldowns:** staffed material-based building repairs; healer and mechanical repair cooldowns and network authorization tests.
+
+- **2.3 Full building identity catalog:** 38 structures × six factions are enabled; 14 older prototype structures keep their existing baseline stats for compatibility. Specialized interactions remain incomplete.
+- **2.4 Local building upgrades:** 60/126 records have executable training speed, HP or housing logic; 66 upgrades remain descriptive only.
+- **2.5 Spatial economy:** optional finite Worker harvesting, cargo capacity, walking and depot delivery, without passive income duplication. Default remains abstract economy.
+- **2.6 Combat navigation:** wall/hill line-of-sight blockers and reachable ranged firing positions; projectile arcs and unit collision remain pending.
