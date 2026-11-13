@@ -166,7 +166,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
   skinnedLoader=null,vehicleLoader=null,
   modelUnits=0,modelBuildings=0,fallbackUnits=0;
- const animationStates=new Map(),combatStates=new Map();
+ const animationStates=new Map(),vehicleStates=new Map(),combatStates=new Map();
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
   gl.enableVertexAttribArray(position);gl.vertexAttribPointer(position,3,gl.FLOAT,false,24,0);
@@ -326,6 +326,11 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
       effect.death>0?"death":effect.hit>0?"hit":clip,
      vehicleTime=vehicleClip==="death"?(previewPose==="death"?470:now-(combatStates.get(animKey)?.deathAt??now)):
       vehicleClip==="hit"?(previewPose==="hit"?110:now-(combatStates.get(animKey)?.hitAt??now)):now,
+     priorVehicle=vehicleStates.get(animKey),
+     vehicleTransition=priorVehicle?.clip===vehicleClip?priorVehicle:
+      {clip:vehicleClip,from:priorVehicle?.clip??vehicleClip,changedAt:now,
+       fromTimeMs:priorVehicle?.clip==="death"||priorVehicle?.clip==="hit"?
+        now-priorVehicle.changedAt:now},
      transition=animationStates.get(animKey),
      blend=Math.max(0,Math.min(1,(now-transition.changedAt)/160)),
      skin=modelUnits<160&&ALL_SKINNED_ROLES.includes(u.archetype)?
@@ -334,12 +339,16 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
        vehicleLoader?.get(p.faction,u.archetype):null,
      rawMesh=skin?sampleSkinnedGltf(skin,clip,now,
        {transitionFrom:transition.from,transitionAlpha:blend}):
-       veh?sampleVehicleGltf(veh,vehicleClip,vehicleTime):
+       veh?sampleVehicleGltf(veh,vehicleClip,vehicleTime,{
+        transitionFrom:vehicleTransition.from,
+        transitionAlpha:Math.max(0,Math.min(1,(now-vehicleTransition.changedAt)/160)),
+        transitionFromTimeMs:vehicleTransition.fromTimeMs}):
        modelUnits<160?(rosterLoader?.get(p.faction,u.archetype)??
        models?.[factionMeshKey(p.faction,role)]??models?.[role]):null,
      overlay=previewPose==="hit"?{hit:1}:previewPose==="death"?{death:.72}:effect,
      // Vehicles use their own death transform clip, avoiding a second fall rotation.
      mesh=rawMesh?applyCombatPose(rawMesh,veh?{hit:overlay.hit??0}:overlay):null;
+    if(veh)vehicleStates.set(animKey,vehicleTransition);
     if(mesh){
      const scale=detail.role==="air"?.53:detail.role==="ship"?.69:
       detail.role==="hero"?.73:detail.role==="siege"?.63:.75;
@@ -391,6 +400,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    // Cap transient state growth even in a long match with many dead/spawned IDs.
    for(const key of animationStates.keys())if(!visibleAnimKeys.has(key))
     animationStates.delete(key);
+   for(const key of vehicleStates.keys())if(!visibleAnimKeys.has(key))
+    vehicleStates.delete(key);
    const data=new Float32Array(verts);
    gl.viewport(0,0,canvas.width,canvas.height);
    gl.clearColor(.06,.12,.19,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
