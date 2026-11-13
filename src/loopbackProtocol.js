@@ -5,6 +5,7 @@ import {FACTION_SLUGS} from "../web/factionArt.js";
 import {MODEL_NAMES} from "../web/objLoader.js";
 import {ROSTER_ROLES,ROLE_SLUGS} from "../web/rosterArt.js";
 import {gltfForFaction} from "./gltfAssets.js";
+import {SKINNED_ROLES,skinnedGltfPath} from "../web/skinnedRoster.js";
 
 // Same-origin loopback development transport. Never publicly bind this server.
 const STATIC={
@@ -44,6 +45,8 @@ for(const slug of FACTION_SLUGS)for(const role of ROSTER_ROLES){
   "../assets/models/roster/"+slug+"/"+name+".obj","text/plain; charset=utf-8"];
 }
 STATIC["/skinnedGltf.js"]=["../web/skinnedGltf.js","text/javascript; charset=utf-8"];
+STATIC["/skinnedRoster.js"]=["../web/skinnedRoster.js","text/javascript; charset=utf-8"];
+STATIC["/materialDetail.js"]=["../web/materialDetail.js","text/javascript; charset=utf-8"];
 STATIC["/textureShader.js"]=["../web/textureShader.js","text/javascript; charset=utf-8"];
 STATIC["/rosterArt.js"]=["../web/rosterArt.js","text/javascript; charset=utf-8"];
 STATIC["/rosterLoader.js"]=["../web/rosterLoader.js","text/javascript; charset=utf-8"];
@@ -97,9 +100,10 @@ export function createLoopbackProtocolServer(host){
    const token=req.headers["x-session-token"];
    if(req.method==="GET"&&path.startsWith("/assets/gltf/")){
     const slug=path.slice("/assets/gltf/".length).split("/")[0];
-    if(FACTION_SLUGS.includes(slug)&&
-      path==="/assets/gltf/"+slug+"/swordsman.gltf"){
-     const content=await gltfForFaction(slug);
+    const role=SKINNED_ROLES.find(value=>
+      path===skinnedGltfPath(slug,value));
+    if(FACTION_SLUGS.includes(slug)&&role){
+     const content=await gltfForFaction(slug,role);
      res.writeHead(200,{"Content-Type":"model/gltf+json; charset=utf-8",...HEADERS});
      return res.end(content);
     }

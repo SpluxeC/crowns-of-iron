@@ -108,3 +108,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **8.8 glTF skinning integrated:** client-side glTF parser and CPU skeletal skinning with live RTS/gallery loading, exact localhost endpoints and OBJ fallback.
 - **8.9 GPU UV texture sampling:** separate WebGL diffuse shader samples faction PPM textures per-fragment, GPU-texture caching and RGB fallback for legacy meshes; no full physically-based lighting.
 - **9.0 QA and downloadable assets:** validates export and dynamic skinning of all six glTF exemplar models, fake GPU shader drawing, real localhost delivery, complete old milestone suite and GitHub Actions artifact of six generated files. Remaining 210 roster units still OBJ.
+
+- **9.1 Expanded glTF export:** 36 skinned glTF 2.0 humanoid models (six factions × Worker, Swordsman, Archer, Pikeman, Healer and Hero), generated on demand and packaged in CI artifact.
+- **9.2 Skinning and transitions:** dual-joint influences for many vertices, normalized four-slot runtime skinning, 160 ms quaternion clip crossfades, retained OBJ fallback.
+- **9.3 Faction materials:** reproducible 128×128 patterned surface textures, embedded PNG glTF materials, role-specific roughness/metallic metadata and GPU UV sampling for skinned units.
+- **9.4 Export and regression QA:** all 36 model exports and 12 localhost sample glTF endpoints validated, runtime blended animation verified. Remaining 180 roster units not skinned; no real-browser GPU pixel validation.

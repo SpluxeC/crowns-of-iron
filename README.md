@@ -131,3 +131,11 @@ Six **real, exportable, seven-joint skinned glTF 2.0 Swordsman assets**, one for
 The client can load these assets on demand and CPU-skin the mesh in both the RTS and the interactive model gallery, with earlier unique OBJ models as fallback. A WebGL UV texture shader samples real faction patterns per fragment on skinned units and caches GPU textures. **This is textured diffuse rendering, not a full metallic/roughness PBR engine**. The other **210** unique roster OBJ models have not yet been converted to glTF skins. No real-browser screenshot or hardware GPU FPS certification is claimed.
 
 Run `npm run gltf-art-demo` for reproducible full six-model export validation. See [full milestone 8.7–9.0 art guide](docs/ART_STAGE_8_7_TO_9_0.md).
+
+### Expanded skeletal art and higher-detail materials — Milestones 9.1–9.4
+
+The project now supports **36 real seven-joint skinned glTF 2.0 character assets**, generated from six role-specific OBJ meshes (Worker, Swordsman, Archer, Pikeman, Healer and Hero) for each playable faction. `npm run expanded-art-demo` exports all 36 files; GitHub Actions uploads them in the **crowns-of-iron-36-weighted-gltf-skins** ZIP artifact. The live RTS and 3D gallery load these selected assets on demand, using earlier unique OBJ meshes as fallback.
+
+Many vertices have blended joint weights, animation clips crossfade over 160 ms, and material refinement generates **128×128 faction PNGs** embedded in glTF exports and used by the GPU UV shader. PBR metadata is role-aware, but the in-game renderer is still a textured **diffuse** shader, not a full PBR lighting implementation.
+
+The other **180 roster units** retain their unique OBJ asset pipeline. These are procedurally detailed first-pass models, not hand-painted final assets or real-browser hardware validation. See [Milestones 9.1–9.4 art guide](docs/ART_STAGE_9_1_TO_9_4.md).

@@ -1,4 +1,5 @@
 import {createWebGLRenderer} from "/webgl3d.js";
+import {SKINNED_ROLES} from "/skinnedRoster.js";
 import {createVersionDecoder} from "/streamProtocol.js";
 import {attackOrders,stopOrders,selectedVisibleEnemy,attackMoveOrders,stanceOrders} from "/combatOrders.js";
 import {createPerformanceTelemetry,formatTiming} from "/perfTelemetry.js";
@@ -72,14 +73,15 @@ async function queueRosterArt(){
   if(seen.has(key)||renderer.rosterMeshInfo(p.faction,u.archetype))continue;
   seen.add(key);wanted.push({faction:p.faction,role:u.archetype});
  }
- const skins=[...new Set((state.players??[]).flatMap(p=>
-  (p.units??[]).some(u=>u.alive&&u.archetype==="Swordsman"&&
-    Number.isInteger(u.x))?[p.faction]:[]))];
+ const skins=[...new Map((state.players??[]).flatMap(p=>
+  (p.units??[]).filter(u=>u.alive&&SKINNED_ROLES.includes(u.archetype)&&
+    Number.isInteger(u.x)).map(u=>({faction:p.faction,role:u.archetype})))
+  .map(x=>[x.faction+"/"+x.role,x])).values()];
  if(!wanted.length&&!skins.length)return;
  loadingRoster=true;
  try{
   if(skins.length){
-   const skinResult=await renderer.loadSkinnedAssets({factions:skins,
+   const skinResult=await renderer.loadSkinnedAssets({requests:skins,
     notify:()=>{if(view3d)draw();}});
    if(skinResult.failed)log("Some glTF skins unavailable; using OBJ fallbacks.");
   }

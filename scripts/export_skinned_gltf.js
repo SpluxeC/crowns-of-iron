@@ -1,14 +1,16 @@
 /** glTF 2.0 exporter: genuine seven-joint skin, inverse bind matrices,
  * JOINTS_0/WEIGHTS_0, animated quaternion rotation channels and embedded PNG.
- * One playable Swordsman example per faction; later roles can use this exporter.
+ * Six selected humanoid roles for each faction; source OBJ remains editable.
  */
 import {readFile,writeFile,mkdir} from "node:fs/promises";
 import {deflateSync} from "node:zlib";
 import {parseMtl,parseObj} from "../web/objLoader.js";
 import {parsePpm} from "../web/factionTextures.js";
 import {FACTION_SLUGS} from "../web/factionArt.js";
+import {SKINNED_ROLES,skinnedRoleSlug} from "../web/skinnedRoster.js";
 import {RIG_BONE_NAMES,rigForFaction,boneForPosition} from "../web/rigProfiles.js";
 import {ANIMATION_CLIPS} from "../web/animationClips.js";
+import {refineFactionTexture,roleMaterialProfile} from "../web/materialDetail.js";
 const ALIGN=4;
 function crc32(data){
  let crc=0xffffffff;
@@ -55,7 +57,8 @@ function makeMatrixInverse(pos){
  return [1,0,0,0,0,1,0,0,0,0,1,0,-pos[0],-pos[1],-pos[2],1];
 }
 function quaternionX(angle){return [Math.sin(angle/2),0,0,Math.cos(angle/2)];}
-export function exportSkinnedGltf(mesh,rig,clips,texture,{name="Infantry"}={}){
+export function exportSkinnedGltf(mesh,rig,clips,texture,
+ {name="Infantry",role="Swordsman"}={}){
  const count=mesh.vertexCount;
  if(count<3||count>20000||mesh.uvs.length!==count*2||!mesh.textured)
   throw Error("Valid UV mapped OBJ mesh required");
@@ -69,9 +72,15 @@ export function exportSkinnedGltf(mesh,rig,clips,texture,{name="Infantry"}={}){
  const joints=new Uint16Array(count*4),weights=new Float32Array(count*4);
  for(let i=0;i<count;i++){
   const [x,y]=positions.slice(i*3,i*3+2);
-  joints[i*4]=Math.max(0,RIG_BONE_NAMES.indexOf(
+  const primary=Math.max(0,RIG_BONE_NAMES.indexOf(
    boneForPosition(x,y,maxY,rig)));
-  weights[i*4]=1;
+  const spine=RIG_BONE_NAMES.indexOf("spine");
+  const blend=primary===spine?0:
+   Math.max(.08,Math.min(.30,.18+.12*Math.abs(y/maxY-.52)));
+  joints[i*4]=primary;
+  joints[i*4+1]=primary===spine?0:spine;
+  weights[i*4]=1-blend;
+  weights[i*4+1]=blend;
  }
  const jointsRest=RIG_BONE_NAMES.map(bone=>{
   if(bone==="root")return [0,0,0];
@@ -137,32 +146,42 @@ export function exportSkinnedGltf(mesh,rig,clips,texture,{name="Infantry"}={}){
     buffer.toString("base64")}],
   bufferViews:views,accessors,
   materials:[{name:"Faction PBR baseColor",doubleSided:true,
-   pbrMetallicRoughness:{baseColorTexture:{index:0},metallicFactor:0.12,
-    roughnessFactor:0.82}}],
+   pbrMetallicRoughness:{baseColorTexture:{index:0},
+    ...roleMaterialProfile(role)}}],
   images:[{uri:"data:image/png;base64,"+image.toString("base64"),
    mimeType:"image/png"}],samplers:[{magFilter:9729,minFilter:9987,
    wrapS:10497,wrapT:10497}],textures:[{sampler:0,source:0}],animations};
  return doc;
 }
-export async function exportFactionInfantry(){
+/** Regenerate all skinned assets from exactly the six selected roles per faction. */
+export async function exportSkinnedRoster(roles=SKINNED_ROLES){
+ if(!Array.isArray(roles)||roles.some(role=>!SKINNED_ROLES.includes(role)))
+  throw Error("Unrecognized skinned role export request");
  const palette=parseMtl(await readFile(
   new URL("../assets/models/crowns-palette.mtl",import.meta.url),"utf8"));
  const result=[];
  for(const faction of FACTION_SLUGS){
-  const role="swordsman",source=await readFile(new URL(
-   "../assets/models/roster/"+faction+"/"+role+".obj",import.meta.url),"utf8");
-  const mesh=parseObj(source,palette);
-  const texture=parsePpm(await readFile(new URL(
-   "../assets/textures/factions/"+faction+".ppm",import.meta.url),"utf8"));
-  const doc=exportSkinnedGltf(mesh,rigForFaction(faction),
-   ANIMATION_CLIPS,texture,{name:faction+" Swordsman"});
-  const url=new URL("../assets/gltf/"+faction+"/swordsman.gltf",import.meta.url);
-  await mkdir(new URL("./",url),{recursive:true});
-  await writeFile(url,JSON.stringify(doc));
-  result.push({faction,vertices:mesh.vertexCount,
-   joints:doc.skins[0].joints.length,clips:doc.animations.length});
+  const texture=refineFactionTexture(parsePpm(await readFile(new URL(
+   "../assets/textures/factions/"+faction+".ppm",import.meta.url),"utf8")),faction);
+  for(const role of roles){
+   const slug=skinnedRoleSlug(role);
+   const source=await readFile(new URL(
+    "../assets/models/roster/"+faction+"/"+slug+".obj",import.meta.url),"utf8");
+   const mesh=parseObj(source,palette);
+   const doc=exportSkinnedGltf(mesh,rigForFaction(faction),
+    ANIMATION_CLIPS,texture,{name:faction+" "+role,role});
+   const url=new URL("../assets/gltf/"+faction+"/"+slug+".gltf",import.meta.url);
+   await mkdir(new URL("./",url),{recursive:true});
+   await writeFile(url,JSON.stringify(doc));
+   result.push({faction,role,vertices:mesh.vertexCount,
+    joints:doc.skins[0].joints.length,clips:doc.animations.length});
+  }
  }
  return result;
 }
+/** Backwards compatibility for the previous milestone's Swordsman-only helper. */
+export async function exportFactionInfantry(){
+ return exportSkinnedRoster(["Swordsman"]);
+}
 if(process.argv[1]&&import.meta.url===new URL("file://"+process.argv[1]).href)
- console.log(JSON.stringify(await exportFactionInfantry()));
+ console.log(JSON.stringify(await exportSkinnedRoster()));
