@@ -68,7 +68,7 @@ export async function runBrowserDeliverySmoke(){
    assert(mesh.triangles>25,"Invalid faction model geometry");
    factionTriangles+=mesh.triangles;factionMeshes++;
   }
-  const forbidden=await fetch(base+"/assets/models/factions/../worker.obj");
+  const forbidden=await fetch(base+"/assets/models/factions/not-a-faction/worker.obj");
   assert(forbidden.status===404,"Unknown faction asset path accepted");
   const illegal=await fetch(base+"/assets/models/unknown.obj");
   assert(illegal.status===404,"Unlisted model path unexpectedly served");
