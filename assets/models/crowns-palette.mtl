@@ -69,3 +69,149 @@ Kd 0.470 0.260 0.240
 Ka 0.12 0.12 0.12
 Ks 0.08 0.08 0.08
 illum 2
+
+# Crowns of Iron faction-identifying materials
+newmtl humans_primary
+Kd 0.210 0.430 0.670
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl humans_armor
+Kd 0.650 0.700 0.780
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl humans_skin
+Kd 0.850 0.670 0.510
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl humans_trim
+Kd 0.910 0.760 0.310
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl orcs_primary
+Kd 0.560 0.200 0.140
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl orcs_armor
+Kd 0.300 0.350 0.310
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl orcs_skin
+Kd 0.390 0.570 0.310
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl orcs_trim
+Kd 0.770 0.470 0.190
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl dwarfs_primary
+Kd 0.270 0.460 0.540
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl dwarfs_armor
+Kd 0.720 0.550 0.270
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl dwarfs_skin
+Kd 0.790 0.570 0.430
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl dwarfs_trim
+Kd 0.920 0.720 0.340
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl tree-elves_primary
+Kd 0.180 0.500 0.340
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl tree-elves_armor
+Kd 0.400 0.590 0.340
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl tree-elves_skin
+Kd 0.790 0.680 0.510
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl tree-elves_trim
+Kd 0.610 0.810 0.340
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl corrupt-elves_primary
+Kd 0.420 0.190 0.560
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl corrupt-elves_armor
+Kd 0.260 0.220 0.320
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl corrupt-elves_skin
+Kd 0.580 0.510 0.640
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl corrupt-elves_trim
+Kd 0.820 0.320 0.690
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl ursa_primary
+Kd 0.500 0.310 0.200
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl ursa_armor
+Kd 0.490 0.460 0.410
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl ursa_skin
+Kd 0.550 0.380 0.280
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
+newmtl ursa_trim
+Kd 0.880 0.740 0.430
+Ka 0.10 0.10 0.10
+Ks 0.07 0.07 0.07
+illum 2
+
