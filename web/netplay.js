@@ -1,6 +1,6 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {createVersionDecoder} from "/streamProtocol.js";
-import {attackOrders,stopOrders,selectedVisibleEnemy} from "/combatOrders.js";
+import {attackOrders,stopOrders,selectedVisibleEnemy,attackMoveOrders,stanceOrders} from "/combatOrders.js";
 import {createPerformanceTelemetry,formatTiming} from "/perfTelemetry.js";
 import {chooseAtTile,unitsInTileRectangle,updateSelection,selectByRole,recallGroup,makeFormationPayload} from "/unitSelection.js";
 import {chooseBuilder,queueSummary,formatCost,catalogBuildings,
@@ -92,7 +92,8 @@ function info(){
  setButton("disconnect",!!token);
  setButton("connect",!token&&!pending);
  const playing=!!token&&!pending&&room?.started&&!state?.winner;
- for(const id of ["move","formation","attack"])setButton(id,playing&&selected.size>0);
+ for(const id of ["move","formation","attack","attackMove"])setButton(id,playing&&selected.size>0);
+ setButton("stance",playing&&selected.size>0);
  setButton("stop",playing&&selected.size>0);
  setButton("workers",playing);setButton("military",playing);
  const choices=catalogTraining(catalog),buildings=catalogBuildings(catalog),
@@ -283,7 +284,12 @@ function click(ev){
  if(!tile)return;
  if(mode!=="select"){
   const commandMode=mode;mode="select";
-  if(commandMode==="move"&&selected.size===1){
+  if(commandMode==="attackMove"&&selected.size){
+   const orders=attackMoveOrders(own(),selected,tile.x,tile.y,nextSequence);
+   if(orders.length)sendBatch(orders,"Attack-move orders sent");
+   else log("Select positioned armed units for attack-move.");
+   if(selected.size>16)log("Attack-move batch limited to 16 units.");
+  }else if(commandMode==="move"&&selected.size===1){
    send("move",{unitId:[...selected][0],...tile},"Move order sent");
   }else if((commandMode==="formation"||commandMode==="move")&&selected.size){
    const payload=makeFormationPayload(selected,tile.x,tile.y);
@@ -333,6 +339,13 @@ $("research").addEventListener("click",()=>{
 });
 for(const id of ["trainChoice","buildChoice","researchChoice","researchFilter"])
  $(id).addEventListener("change",()=>info());
+$("stance").addEventListener("click",()=>{
+ const stance=$("stanceChoice").value;
+ const orders=stanceOrders(own(),selected,stance,nextSequence);
+ if(orders.length)sendBatch(orders,"Combat stance "+stance+" applied");
+ else log("Select living armed units before setting a combat stance.");
+ if(selected.size>16)log("Stance batch limited to 16 units.");
+});
 $("stop").addEventListener("click",()=>{
  const orders=stopOrders(own(),selected,nextSequence);
  if(orders.length)sendBatch(orders,"Stopped current orders");
@@ -344,7 +357,7 @@ $("workers").addEventListener("click",()=>{
 $("military").addEventListener("click",()=>{
  selected=new Set(selectByRole(own(),"military"));mode="select";draw();info();
 });
-for(const id of ["move","formation","attack","select"]){
+for(const id of ["move","formation","attack","attackMove","select"]){
  $(id).addEventListener("click",()=>{
   mode=id;log(id==="select"?"Selection enabled":"Choose a target tile for "+id);
  });
