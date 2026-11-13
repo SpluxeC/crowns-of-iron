@@ -88,3 +88,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **7.2 Declarative asset manifest:** seven versioned procedural unit silhouettes and three building proxy families, with geometry registry validation. Not an imported 3D asset pipeline.
 - **7.3 Real HTTP browser-delivery smoke:** verify all client modules, visible controls, CSP, authenticated stance round-trip and opponent privacy. No actual browser event/visual automation.
 - **7.4 2,400-unit local CPU profile:** eight players with 300 units each, 64 ordered moving units, collision validation and per-tick timing. Not 2,400 simultaneously moving fighters or GPU/Internet benchmarking.
+
+- **7.5 Original low-poly 3D models:** ten committed Wavefront OBJ meshes with common material palette for seven unit archetype families and three building groups; real triangles with hands-editable Blender import/export, not 216 unique faction unit models.
+- **7.6 Validated OBJ import pipeline:** strict browser-safe Wavefront OBJ+MTL parser, world-space transforms and material shading, same-origin fixed file paths and regression tests for triangles and malformed assets.
+- **7.7 WebGL model integration:** load meshes into actual GPU interleaved vertex buffers for units/buildings, cache static geometry, keep selection/HP UI and bounded fallback proxies for >160 visible units.
+- **7.8 Model gallery and asset smoke:** standalone interactive local model viewer; HTTP tests validate asset MIME and delivery; fake-GPU tests exercise mesh draw path and fallback; manual real-browser/GPU validation remains.
