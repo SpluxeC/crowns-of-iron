@@ -31,7 +31,8 @@ try{
   ?.includes("All 60 faction meshes loaded"),null,{timeout:60000});
  const gl=await page.evaluate(()=>{
   const canvas=document.getElementById("preview");
-  const ctx=canvas?.getContext("webgl");
+  // Gallery prefers WebGL2. Requesting WebGL1 after a WebGL2 context returns null.
+  const ctx=canvas?.getContext("webgl2")??canvas?.getContext("webgl");
   return !!ctx&&ctx.getParameter(ctx.VERSION).includes("WebGL");
  });
  if(!gl)throw Error("Real Chromium WebGL context was unavailable");
