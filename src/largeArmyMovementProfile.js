@@ -28,7 +28,7 @@ export function runLargeArmyMovementProfile({seed=730,ticks=3}={}){
    const u=p.units[k];
    u.x=k<8?homeX+1:homeX+8+(k-8)%20;
    u.y=k<8?homeY+k:homeY+Math.floor((k-8)/20);
-   if(k<8)moving.push({owner:p.id,unit:u,fromX:u.x,fromY:u.y,
+   if(k<8)moving.push({owner:p.id,sequence:k+1,unit:u,fromX:u.x,fromY:u.y,
     target:{x:homeX+5,y:homeY+k}});
   }
  }
@@ -36,7 +36,7 @@ export function runLargeArmyMovementProfile({seed=730,ticks=3}={}){
  assert(validateCollisionState(host.match).overlaps.length===0,"Profile setup overlaps");
  for(const move of moving){
   host.submit({token:host.credentialsFor(move.owner).token,
-   sequence:host.match.orders?.[move.unit.id]?.sequence??1,
+   sequence:move.sequence,
    action:"attackMove",payload:{unitId:move.unit.id,...move.target}});
  }
  const samples=[];
