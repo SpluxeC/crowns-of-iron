@@ -4,7 +4,7 @@
 
 ## 5.1 — Improved group movement and goal assignment
 
-`src/groupNavigation.js` performs one deterministic BFS per member to find routes to up to 25 relative formation slots, then uses a minimum-cost bipartite assignment (route length first, fixed slot index tie-break). It excludes stationary **non-group** same-domain occupants in collision-enabled matches and commits all 24-or-fewer orders atomically. Input order does not affect slot assignment. On-unit movement still uses the previous bounded collision detouring; mutual blocking, multi-unit crossing and full formation cohesion remain unsolved.
+`src/groupNavigation.js` performs one deterministic BFS per member to find routes to up to 25 relative formation slots, then uses a minimum-cost bipartite assignment (route length first, fixed slot index tie-break). It excludes stationary **non-group** same-domain occupants in collision-enabled matches and commits all 24-or-fewer orders atomically. Input order does not affect slot assignment. On-unit movement still uses bounded collision detouring. Newly recruited units find distinct domain-legal free cells; when no free collision-enabled spawn exists, a completed recruitment job waits instead of overlapping. Mutual blocking, multi-unit crossing and full formation cohesion remain unsolved.
 
 ## 5.2 — Improved 3D gameplay readability
 
@@ -20,7 +20,7 @@ This is a local test transport, not WebSockets, Internet hosting, authentication
 
 Open `http://127.0.0.1:5190/client` after `npm run protocol-server`. Paste the relevant **dev-only** token printed in the terminal, connect and select units; the client's only actions are server-validated move, formation, attack and Worker train. It shows the lobby, player resources, fogged map, server version, selected units and in-game time. Toggle the WebGL 3D camera or retain top-down. Live SSE notifications drive resync, and interrupted streams retry. The client does **not** run its own economic or combat simulation.
 
-For ready/start setup: `REQUIRE_READY=1 npm run protocol-server` on Unix shells, or `$env:REQUIRE_READY=1; npm run protocol-server` in PowerShell. Each player token is distinct; the first listed participant is lobby host.
+For ready/start setup: `REQUIRE_READY=1 npm run protocol-server` on Unix shells, or `$env:REQUIRE_READY=1; npm run protocol-server` in PowerShell. Each player token is distinct; the first listed participant is lobby host. The interactive local server explicitly enables collision at startup; the general MatchHost remains collision-off by default for older benchmarks.
 
 ## Verification
 
@@ -32,7 +32,7 @@ npm run batch-5.1-demo
 npm run protocol-server
 ```
 
-Automated checks cover group assignment/atomic failure, collision interactions, terrain picking, role geometry, authenticated HTTP commands, fogged snapshots, SSE version updates and allowed static assets. A real browser visual and cross-tab interaction pass, network fault-injection, real-host throughput, hostile-client security review, persistence deployment, lobby UX and faction balance testing remain outstanding.
+Automated checks cover group assignment/atomic failure, non-overlapping recruitment and wait/retry when spawn cells are full, collision interactions, terrain picking, role geometry, authenticated HTTP commands, fogged snapshots, SSE version updates and allowed static assets. A real browser visual and cross-tab interaction pass, network fault-injection, real-host throughput, hostile-client security review, persistence deployment, lobby UX and faction balance testing remain outstanding.
 
 ## Next milestones
 
