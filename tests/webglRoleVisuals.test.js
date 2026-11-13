@@ -27,3 +27,16 @@ test("structure occupancy is included in static terrain invalidation",()=>{
  changed.tiles[0].occupied="house-1";
  assert.notEqual(terrainSignature(base),terrainSignature(changed));
 });
+
+test("structure kind and footprint changes invalidate static GPU geometry signature",()=>{
+ const world={width:3,height:3,tiles:Array.from({length:9},(_,i)=>({
+  x:i%3,y:Math.floor(i/3),terrain:"grass",occupied:"s1"})),
+  structures:[{id:"s1",kind:"Training Camp",x:0,y:0,width:2,height:2}]};
+ const before=terrainSignature(world);
+ const upgraded=structuredClone(world);
+ upgraded.structures[0].kind="Fortress";
+ assert.notEqual(terrainSignature(upgraded),before);
+ upgraded.structures[0].kind="Training Camp";
+ upgraded.structures[0].width=3;
+ assert.notEqual(terrainSignature(upgraded),before);
+});
