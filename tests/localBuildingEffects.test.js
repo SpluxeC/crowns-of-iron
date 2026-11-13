@@ -38,6 +38,6 @@ test("stable core increases condenser production",()=>{
  const {m,p,site}=fixture("Aether Condenser");m.economyMode="spatial";
  const job=command(m,{player:"a",action:"upgrade",siteId:site.id,name:"Stable Core"});
  step(m,job.durationMs);
- const before=p.resources.Aether;step(m,100000);
+ const before=p.resources.Aether;step(m,60000);step(m,40000);
  assert.equal(p.resources.Aether-before,33);
 });
