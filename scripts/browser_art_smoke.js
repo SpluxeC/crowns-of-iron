@@ -81,6 +81,27 @@ try{
   "corrupt-elves-heavy-warship-damaged-hit","Animated vehicle glTF",30);
  await inspect("Dwarfs","Heavy Artillery","death",
   "dwarfs-artillery-critical-death","Animated vehicle glTF",5);
+ // 11.6: render real WebGL building architecture and biome variants.
+ async function inspectEnvironment(faction,family,biome,label){
+  await page.selectOption("#unitRole","");
+  await page.selectOption("#faction",faction);
+  await page.selectOption("#model",family);
+  await page.selectOption("#biome",biome);
+  await page.waitForFunction(({faction,family,biome})=>{
+   const text=document.querySelector("#details")?.textContent??"";
+   return text.includes(faction)&&text.includes(family)&&text.includes(biome+" terrain");
+  },{faction,family,biome},{timeout:60000});
+  await page.waitForTimeout(350);
+  const path=fileURLToPath(new URL(label+".png",dir));
+  await page.screenshot({path,animations:"disabled"});
+  const bytes=await readFile(path);
+  if(bytes.length<10000)throw Error("Architecture screenshot too small");
+  summary.cases.push({label,faction,role:family,biome,bytes:bytes.length,
+   sha256:createHash("sha256").update(bytes).digest("hex").slice(0,20)});
+ }
+ await inspectEnvironment("Dwarfs","tower","hill","dwarfs-highland-tower");
+ await inspectEnvironment("Tree Elves","civilian","forest","tree-elves-forest-house");
+ await inspectEnvironment("Corrupt Elves","defense","grass","corrupt-elves-defense");
  await page.goto(base+"/client",{waitUntil:"domcontentloaded"});
  await page.waitForSelector("#map");
  await page.screenshot({path:fileURLToPath(new URL("client-start-screen.png",dir))});
