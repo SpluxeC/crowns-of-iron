@@ -6,6 +6,7 @@ import {MODEL_NAMES,parseMtl,parseObj} from "../web/objLoader.js";
 import {FACTION_SLUGS,factionMeshPath} from "../web/factionArt.js";
 import {ROSTER_ROLES,rosterMeshPath} from "../web/rosterArt.js";
 import {parsePpm} from "../web/factionTextures.js";
+import {validateSkinnedGltf} from "../web/skinnedGltf.js";
 
 /** Real localhost HTTP delivery/interaction contract, not a graphical browser runner. */
 export async function runBrowserDeliverySmoke(){
@@ -21,7 +22,8 @@ export async function runBrowserDeliverySmoke(){
   "/clientRules.js","/unitSelection.js","/combatOrders.js",
   "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js",
   "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js",
-  "/rosterArt.js","/rosterLoader.js","/animationClips.js"];
+  "/rosterArt.js","/rosterLoader.js","/animationClips.js",
+  "/skinnedGltf.js","/textureShader.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
@@ -97,6 +99,18 @@ export async function runBrowserDeliverySmoke(){
    assert(parseObj(await response.text(),materials).triangles>120);
    rosterSmokeMeshes++;
   }
+  let gltfSkins=0;
+  for(const faction of ["humans","ursa"]){
+   const response=await fetch(base+"/assets/gltf/"+faction+"/swordsman.gltf");
+   assert(response.status===200,"Skinned glTF endpoint unavailable "+faction);
+   assert(response.headers.get("content-type")?.includes("model/gltf+json"),
+    "Incorrect glTF content-type");
+   const mesh=validateSkinnedGltf(await response.json());
+   assert(mesh.count>100&&mesh.textureEmbedded,"Invalid streamed skinned glTF");
+   gltfSkins++;
+  }
+  const unlistedGltf=await fetch(base+"/assets/gltf/not-a-faction/swordsman.gltf");
+  assert(unlistedGltf.status===404,"Unlisted glTF path accepted");
   const badRoster=await fetch(base+"/assets/models/roster/humans/not-a-unit.obj");
   assert(badRoster.status===404,"Unknown roster asset path unexpectedly served");
   const forbidden=await fetch(base+"/assets/models/factions/not-a-faction/worker.obj");
@@ -124,6 +138,7 @@ export async function runBrowserDeliverySmoke(){
   return {htmlControls:requiredIds.length,servedModules:requiredScripts.length,
    servedMeshes:MODEL_NAMES.length,assetTriangles,factionMeshes,factionTriangles,
    factionTextures,factionRigProfiles:6,rosterSmokeMeshes,authoredClips:3,
+   gltfSkins,
    contractsChecked:checked,anonymousRejected:true,authenticatedBatch:true,
    scope:"localhost HTTP delivery and server interaction; NOT real browser GPU/DOM automation"};
  }finally{
