@@ -1,0 +1,22 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {readFile} from "node:fs/promises";
+import {MatchHost} from "../src/network.js";
+import {installFullCatalog} from "../src/fullCatalog.js";
+test("full six-faction workbook catalog produces player-scoped options and 90 techs",async()=>{
+ const data=JSON.parse(await readFile(new URL("../data/balance-v0.2.json",import.meta.url),"utf8"));
+ const host=new MatchHost([{id:"a",faction:"Humans"},{id:"b",faction:"Ursa"}],55);
+ installFullCatalog(host.match,data);
+ const a=host.catalog(host.credentialsFor("a").token);
+ const b=host.catalog(host.credentialsFor("b").token);
+ assert.equal(a.revision,"reconciled-v0.2");
+ assert.equal(a.research.length,90);
+ assert.equal(b.research.length,90);
+ assert.ok(a.buildings.length>=38);
+ assert.ok(a.training.some(t=>t.role==="Worker"));
+ assert.ok(a.research.some(t=>t.id==="CIV-12"));
+ assert.ok(a.research.every(t=>t.cost&&t.facility===null||t.facility===undefined||typeof t.facility==="string"));
+ assert.ok(a.research.every(t=>t.name&&Number.isInteger(t.durationMs)));
+ assert.notDeepEqual(a.research.map(t=>t.name),b.research.map(t=>t.name));
+ assert.equal(JSON.stringify(a).includes("session"),false);
+});
