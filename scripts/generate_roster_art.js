@@ -3,6 +3,7 @@
 import {readFile,writeFile,mkdir} from "node:fs/promises";
 import {ROSTER_ROLES,roleFamily,ROLE_SLUGS} from "../web/rosterArt.js";
 import {FACTION_SLUGS} from "../web/factionArt.js";
+import {addPlanarUvs} from "../web/objUv.js";
 const ROLE=ROSTER_ROLES;
 function family(role){
  if(ROLE.slice(22,30).includes(role))return "ship";
@@ -93,6 +94,6 @@ for(const faction of FACTION_SLUGS)for(const role of ROLE){
   roleFamily(role)+".obj",import.meta.url),"utf8");
  const url=new URL("../assets/models/roster/"+faction+"/"+ROLE_SLUGS[role]+".obj",import.meta.url);
  await mkdir(new URL("./",url),{recursive:true});
- await writeFile(url,makeRoleObj(base,faction,role),"utf8");
+ await writeFile(url,addPlanarUvs(makeRoleObj(base,faction,role)),"utf8");
 }
 console.log("Generated all 216 faction × role Wavefront OBJ models.");
