@@ -6,6 +6,7 @@ test("asset registry selects stable versioned role proxies and safe generic fall
  assert.equal(assetForUnit({archetype:"Worker"}).id,"unit.worker.v1");
  assert.equal(assetForUnit({archetype:"Archer"}).accessory,"ranged");
  assert.equal(assetForUnit({archetype:"Interceptor"}).role,"air");
+ assert.equal(assetForUnit({archetype:"Legendary Warship"}).role,"ship");
  assert.equal(assetForUnit({archetype:"Battering Ram"}).role,"siege");
  assert.equal(assetForUnit({archetype:"Unknown Future Unit"}).role,"infantry");
  assert.equal(Object.isFrozen(UNIT_ASSETS),true);

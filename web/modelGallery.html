@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Crowns of Iron — OBJ Model Gallery</title>
+<style>
+:root{color-scheme:dark;background:#0c1a24;color:#e7f0ed;font:15px system-ui,sans-serif}
+body{margin:0 auto;padding:22px;max-width:1040px}header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+h1{font-size:24px}h2{font-size:16px;margin-top:20px}a{color:#82d9e5}
+main{background:#162e3b;border:1px solid #466275;border-radius:12px;padding:15px}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0}
+select,button{background:#23485d;color:#fff;border:1px solid #6c8895;border-radius:8px;padding:10px;font:inherit}
+button{cursor:pointer}canvas{display:block;width:100%;height:auto;max-height:640px;background:#132534;border:1px solid #4a6775;border-radius:7px;touch-action:none}
+p{line-height:1.5}small,.muted{color:#adc6c9}#details{padding:12px;background:#0d2432;border-radius:7px}
+</style></head><body>
+<header><h1>Crowns of Iron · 3D Asset Gallery</h1><a href="/client">Back to live client</a></header>
+<main><p>Original Wavefront OBJ meshes integrated with the local WebGL renderer. These are editable low-poly first-pass models, not finished character art.</p>
+<div class="controls"><label for="model">Model</label><select id="model">
+<option value="worker">Worker</option><option value="infantry">Infantry</option>
+<option value="ranged">Ranged infantry</option><option value="hero">Hero</option>
+<option value="siege">Siege machine</option><option value="ship">Ship</option>
+<option value="air">Aircraft</option><option value="civilian">Civilian building</option>
+<option value="defense">Defensive wall</option><option value="tower">Tower</option>
+</select><button id="orbitLeft">Rotate left</button><button id="orbitRight">Rotate right</button>
+<button id="zoomIn">Zoom in</button><button id="zoomOut">Zoom out</button></div>
+<canvas id="preview" width="960" height="640" aria-label="Interactive WebGL 3D model preview"></canvas>
+<h2>Asset details</h2><div id="details" aria-live="polite">Loading OBJ models…</div>
+<p class="muted">Drag to orbit, scroll to zoom. All assets are served locally from this repository. GPU availability and browser support vary by device.</p>
+</main><script type="module" src="/modelGallery.js"></script>
+</body></html>

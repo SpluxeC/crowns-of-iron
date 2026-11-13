@@ -1,5 +1,6 @@
 /** WebGL 3D prototype: GPU-shaded block geometry with a mouse-orbit camera. */
 import {assetForUnit,assetForBuilding} from "./assetManifest.js";
+import {loadObjAssetSet,appendObjVertices} from "./objLoader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
@@ -106,7 +107,7 @@ function shader(gl,type,source){
  if(!gl.getShaderParameter(value,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(value));
  return value;
 }
-export function createWebGLRenderer(canvas){
+export function createWebGLRenderer(canvas,{preview=false}={}){
  const gl=canvas.getContext("webgl2",{antialias:true,alpha:false})||
   canvas.getContext("webgl",{antialias:true,alpha:false});
  if(!gl)return null;
@@ -145,8 +146,10 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   .map(k=>[k,gl.getUniformLocation(program,k)]));
  const staticBuffer=gl.createBuffer(),dynamicBuffer=gl.createBuffer();
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
- let yaw=.82,pitch=.72,radius=68,worldForPick=null,camForPick=null,
-  terrainKey=null,terrainVertexCount=0,rebuilds=0;
+ let yaw=.82,pitch=.72,radius=preview?18:68,worldForPick=null,camForPick=null,
+  terrainKey=null,terrainVertexCount=0,rebuilds=0,
+  models=null,modelPromise=null,modelFailure=null,
+  modelUnits=0,modelBuildings=0,fallbackUnits=0;
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
   gl.enableVertexAttribArray(position);gl.vertexAttribPointer(position,3,gl.FLOAT,false,24,0);
@@ -154,6 +157,21 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   gl.drawArrays(gl.TRIANGLES,0,count);
  }
  return {
+  /** Loads exactly the committed OBJ models and palette, once per renderer. */
+  loadAssets({fetcher,notify}={}){
+   if(models)return Promise.resolve({models:Object.keys(models).length});
+   if(modelPromise)return modelPromise;
+   modelPromise=loadObjAssetSet(fetcher).then(value=>{
+    models=value;modelFailure=null;terrainKey=null;
+    if(typeof notify==="function")notify();
+    return {models:Object.keys(models).length};
+   }).catch(error=>{
+    modelFailure=error.message;
+    modelPromise=null;
+    throw error;
+   });
+   return modelPromise;
+  },
   draw(world,match,selectedUnits){
    const cam=cameraForMap(world.width,world.height,{yaw,pitch,radius});
    worldForPick=world;camForPick=cam;
@@ -171,24 +189,31 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     if(t.occupied&&!modeled.has(t.occupied))
      cube(verts,t.x+.5,t.y+.5,.84,base,base+2.4,"#c2baa7");
     }
+    modelBuildings=0;
     for(const site of world.structures??[]){
      if(!Number.isInteger(site.x)||!Number.isInteger(site.y))continue;
      const width=Math.max(1,Math.min(8,Number(site.width)||2)),
       height=Math.max(1,Math.min(8,Number(site.height)||2));
      const x=site.x+width/2,z=site.y+height/2;
      const base=heightFor(world.tiles[site.y*world.width+site.x]);
-     const style=assetForBuilding(site.kind);
-     cube(verts,x,z,Math.min(width,height)*.82,base,base+style.height,
-      style.wallColor);
-     cube(verts,x,z,Math.min(width,height)*.9,base+style.height,
-      base+style.height+.3,style.roofColor);
+     const style=assetForBuilding(site.kind),mesh=models?.[style.family];
+     if(mesh){
+      // OBJ model coordinates are Y-up, centered on the structure footprint.
+      appendObjVertices(verts,mesh,{x,y:base,z,scale:Math.min(width,height)/1.8});
+      modelBuildings++;
+     }else{
+      cube(verts,x,z,Math.min(width,height)*.82,base,base+style.height,
+       style.wallColor);
+      cube(verts,x,z,Math.min(width,height)*.9,base+style.height,
+       base+style.height+.3,style.roofColor);
+     }
     }
     const data=new Float32Array(verts);
     gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
     gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
     terrainVertexCount=data.length/6;terrainKey=key;rebuilds++;
    }
-   const verts=[];
+   const verts=[];modelUnits=0;fallbackUnits=0;
    for(const [i,p] of match.players.entries())for(const u of p.units.filter(
       u=>u.alive&&Number.isInteger(u.x)&&!u.embarkedAt&&!u.garrisonedAt)){
     const terrain=world.tiles[u.y*world.width+u.x],base=heightFor(terrain);
@@ -198,22 +223,33 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     const teamColor=selectedUnits.has(u.id)?"#fce57d":
      p.id===match.viewerId?"#c5eeff":"#f58a7c";
     const detail=unitRoleVisual(u),cx=u.x+.5,cz=u.y+.5,top=bottom+style.height;
-    cube(verts,cx,cz,style.width,bottom,top,teamColor);
-    if(detail.head)cube(verts,cx,cz,detail.head,top,top+.32,
+    const mesh=modelUnits<160?models?.[detail.role]:null;
+    if(mesh){
+     const scale=detail.role==="air"?.53:detail.role==="ship"?.69:
+      detail.role==="hero"?.73:detail.role==="siege"?.63:.75;
+     appendObjVertices(verts,mesh,{x:cx,y:bottom,z:cz,scale,
+      tint:selectedUnits.has(u.id)?[1,1,.77]:
+       p.id===match.viewerId?[.82,1,1]:[1,.79,.79]});
+     modelUnits++;
+    }else{
+     fallbackUnits++;
+     cube(verts,cx,cz,style.width,bottom,top,teamColor);
+    }
+    if(!mesh&&detail.head)cube(verts,cx,cz,detail.head,top,top+.32,
       selectedUnits.has(u.id)?"#fff0b4":"#d3bba1");
-    if(detail.accessory==="pack")
+    if(!mesh&&detail.accessory==="pack")
      cube(verts,cx-.20,cz-.14,.24,bottom+.35,bottom+.72,"#8e6b3f");
-    if(detail.accessory==="shield")
+    if(!mesh&&detail.accessory==="shield")
      cube(verts,cx+.25,cz,.24,bottom+.26,bottom+.92,"#8797a3");
-    if(detail.accessory==="ranged")
+    if(!mesh&&detail.accessory==="ranged")
      cube(verts,cx+.25,cz,.12,bottom+.30,bottom+1.12,"#e1c390");
-    if(detail.accessory==="banner")
+    if(!mesh&&detail.accessory==="banner")
      cube(verts,cx+.35,cz,.16,bottom+.3,top+.7,"#dfb967");
-    if(detail.accessory==="turret")
+    if(!mesh&&detail.accessory==="turret")
      cube(verts,cx,cz,.30,top,top+.32,"#8b989e");
-    if(detail.accessory==="mast")
+    if(!mesh&&detail.accessory==="mast")
      cube(verts,cx,cz,.13,top,top+.8,"#d9c3a2");
-    if(detail.accessory==="wings"){
+    if(!mesh&&detail.accessory==="wings"){
      cube(verts,cx-.40,cz,.33,bottom+.15,top-.12,"#859fac");
      cube(verts,cx+.40,cz,.33,bottom+.15,top-.12,"#859fac");
     }
@@ -241,9 +277,13 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   pick(px,py){return camForPick&&worldForPick
     ?raycastTerrain(camForPick,px,py,canvas.width,canvas.height,worldForPick):null},
   orbit(dx,dy){yaw+=dx*.009;pitch=Math.max(.22,Math.min(1.37,pitch+dy*.008));},
-  zoom(direction){radius=Math.max(30,Math.min(125,radius+direction*5));},
+  zoom(direction){radius=Math.max(preview?9:30,Math.min(preview?45:125,radius+direction*(preview?2:5)));},
   camera(){return {yaw,pitch,radius};},
-  stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount};},
+  meshInfo(name){const mesh=models?.[name];return mesh?
+   {triangles:mesh.triangles,vertexCount:mesh.vertexCount,bounds:mesh.bounds}:null;},
+  stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount,
+   modelUnits,modelBuildings,fallbackUnits,loadedModels:models?Object.keys(models).length:0,
+   modelFailure};},
   dispose(){
    gl.deleteBuffer(staticBuffer);gl.deleteBuffer(dynamicBuffer);
    gl.deleteProgram(program);gl.deleteShader(vert);gl.deleteShader(frag);
