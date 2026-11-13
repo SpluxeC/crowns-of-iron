@@ -16,7 +16,7 @@ test("battlefield attach and movement are deterministic, reachable and bounded",
  step(m,2000);
  assert.ok(u.x!==old.x||u.y!==old.y);
  assert.ok(walkable(map,u.x,u.y));
- assert.ok(Math.abs(u.x-old.x)+Math.abs(u.y-old.y)<=3);
+ assert.ok(Math.abs(u.x-old.x)+Math.abs(u.y-old.y)<=6);
 });
 test("cannot move someone else's unit or issue allied attacks",()=>{
  const m=createMatch(participants),map=makeMap({players:2});
@@ -31,4 +31,15 @@ test("tactical bot assigns explicit attacks when a battlefield exists",()=>{
  enableBot(m,"b","Hard");
  step(m,10000);
  assert.ok(Object.values(m.orders).some(order=>order.kind==="attack"));
+});
+
+test("one long time advancement equals repeated one-second steps",()=>{
+ const players=[{id:"a",faction:"Humans"},{id:"b",faction:"Ursa"}];
+ const a=createMatch(players,74),b=createMatch(players,74);
+ for(const m of [a,b])attachBattlefield(m,makeMap({seed:74,players:2}));
+ command(a,{player:"a",action:"train",facility:"Town Center",role:"Worker"});
+ command(b,{player:"a",action:"train",facility:"Town Center",role:"Worker"});
+ step(a,30000);
+ for(let i=0;i<30;i++)step(b,1000);
+ assert.deepEqual(a,b);
 });

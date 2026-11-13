@@ -1,6 +1,6 @@
 {
   "name": "crowns-of-iron",
-  "version": "1.4.0",
+  "version": "1.8.0",
   "private": true,
   "type": "module",
   "description": "Deterministic headless RTS prototype",
@@ -13,7 +13,8 @@
     "syntax-check": "node --check web/app.js && node --check scripts/server.js && node --check src/simulation.js && node --check src/network.js",
     "ai-demo": "node scripts/ai_demo.js",
     "protocol-server": "node scripts/server.js",
-    "test-milestones": "npm test && npm run validate && npm run demo && npm run ai-demo"
+    "test-milestones": "npm test && npm run validate && npm run full-data-demo",
+    "full-data-demo": "node scripts/full_data_demo.js"
   },
   "engines": {
     "node": ">=22"

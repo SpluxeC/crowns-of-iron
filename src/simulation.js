@@ -9,6 +9,9 @@ import {tickMode} from "./modes.js";
 import {issueMove,issueAttack,tickBattlefield} from "./battlefield.js";
 import {startConstruction,cancelConstruction,tickConstruction} from "./construction.js";
 import {useHeroAbility} from "./abilities.js";
+import {unitDefinition,researchCatalog} from "./fullCatalog.js";
+import {harvestDeposit} from "./harvesting.js";
+import {destroyToRuin,salvageRuin,rebuildRuin,tickRuins} from "./ruins.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -22,9 +25,9 @@ export function command(match,input,{allowDebug=false}={}){
     case "popCap":result=setPopCap(player,input.cap);break;
     case "facility":result=addFacility(player,input.name);break;
     case "income":result=addIncome(player,input.amount);break; // harness only, disallow on public network server
-    case "research":result=queueResearch(player,input.facility,input.id);break;
+    case "research":result=queueResearch(player,input.facility,input.id,researchCatalog(match,player));break;
     case "cancelResearch":result=cancelResearch(player,input.facility,input.id);break;
-    case "train":result=queueUnit(player,input.facility,input.role);break;
+    case "train":result=queueUnit(player,input.facility,input.role,unitDefinition(match,player,input.role));break;
     case "cancelTrain":result=cancelUnit(player,input.facility,input.index);break;
     case "attack":result=match.battlefield
       ? issueAttack(match,id,input.attacker,input.targetPlayer,input.target)
@@ -32,6 +35,9 @@ export function command(match,input,{allowDebug=false}={}){
     case "move":result=issueMove(match,id,input.unitId,input.x,input.y);break;
     case "build":result=startConstruction(match,id,input.kind,input.x,input.y,input.workers);break;
     case "cancelBuild":result=cancelConstruction(match,id,input.siteId);break;
+    case "harvest":result=harvestDeposit(match,id,input.workerId,input.x,input.y);break;
+    case "salvage":result=salvageRuin(match,id,input.siteId);break;
+    case "rebuild":result=rebuildRuin(match,id,input.siteId,input.workers);break;
     case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
     case "heal":result=heal(player,input.healers,input.target);break;
     case "repair":result=repair(player,input.workers,input.target,input.amount);break;
@@ -54,21 +60,31 @@ export function checkElimination(match,deltaMs){
   const teams=new Set(match.players.filter(p=>!p.defeated).map(p=>p.team));
   if(match.mode==="Conquest"&&teams.size===1)match.winner=[...teams][0];
 }
+function substep(match,ms,opts){
+  tickBots(match,ms);
+  for(const player of match.players.filter(x=>!x.defeated)){
+    gather(player,ms,opts.economy?.[player.id]??{});
+    tickResearch(player,ms,researchCatalog(match,player));
+    tickProduction(match,player,ms);
+    tickStatuses(player,ms);
+  }
+  tickConstruction(match,ms);
+  tickBattlefield(match,ms);
+  checkElimination(match,ms);
+  tickMode(match,ms);
+  match.elapsedMs+=ms;match.tick++;
+  tickRuins(match);
+}
 export function step(match,deltaMs,opts={}){
   assert(Number.isSafeInteger(deltaMs)&&deltaMs>0&&deltaMs<=60000,"Tick must be 1–60000 ms");
-  if(match.winner!==null)return match;
-  tickBots(match,deltaMs);
-  for(const p of match.players.filter(x=>!x.defeated)){
-    gather(p,deltaMs,opts.economy?.[p.id]??{});
-    tickResearch(p,deltaMs);
-    tickProduction(match,p,deltaMs);
-    tickStatuses(p,deltaMs);
+  // Fixed one-second simulation slices. Advancing 60 seconds in one call
+  // is equivalent to sixty calls of one second (when commands are unchanged).
+  let remaining=deltaMs;
+  while(remaining>0&&match.winner===null){
+    const slice=Math.min(1000,remaining);
+    substep(match,slice,opts);
+    remaining-=slice;
   }
-  tickConstruction(match,deltaMs);
-  tickBattlefield(match,deltaMs);
-  checkElimination(match,deltaMs);
-  tickMode(match,deltaMs);
-  match.elapsedMs+=deltaMs;match.tick++;
   return match;
 }
 export function snapshot(match){return clone(match);}

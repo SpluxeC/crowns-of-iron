@@ -41,3 +41,6 @@ No license has been granted yet; all rights reserved pending an explicit licensi
 See [milestone verification and limitations](docs/MILESTONES_1_0_TO_1_4.md). The local developer protocol server is available via `npm run protocol-server` and listens on loopback only. This is not a publicly secure multiplayer game server.
 
 The full reconciled v0.2 numeric data can be loaded from `data/balance-v0.2.json` if that generated file is present. The runtime continues to use shared unit templates unless the full data catalog is explicitly loaded. The canonical 216 unit names and faction modifiers are embedded in `src/factionRoster.js`.
+
+## Milestones 1.5–1.8
+The reconciled six-faction data is now committed in `data/balance-v0.2.json`; run `npm run full-data-demo` to exercise the installed research and unit definitions. See [full data limitations](docs/FULL_DATA_RUNTIME.md). Additional systems include finite deposit harvesting, ruin salvage and discounted reconstruction, and protocol safety improvements. These do not yet constitute a complete 3D multiplayer game.
