@@ -21,6 +21,18 @@ const server=createServer(async(req,res)=>{
     const token=req.headers["x-session-token"];
     if(u.pathname==="/health"&&req.method==="GET")return send(res,200,{status:"ok",prototype:true});
     if(u.pathname==="/state"&&req.method==="GET")return send(res,200,host.view(token));
+    if(u.pathname==="/resync"&&req.method==="GET"){
+      const afterVersion=Number(u.searchParams.get("afterVersion")??0);
+      return send(res,200,host.resync({token,afterVersion}));
+    }
+    if(u.pathname==="/command-batch"&&req.method==="POST"){
+      const input=await requestBody(req);
+      return send(res,200,host.submitBatch({token,...input}));
+    }
+    if(u.pathname==="/session/rotate"&&req.method==="POST"){
+      await requestBody(req);
+      return send(res,200,host.rotateToken(token));
+    }
     if(u.pathname==="/command"&&req.method==="POST")return send(res,200,host.submit({token,...await requestBody(req)}));
     // No player-controlled time advancement. Prototype server advances on its own timer.
     return send(res,404,{error:"Unknown endpoint"});
@@ -31,5 +43,5 @@ server.on("close",()=>clearInterval(timer));
 server.listen(port,bindAddress,()=>{
   console.log("Local-only RTS protocol server at http://"+bindAddress+":"+port);
   console.log("Human session token (DEV ONLY, do not share): "+access.token);
-  console.log("This development server has no fog-of-war filtering or public auth.");
+  console.log("Loopback-only DEVELOPMENT server. Server filters enemy snapshots, but has no public auth, TLS, matchmaking, WebSockets or production deployment controls.");
 });

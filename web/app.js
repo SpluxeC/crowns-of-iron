@@ -1,4 +1,5 @@
 import {makeMap,at,placeBuilding,canPlace,asciiMap,mapChecksum} from "../src/map.js";
+import {projectTile,unprojectTile,diamond,block} from "./isometric.js";
 import {createMatch,command,step,checksum} from "../src/simulation.js";
 import {FACTIONS,mandatory} from "../src/constants.js";
 import {attachBattlefield} from "../src/battlefield.js";
@@ -7,7 +8,7 @@ import {installFullCatalog} from "../src/fullCatalog.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map"),ctx=canvas.getContext("2d",{alpha:false});
 const WIDTH=40,HEIGHT=32,TILE=20;
-let selected=null,selectedUnit=null,mode="inspect",auto=null,seed=42,world,match;
+let selected=null,selectedUnit=null,selectedUnits=new Set(),isometric=false,mode="inspect",auto=null,seed=42,world,match;
 let fullData=null;
 function log(s){
  const d=document.createElement("div");
@@ -23,7 +24,7 @@ function reset(){
  if(fullData)installFullCatalog(match,fullData);
  attachBattlefield(match,world);
  enableBot(match,"opponent","Normal");
- selected=null;selectedUnit=match.players[0].units[0].id;mode="inspect";$("log").replaceChildren();
+ selected=null;selectedUnit=match.players[0].units[0].id;selectedUnits=new Set([selectedUnit]);mode="inspect";$("log").replaceChildren();
  log("Simulation reset; " + faction + " starts in Age I.");
  draw();render();
 }
@@ -38,7 +39,7 @@ function render(){
  $("research").disabled=!mandatory.some(t=>t.age===p.age&&!p.completed.includes(t.id));
 }
 const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",water:"#204767",deposit:"#b69a47"};
-function draw(){
+function drawTopDown(){
  ctx.clearRect(0,0,canvas.width,canvas.height);
  for(const t of world.tiles){
    ctx.fillStyle=COLORS[t.terrain]??"#253d4e";
@@ -62,13 +63,47 @@ function draw(){
  }
  if(selected){ctx.strokeStyle="#b5f2ff";ctx.lineWidth=3;ctx.strokeRect(selected.x*TILE+1,selected.y*TILE+1,TILE-2,TILE-2);}
 }
+function drawIsometric(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ const tiles=[...world.tiles].sort((a,b)=>(a.x+a.y)-(b.x+b.y)||a.y-b.y||a.x-b.x);
+ for(const t of tiles){
+  const p=projectTile(t.x,t.y),color=COLORS[t.terrain]??"#253d4e";
+  if(t.occupied)block(ctx,t.x,t.y,"#b9afa1",10);
+  else if(t.terrain==="hill")block(ctx,t.x,t.y,color,6);
+  else{
+   diamond(ctx,p.x,p.y,color);
+   if(t.resource)diamond(ctx,p.x,p.y,"#d4b85e",2);
+  }
+ }
+ for(const start of world.starts){
+  const p=projectTile(start.x,start.y);
+  ctx.fillStyle=start.player===0?"#f5f4db":"#da8a7f";
+  ctx.font="bold 14px system-ui";ctx.fillText(String(start.player+1),p.x-4,p.y-11);
+ }
+ for(const [index,p] of match.players.entries())for(const u of p.units.filter(u=>u.alive&&Number.isInteger(u.x))){
+  const point=projectTile(u.x,u.y),isSelected=selectedUnits.has(u.id);
+  ctx.fillStyle=index===0?"#d1f1fa":"#f29488";
+  ctx.beginPath();ctx.arc(point.x,point.y-5,isSelected?5:3.5,0,Math.PI*2);ctx.fill();
+  if(isSelected){ctx.strokeStyle="#fce57d";ctx.lineWidth=2;ctx.stroke();}
+ }
+ if(selected){
+  const point=projectTile(selected.x,selected.y);
+  ctx.strokeStyle="#c8fbff";ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(point.x,point.y-7);
+  ctx.lineTo(point.x+10,point.y);ctx.lineTo(point.x,point.y+7);
+  ctx.lineTo(point.x-10,point.y);ctx.closePath();ctx.stroke();
+ }
+}
+function draw(){if(isometric)drawIsometric();else drawTopDown();}
 function tileInfo(x,y){
  const t=at(world,x,y);
  $("selected").textContent=t?("Tile "+x+","+y+" | "+t.terrain+" | "+(t.resource?t.resource+" ("+t.amount+")":"No deposit")+(t.occupied?" | Occupied":"")):"Outside the map";
 }
 function clickMap(ev){
  const rect=canvas.getBoundingClientRect();
- const x=Math.floor((ev.clientX-rect.left)*canvas.width/rect.width/TILE),y=Math.floor((ev.clientY-rect.top)*canvas.height/rect.height/TILE);
+ const px=(ev.clientX-rect.left)*canvas.width/rect.width,py=(ev.clientY-rect.top)*canvas.height/rect.height;
+ const tile=isometric?unprojectTile(px,py):{x:Math.floor(px/TILE),y:Math.floor(py/TILE)};
+ const {x,y}=tile;
  selected={x,y};
  try {
    if(mode==="place"){
@@ -76,6 +111,10 @@ function clickMap(ev){
      if(!w)throw Error("No workers left");
      const id=command(match,{player:"player",action:"build",kind:"Training Camp",x,y,workers:[w.id]});
      log("Construction started: "+id+" (40s).");mode="inspect";
+   }else if(mode==="formation"){
+     if(!selectedUnits.size)throw Error("Select friendly units first");
+     const result=command(match,{player:"player",action:"formation",units:[...selectedUnits],x,y});
+     log("Formation ordered for "+result.length+" units.");mode="inspect";
    }else if(mode==="move"){
      if(!selectedUnit)throw Error("Select a friendly unit first");
      command(match,{player:"player",action:"move",unitId:selectedUnit,x,y});
@@ -87,7 +126,12 @@ function clickMap(ev){
      log("Attack order against "+target.archetype);mode="inspect";
    }else {
      const own=match.players[0].units.find(u=>u.alive&&u.x===x&&u.y===y);
-     if(own){selectedUnit=own.id;log("Selected "+own.archetype);}
+     if(own){
+       if(ev.shiftKey){if(selectedUnits.has(own.id))selectedUnits.delete(own.id);else selectedUnits.add(own.id);}
+       else{selectedUnits=new Set([own.id]);}
+       selectedUnit=[...selectedUnits][0]??null;
+       log("Selected "+selectedUnits.size+" unit(s); Shift+click adds or removes.");
+     }
    }
  }catch(e){log("Command rejected: "+e.message);}
 
@@ -98,6 +142,15 @@ function tick(ms){
  catch(e){log("Tick failed: "+e.message);if(auto){clearInterval(auto);auto=null;$("auto").textContent="Auto-run: Off";}}
 }
 $("map").addEventListener("click",clickMap);
+$("viewMode").addEventListener("click",()=>{
+ isometric=!isometric;
+ $("viewMode").textContent=isometric?"View: Isometric":"View: Top-down";
+ $("map").setAttribute("aria-label",isometric?"Isometric 2.5D terrain preview map":"Top-down terrain map");
+ draw();
+});
+$("formation").addEventListener("click",()=>{
+ mode="formation";log("Click the destination for the selected group (up to 24 units).");
+});
 $("advance10").addEventListener("click",()=>tick(10000));
 $("advance60").addEventListener("click",()=>tick(60000));
 $("auto").addEventListener("click",()=>{

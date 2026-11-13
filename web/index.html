@@ -37,10 +37,11 @@ h3{font-size:14px;margin:15px 0 7px}
 </style>
 </head>
 <body>
-<header><div><h1>Crowns of Iron</h1><small>Simulation Inspector — Early Development Prototype</small></div><span class="badge">Not the final 3D game</span></header>
+<header><div><h1>Crowns of Iron</h1><small>Interactive Browser Prototype — Isometric Preview Available</small></div><span class="badge">Not the final 3D game</span></header>
 <main>
 <section class="panel" aria-label="Map and simulation controls">
 <div class="controls">
+<button id="viewMode" title="Toggle experimental isometric terrain preview">View: Top-down</button>
 <button class="primary" id="advance10">Advance 10 seconds</button>
 <button id="advance60">Advance 60 seconds</button>
 <button id="auto">Auto-run: Off</button>
@@ -62,9 +63,10 @@ h3{font-size:14px;margin:15px 0 7px}
 <button id="place">Build Training Camp</button>
 <button id="trainFighter">Train Club Fighter</button>
 <button id="move">Move selected unit</button>
+<button id="formation">Move selected group</button>
 <button id="attack">Attack enemy unit</button>
 </div>
-<small>Click a friendly unit to select it, then use Move or Attack. Construction reserves a site, requires a worker and completes after simulation time. Red units belong to the basic AI opponent.</small>
+<small>Click a friendly unit to select it, Shift+click to select several, then choose Move, Move selected group, or Attack. The isometric view is a 2.5D preview, not the final 3D renderer. Construction reserves a site, requires a worker and completes after simulation time. Red units belong to the basic AI opponent.</small>
 <h3>Event Log</h3><div id="log" aria-live="polite"></div>
 </aside>
 </main>
