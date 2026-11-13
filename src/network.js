@@ -188,7 +188,8 @@ export class MatchHost{
       Object.entries(state.harvestJobs).filter(([id,j])=>j.owner===viewer.id));
     if(state.seaTradeJobs)state.seaTradeJobs=Object.fromEntries(
       Object.entries(state.seaTradeJobs).filter(([id,j])=>j.owner===viewer.id));
-    return {playerId:viewer.id,version:this.version,state,checksum:checksum(state)};
+    return {playerId:viewer.id,version:this.version,
+      nextSequence:session.lastSequence+1,state,checksum:checksum(state)};
   }
   resync({token,afterVersion=0}){
     const session=this.sessions.get(token);
