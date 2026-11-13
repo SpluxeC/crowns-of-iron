@@ -27,7 +27,7 @@ try{
   response.status()+" "+response.url());});
  await page.goto(base+"/model-gallery",{waitUntil:"domcontentloaded"});
  await page.waitForFunction(()=>document.querySelector("#details")?.textContent
-  ?.includes("All 60 faction meshes loaded"),{timeout:60000});
+  ?.includes("All 60 faction meshes loaded"),null,{timeout:60000});
  const gl=await page.evaluate(()=>{
   const canvas=document.getElementById("preview");
   const ctx=canvas?.getContext("webgl");
@@ -35,8 +35,9 @@ try{
  });
  if(!gl)throw Error("Real Chromium WebGL context was unavailable");
  async function inspect(faction,role,clip,label,expected){
-  await page.selectOption("#faction",faction);
+  await page.selectOption("#faction","base");
   await page.selectOption("#unitRole",role);
+  await page.selectOption("#faction",faction);
   await page.selectOption("#clip",clip);
   await page.waitForFunction(({role,expected})=>{
    const text=document.querySelector("#details")?.textContent??"";
