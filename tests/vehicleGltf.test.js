@@ -43,6 +43,19 @@ test("real glTF 2.0 animated non-humanoid mesh validates and changes during atta
   assert.ok(initial.vertices.some((v,i)=>v!==death.vertices[i]));
   assert.deepEqual(sampleVehicleGltf(mesh,"death",650).vertices,
    sampleVehicleGltf(mesh,"death",12000).vertices);
+  const from=sampleVehicleGltf(mesh,"walk",100),
+   to=sampleVehicleGltf(mesh,"attack",350),
+   start=sampleVehicleGltf(mesh,"attack",350,{
+    transitionFrom:"walk",transitionAlpha:0,transitionFromTimeMs:100}),
+   midpoint=sampleVehicleGltf(mesh,"attack",350,{
+    transitionFrom:"walk",transitionAlpha:.5,transitionFromTimeMs:100}),
+   end=sampleVehicleGltf(mesh,"attack",350,{
+    transitionFrom:"walk",transitionAlpha:1,transitionFromTimeMs:100});
+  assert.deepEqual(start.vertices,from.vertices);
+  assert.deepEqual(end.vertices,to.vertices);
+  assert(midpoint.vertices.some((v,i)=>Math.abs(v-from.vertices[i])>1e-5));
+  assert(midpoint.vertices.some((v,i)=>Math.abs(v-to.vertices[i])>1e-5));
+  assert(midpoint.vertices.every(Number.isFinite));
  }
 });
 test("vehicle glTF input validation rejects skin attachment, malformed buffers and unsafe paths",async()=>{
@@ -58,4 +71,7 @@ test("vehicle glTF input validation rejects skin attachment, malformed buffers a
  await assert.rejects(loader.load("Ursa","Bomber"),/unavailable/);
  await assert.rejects(loader.load("Ursa","Archer"),/Unsupported/);
  assert.throws(()=>sampleVehicleGltf(null),/Invalid/);
+ const model=parseVehicleGltf(await source());
+ assert.throws(()=>sampleVehicleGltf(model,"attack",0,{transitionFrom:"unknown",transitionAlpha:.5}),/Invalid vehicle transition/);
+ assert.throws(()=>sampleVehicleGltf(model,"attack",0,{transitionFrom:"walk",transitionAlpha:2}),/Invalid vehicle transition/);
 });
