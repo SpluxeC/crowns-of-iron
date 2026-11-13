@@ -3,6 +3,7 @@ import {assetForUnit,assetForBuilding} from "./assetManifest.js";
 import {loadObjAssetSet,loadFactionObjSet,appendObjVertices} from "./objLoader.js";
 import {factionMeshKey} from "./factionArt.js";
 import {poseAt,animationModeForUnit} from "./meshAnimation.js";
+import {loadFactionTextures,textureForFaction} from "./factionTextures.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
@@ -150,7 +151,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
  let yaw=.82,pitch=.72,radius=preview?18:68,worldForPick=null,camForPick=null,
   terrainKey=null,terrainVertexCount=0,rebuilds=0,
-  models=null,modelPromise=null,factionPromise=null,modelFailure=null,
+  models=null,textures=null,textureFailure=null,
+  modelPromise=null,factionPromise=null,modelFailure=null,
   modelUnits=0,modelBuildings=0,fallbackUnits=0;
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
@@ -180,10 +182,13 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    if(models&&Object.keys(models).length>=70)
     return Promise.resolve({factionModels:60});
    if(factionPromise)return factionPromise;
-   factionPromise=loadFactionObjSet(fetcher).then(variants=>{
+   factionPromise=loadFactionObjSet(fetcher).then(async variants=>{
+    try{textures=await loadFactionTextures(fetcher);textureFailure=null;}
+    catch(error){textures=null;textureFailure=error.message;}
     models={...(models??{}),...variants};modelFailure=null;terrainKey=null;
     if(typeof notify==="function")notify();
-    return {factionModels:Object.keys(variants).length};
+    return {factionModels:Object.keys(variants).length,
+     textures:textures?Object.keys(textures).length:0};
    }).catch(error=>{
     modelFailure="Faction variants: "+error.message;
     factionPromise=null;throw error;
@@ -222,7 +227,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
       mesh=models?.[factionMeshKey(faction,style.family)]??models?.[style.family];
      if(mesh){
       // OBJ model coordinates are Y-up, centered on the structure footprint.
-      appendObjVertices(verts,mesh,{x,y:base,z,scale:Math.min(width,height)/1.8});
+      appendObjVertices(verts,mesh,{x,y:base,z,scale:Math.min(width,height)/1.8,
+       texture:textureForFaction(textures,faction)});
       modelBuildings++;
      }else{
       cube(verts,x,z,Math.min(width,height)*.82,base,base+style.height,
@@ -256,7 +262,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
       tint:selectedUnits.has(u.id)?[1,1,.77]:
        p.id===match.viewerId?[.82,1,1]:[1,.79,.79],
       pose:poseAt(previewPose??animationModeForUnit(u,match.orders?.[u.id]),
-       match.elapsedMs??0,(u.id?.length??0)*.07)});
+       match.elapsedMs??0,(u.id?.length??0)*.07),
+      texture:textureForFaction(textures,p.faction)});
      modelUnits++;
     }else{
      fallbackUnits++;
@@ -312,6 +319,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount,
    modelUnits,modelBuildings,fallbackUnits,loadedModels:models?Object.keys(models).length:0,
    factionModels:models?Object.keys(models).filter(k=>k.includes("/")).length:0,
+   factionTextures:textures?Object.keys(textures).length:0,
+   textureFailure,
    modelFailure};},
   dispose(){
    gl.deleteBuffer(staticBuffer);gl.deleteBuffer(dynamicBuffer);

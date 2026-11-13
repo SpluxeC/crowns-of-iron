@@ -38,6 +38,11 @@ for(const slug of FACTION_SLUGS)for(const role of MODEL_NAMES){
 }
 STATIC["/factionArt.js"]=["../web/factionArt.js","text/javascript; charset=utf-8"];
 STATIC["/meshAnimation.js"]=["../web/meshAnimation.js","text/javascript; charset=utf-8"];
+STATIC["/factionTextures.js"]=["../web/factionTextures.js","text/javascript; charset=utf-8"];
+for(const slug of FACTION_SLUGS){
+ STATIC["/assets/textures/factions/"+slug+".ppm"]=[
+  "../assets/textures/factions/"+slug+".ppm","text/plain; charset=utf-8"];
+}
 const HEADERS={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff",
  "Referrer-Policy":"no-referrer",
  "Content-Security-Policy":"default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'"};
