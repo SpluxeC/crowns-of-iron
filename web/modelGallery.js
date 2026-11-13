@@ -11,7 +11,8 @@ for(const role of ROSTER_ROLES){
  roleChoice.append(option);
 }
 const factionChoice=document.getElementById("faction"),
- clipChoice=document.getElementById("clip"),wearChoice=document.getElementById("wear");
+ clipChoice=document.getElementById("clip"),wearChoice=document.getElementById("wear"),
+ biomeChoice=document.getElementById("biome");
 const renderer=createWebGLRenderer(canvas,{preview:true});
 const archetypes={worker:"Worker",infantry:"Swordsman",ranged:"Archer",hero:"Hero",
  siege:"Battering Ram",ship:"Heavy Warship",air:"Interceptor"};
@@ -49,6 +50,7 @@ function draw(){
  const faction=factionChoice.value==="base"?null:factionChoice.value;
  world.structures=building?[{id:"sample",owner:"p0",kind:buildings[name],x:5,y:5,
   width:2,height:2}]:[];
+ for(const tile of world.tiles)tile.terrain=biomeChoice.value;
  for(const tile of world.tiles)tile.occupied=building&&
   tile.x>=5&&tile.x<7&&tile.y>=5&&tile.y<7?"sample":null;
  const unit={id:"sample",owner:"p0",archetype:specificRole||archetypes[name],alive:true,
@@ -65,7 +67,7 @@ function draw(){
   renderer?.meshInfo(name,faction);
  details.textContent=mesh?((faction??"Generic")+" "+(specificRole||name)+
   " · "+mesh.triangles+" triangles · "+mesh.vertexCount+
-  " vertices · "+clipChoice.value+" pose · HP "+wearChoice.value+"/100 · "+
+  " vertices · "+clipChoice.value+" pose · "+biomeChoice.value+" terrain · HP "+wearChoice.value+"/100 · "+
   (roster?"Roster-specific UV-mapped OBJ":"Family model")+" · "+loadMessage):
   "Loading "+name+" — showing fallback until model is available";
 }
@@ -85,6 +87,7 @@ roleChoice.addEventListener("change",()=>{draw();void loadSelectedRoster();});
 factionChoice.addEventListener("change",()=>{draw();void loadSelectedRoster();});
 clipChoice.addEventListener("change",draw);
 wearChoice.addEventListener("change",draw);
+biomeChoice.addEventListener("change",draw);
 document.getElementById("orbitLeft").addEventListener("click",()=>{renderer?.orbit(-30,0);draw();});
 document.getElementById("orbitRight").addEventListener("click",()=>{renderer?.orbit(30,0);draw();});
 document.getElementById("zoomIn").addEventListener("click",()=>{renderer?.zoom(-1);draw();});

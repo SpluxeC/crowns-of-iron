@@ -50,6 +50,16 @@ STATIC["/skinnedGltf.js"]=["../web/skinnedGltf.js","text/javascript; charset=utf
 STATIC["/vehicleArt.js"]=["../web/vehicleArt.js","text/javascript; charset=utf-8"];
 STATIC["/vehicleGltf.js"]=["../web/vehicleGltf.js","text/javascript; charset=utf-8"];
 STATIC["/combatVisuals.js"]=["../web/combatVisuals.js","text/javascript; charset=utf-8"];
+STATIC["/vehicleComponents.js"]=["../web/vehicleComponents.js","text/javascript; charset=utf-8"];
+STATIC["/vehicleAccessories.js"]=["../web/vehicleAccessories.js","text/javascript; charset=utf-8"];
+STATIC["/vehicleFinish.js"]=["../web/vehicleFinish.js","text/javascript; charset=utf-8"];
+STATIC["/battleWear.js"]=["../web/battleWear.js","text/javascript; charset=utf-8"];
+STATIC["/combatVfx.js"]=["../web/combatVfx.js","text/javascript; charset=utf-8"];
+STATIC["/damageFinish.js"]=["../web/damageFinish.js","text/javascript; charset=utf-8"];
+STATIC["/factionCombatVfx.js"]=["../web/factionCombatVfx.js","text/javascript; charset=utf-8"];
+STATIC["/artFrameBudget.js"]=["../web/artFrameBudget.js","text/javascript; charset=utf-8"];
+STATIC["/buildingArchitecture.js"]=["../web/buildingArchitecture.js","text/javascript; charset=utf-8"];
+STATIC["/terrainAtmosphere.js"]=["../web/terrainAtmosphere.js","text/javascript; charset=utf-8"];
 STATIC["/skinnedRoster.js"]=["../web/skinnedRoster.js","text/javascript; charset=utf-8"];
 STATIC["/materialDetail.js"]=["../web/materialDetail.js","text/javascript; charset=utf-8"];
 STATIC["/vehicleMotion.js"]=["../web/vehicleMotion.js","text/javascript; charset=utf-8"];
