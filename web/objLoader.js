@@ -1,5 +1,6 @@
 import {sampleFactionTexture,sampleFactionUv} from "./factionTextures.js";
 import {deformVertex} from "./meshAnimation.js";
+import {transformVehicleVertex} from "./vehicleMotion.js";
 import {FACTION_SLUGS,factionMeshPath} from "./factionArt.js";
 /** Strict subset of Wavefront OBJ+MTL for Crowns of Iron authored static meshes.
  * OBJ faces become flat-shaded, interleaved world-ready position/color triangles. */
@@ -112,18 +113,19 @@ export async function loadFactionObjSet(fetcher=fetch){
 }
 /** Transform authored Y-up model local coords into the battlefield grid. */
 export function appendObjVertices(out,mesh,{x=0,y=0,z=0,scale=1,tint=null,
- pose=null,texture=null,rig=null}={}){
+ pose=null,texture=null,rig=null,vehicle=null}={}){
  const src=mesh?.vertices;
  if(!src||!Number.isFinite(scale)||scale<=0)throw Error("Invalid OBJ geometry");
  const maxHeight=mesh.bounds?.max?.[1]??1.5;
  for(let i=0;i<src.length;i+=6){
   const local=pose?deformVertex(src[i],src[i+1],src[i+2],pose,maxHeight,rig):
    [src[i],src[i+1],src[i+2]];
+  const moved=vehicle?transformVehicleVertex(...local,vehicle):local;
   const uvIndex=i/3;
   const pattern=mesh.textured&&mesh.uvs?.length>=uvIndex+2?
    sampleFactionUv(texture,mesh.uvs[uvIndex],mesh.uvs[uvIndex+1]):
    sampleFactionTexture(texture,src[i],src[i+1],src[i+2]);
-  out.push(x+local[0]*scale,y+local[1]*scale,z+local[2]*scale,
+  out.push(x+moved[0]*scale,y+moved[1]*scale,z+moved[2]*scale,
    Math.min(1,src[i+3]*(tint?.[0]??1)*pattern[0]),
    Math.min(1,src[i+4]*(tint?.[1]??1)*pattern[1]),
    Math.min(1,src[i+5]*(tint?.[2]??1)*pattern[2]));

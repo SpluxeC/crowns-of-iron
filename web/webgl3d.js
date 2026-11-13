@@ -8,6 +8,7 @@ import {rigForFaction} from "./rigProfiles.js";
 import {createRosterMeshLoader} from "./rosterLoader.js";
 import {createSkinnedGltfLoader,sampleSkinnedGltf} from "./skinnedGltf.js";
 import {ALL_SKINNED_ROLES} from "./skinnedRoster.js";
+import {vehicleMotion} from "./vehicleMotion.js";
 import {refineFactionTexture} from "./materialDetail.js";
 import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
@@ -327,7 +328,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
       pose:skin?null:poseAt(clip,now,(u.id?.length??0)*.07),
       texture:textureForFaction(textures,p.faction),
       rig:skin?null:["worker","infantry","ranged","hero"].includes(role)?
-       rigForFaction(p.faction):null});
+       rigForFaction(p.faction):null,
+      vehicle:vehicleMotion(u.archetype,clip,now,(u.id?.length??0)*.13)});
      modelUnits++;
     }else{
      fallbackUnits++;

@@ -47,6 +47,7 @@ for(const slug of FACTION_SLUGS)for(const role of ROSTER_ROLES){
 STATIC["/skinnedGltf.js"]=["../web/skinnedGltf.js","text/javascript; charset=utf-8"];
 STATIC["/skinnedRoster.js"]=["../web/skinnedRoster.js","text/javascript; charset=utf-8"];
 STATIC["/materialDetail.js"]=["../web/materialDetail.js","text/javascript; charset=utf-8"];
+STATIC["/vehicleMotion.js"]=["../web/vehicleMotion.js","text/javascript; charset=utf-8"];
 STATIC["/textureShader.js"]=["../web/textureShader.js","text/javascript; charset=utf-8"];
 STATIC["/rosterArt.js"]=["../web/rosterArt.js","text/javascript; charset=utf-8"];
 STATIC["/rosterLoader.js"]=["../web/rosterLoader.js","text/javascript; charset=utf-8"];
