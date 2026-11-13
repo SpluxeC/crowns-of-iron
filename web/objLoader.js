@@ -1,3 +1,4 @@
+import {sampleFactionTexture} from "./factionTextures.js";
 import {deformVertex} from "./meshAnimation.js";
 import {FACTION_SLUGS,factionMeshPath} from "./factionArt.js";
 /** Strict subset of Wavefront OBJ+MTL for Crowns of Iron authored static meshes.
@@ -98,17 +99,18 @@ export async function loadFactionObjSet(fetcher=fetch){
 }
 /** Transform authored Y-up model local coords into the battlefield grid. */
 export function appendObjVertices(out,mesh,{x=0,y=0,z=0,scale=1,tint=null,
- pose=null}={}){
+ pose=null,texture=null}={}){
  const src=mesh?.vertices;
  if(!src||!Number.isFinite(scale)||scale<=0)throw Error("Invalid OBJ geometry");
  const maxHeight=mesh.bounds?.max?.[1]??1.5;
  for(let i=0;i<src.length;i+=6){
   const local=pose?deformVertex(src[i],src[i+1],src[i+2],pose,maxHeight):
    [src[i],src[i+1],src[i+2]];
+  const pattern=sampleFactionTexture(texture,src[i],src[i+1],src[i+2]);
   out.push(x+local[0]*scale,y+local[1]*scale,z+local[2]*scale,
-   tint?Math.min(1,src[i+3]*tint[0]):src[i+3],
-   tint?Math.min(1,src[i+4]*tint[1]):src[i+4],
-   tint?Math.min(1,src[i+5]*tint[2]):src[i+5]);
+   Math.min(1,src[i+3]*(tint?.[0]??1)*pattern[0]),
+   Math.min(1,src[i+4]*(tint?.[1]??1)*pattern[1]),
+   Math.min(1,src[i+5]*(tint?.[2]??1)*pattern[2]);
  }
  return src.length/6;
 }
