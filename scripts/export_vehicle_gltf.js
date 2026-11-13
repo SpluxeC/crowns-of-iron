@@ -10,6 +10,7 @@ import {FACTION_SLUGS} from "../web/factionArt.js";
 import {ROLE_SLUGS} from "../web/rosterArt.js";
 import {VEHICLE_ROLES,vehicleDomain} from "../web/vehicleArt.js";
 import {vehicleMotion} from "../web/vehicleMotion.js";
+import {vehicleComponent,componentQuaternion} from "../web/vehicleComponents.js";
 function quaternion(pitch,roll,yaw){
  const sx=Math.sin(pitch/2),cx=Math.cos(pitch/2),sy=Math.sin(yaw/2),
   cy=Math.cos(yaw/2),sz=Math.sin(roll/2),cz=Math.cos(roll/2);
@@ -55,11 +56,23 @@ export function exportVehicleGltf(mesh,texture,{faction="humans",role="Bomber"}=
   n=accessor(normals,"VEC3",{target:34962}),
   uv=accessor(mesh.uvs,"VEC2",{target:34962}),
   color=accessor(colors,"VEC4",{target:34962});
+ const part=vehicleComponent(role,mesh.bounds);
+ const partPosition=accessor(new Float32Array(part.positions),"VEC3",{target:34962}),
+  partUv=accessor(new Float32Array(part.uvs),"VEC2",{target:34962}),
+  partColors=accessor(new Float32Array(part.colors),"VEC4",{target:34962});
+ const partNormals=new Float32Array(part.positions.length);
+ for(let i=0;i<part.count;i+=3){
+  const a=part.positions.slice(i*3,i*3+3),
+   b=part.positions.slice(i*3+3,i*3+6),
+   c=part.positions.slice(i*3+6,i*3+9),v=normal(a,b,c);
+  for(let j=0;j<3;j++)partNormals.set(v,(i+j)*3);
+ }
+ const partNormal=accessor(partNormals,"VEC3",{target:34962});
  const animations=[];
  for(const mode of ["idle","walk","attack","hit","death"]){
   const duration=mode==="hit"?.22:mode==="death"?.65:mode==="attack"?.7:mode==="walk"?1.2:2.2;
   const times=new Float32Array(Array.from({length:9},(_,i)=>duration*i/8));
-  const translation=[],rotation=[];
+  const translation=[],rotation=[],componentRotation=[];
   for(let i=0;i<times.length;i++){
    const motion=vehicleMotion(role,["hit","death"].includes(mode)?"idle":mode,times[i]*1000,0);
    const progress=times[i]/duration;
@@ -69,22 +82,30 @@ export function exportVehicleGltf(mesh,texture,{faction="humans",role="Bomber"}=
    translation.push(0,motion.rise-.55*fall-.09*kick,motion.recoil*-1-.17*kick);
    rotation.push(...quaternion(motion.pitch+.19*kick+.85*fall,
     motion.roll+.07*kick+.52*fall,motion.yaw));
+   componentRotation.push(...componentQuaternion(part.domain,mode,times[i]));
   }
   const input=accessor(times,"SCALAR",{min:[0],max:[duration]}),
    t=accessor(new Float32Array(translation),"VEC3"),
-   r=accessor(new Float32Array(rotation),"VEC4");
+   r=accessor(new Float32Array(rotation),"VEC4"),
+   pr=accessor(new Float32Array(componentRotation),"VEC4");
   animations.push({name:mode,
    samplers:[{input,output:t,interpolation:"LINEAR"},
-    {input,output:r,interpolation:"LINEAR"}],
+    {input,output:r,interpolation:"LINEAR"},
+    {input,output:pr,interpolation:"LINEAR"}],
    channels:[{sampler:0,target:{node:0,path:"translation"}},
-    {sampler:1,target:{node:0,path:"rotation"}}]});
+    {sampler:1,target:{node:0,path:"rotation"}},
+    {sampler:2,target:{node:1,path:"rotation"}}]});
  }
  const image=ppmToPng(texture);
  const buffer=Buffer.concat(parts);
- return {asset:{version:"2.0",generator:"Crowns of Iron specialized vehicle art 10.3"},
-  scene:0,scenes:[{nodes:[0]}],nodes:[{name:faction+" "+role,mesh:0}],
+ return {asset:{version:"2.0",generator:"Crowns of Iron articulated vehicle art 10.4"},
+  scene:0,scenes:[{nodes:[0]}],nodes:[{name:faction+" "+role,mesh:0,children:[1]},
+   {name:part.domain+" weapon assembly",mesh:1,translation:part.anchor}],
   meshes:[{name:role,primitives:[{attributes:{POSITION:position,NORMAL:n,
-   TEXCOORD_0:uv,COLOR_0:color},material:0,mode:4}]}],
+   TEXCOORD_0:uv,COLOR_0:color},material:0,mode:4}]},
+   {name:part.domain+" articulated component",primitives:[{attributes:{
+    POSITION:partPosition,NORMAL:partNormal,TEXCOORD_0:partUv,COLOR_0:partColors},
+    material:0,mode:4}]}],
   buffers:[{byteLength:buffer.length,uri:"data:application/octet-stream;base64,"+
    buffer.toString("base64")}],bufferViews,accessors,
   materials:[{name:"Vehicle UV material",doubleSided:true,
@@ -94,7 +115,7 @@ export function exportVehicleGltf(mesh,texture,{faction="humans",role="Bomber"}=
    mimeType:"image/png"}],
   samplers:[{magFilter:9729,minFilter:9728,wrapS:10497,wrapT:10497}],
   textures:[{sampler:0,source:0}],animations,
-  extras:{domain:vehicleDomain(role),visualOnly:true}};
+  extras:{domain:vehicleDomain(role),visualOnly:true,component:part.domain}};
 }
 export async function exportAllVehicles(){
  const palette=parseMtl(await readFile(new URL(
