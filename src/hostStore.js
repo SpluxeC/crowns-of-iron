@@ -28,6 +28,17 @@ export async function writeHostCheckpoint(host,path){
  }
  return {path:destination,bytes:Buffer.byteLength(contents),version:host.version};
 }
+export async function guardCheckpointStartup(path,{restore=false,reset=false}={}){
+ assert(typeof restore==="boolean"&&typeof reset==="boolean","Invalid checkpoint startup mode");
+ assert(!(restore&&reset),"Cannot restore and reset the same checkpoint");
+ let exists=false;
+ try{exists=(await stat(resolve(path))).isFile();}
+ catch(e){if(e.code!=="ENOENT")throw e;}
+ if(restore)assert(exists,"Requested checkpoint restore but file does not exist");
+ if(!restore&&!reset)assert(!exists,
+  "Existing checkpoint would be overwritten; use RESTORE_CHECKPOINT=1 or RESET_CHECKPOINT=1");
+ return {exists,restore,reset};
+}
 export async function readHostCheckpoint(path){
  assert(typeof path==="string"&&path.length>0,"Checkpoint path required");
  const destination=resolve(path),details=await stat(destination);
