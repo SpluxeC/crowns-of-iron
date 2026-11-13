@@ -60,22 +60,31 @@ export function checkElimination(match,deltaMs){
   const teams=new Set(match.players.filter(p=>!p.defeated).map(p=>p.team));
   if(match.mode==="Conquest"&&teams.size===1)match.winner=[...teams][0];
 }
+function substep(match,ms,opts){
+  tickBots(match,ms);
+  for(const player of match.players.filter(x=>!x.defeated)){
+    gather(player,ms,opts.economy?.[player.id]??{});
+    tickResearch(player,ms,researchCatalog(match,player));
+    tickProduction(match,player,ms);
+    tickStatuses(player,ms);
+  }
+  tickConstruction(match,ms);
+  tickBattlefield(match,ms);
+  checkElimination(match,ms);
+  tickMode(match,ms);
+  match.elapsedMs+=ms;match.tick++;
+  tickRuins(match);
+}
 export function step(match,deltaMs,opts={}){
   assert(Number.isSafeInteger(deltaMs)&&deltaMs>0&&deltaMs<=60000,"Tick must be 1–60000 ms");
-  if(match.winner!==null)return match;
-  tickBots(match,deltaMs);
-  for(const p of match.players.filter(x=>!x.defeated)){
-    gather(p,deltaMs,opts.economy?.[p.id]??{});
-    tickResearch(p,deltaMs,researchCatalog(match,p));
-    tickProduction(match,p,deltaMs);
-    tickStatuses(p,deltaMs);
+  // Fixed one-second simulation slices. Advancing 60 seconds in one call
+  // is equivalent to sixty calls of one second (when commands are unchanged).
+  let remaining=deltaMs;
+  while(remaining>0&&match.winner===null){
+    const slice=Math.min(1000,remaining);
+    substep(match,slice,opts);
+    remaining-=slice;
   }
-  tickConstruction(match,deltaMs);
-  tickBattlefield(match,deltaMs);
-  checkElimination(match,deltaMs);
-  tickMode(match,deltaMs);
-  match.elapsedMs+=deltaMs;match.tick++;
-  tickRuins(match);
   return match;
 }
 export function snapshot(match){return clone(match);}
