@@ -1,6 +1,7 @@
 import {CATEGORY,COUNTERS} from "./constants.js";
 import {assert,spend} from "./util.js";
 import {killUnit} from "./state.js";
+import {researchMultiplier} from "./technologyEffects.js";
 export function damage(attack,armor,type="Slash",targetCategory="Standard",specialist=0){
   assert(Number.isFinite(attack)&&attack>=0&&Number.isFinite(armor),"Invalid combat stats");
   const table=COUNTERS[type];assert(table,"Unknown damage type");
@@ -37,7 +38,7 @@ export function heal(player,healerIds,targetId){
   for(const id of healerIds)assert(player.units.some(u=>u.id===id&&u.alive&&u.archetype==="Healer"),"Invalid healer");
   // Each individual action restores 12 base HP, diminishing after the second.
   const amount=healerIds.reduce((n,_,i)=>n+12*(i<2?1:i===2?.75:.5),0);
-  const healed=Math.min(target.maxHp-target.hp,Math.floor(amount));
+  const healed=Math.min(target.maxHp-target.hp,Math.floor(amount*researchMultiplier(player,"healing")));
   target.hp+=healed;return healed;
 }
 export function repair(player,workerIds,targetId,amount){

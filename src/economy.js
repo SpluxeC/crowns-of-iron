@@ -1,5 +1,6 @@
 import {RESOURCES} from "./constants.js";
 import {assert,spend} from "./util.js";
+import {researchMultiplier} from "./technologyEffects.js";
 const RATES=Object.freeze({Food:.75,Wood:.65,Stone:.48,Metal:.38,Gold:.37,Aether:.18});
 export function gather(player,deltaMs,{farmWorkers=0,foresterWorkers=0,materialPlants=0,materialChoice="Stone",condensers=0}={}){
   assert(Number.isSafeInteger(deltaMs)&&deltaMs>=0,"Invalid interval");
@@ -19,7 +20,7 @@ export function gather(player,deltaMs,{farmWorkers=0,foresterWorkers=0,materialP
   }
   const enabled={"Food":true,"Wood":true,"Stone":true,"Metal":player.age!=="I","Gold":true,"Aether":["III","IV","V"].includes(player.age)};
   for(const k of RESOURCES){
-    let amount=(enabled[k]?player.workers[k]*RATES[k]*deltaMs/1000:0);
+    let amount=(enabled[k]?player.workers[k]*RATES[k]*researchMultiplier(player,"gather",{resource:k})*deltaMs/1000:0);
     if(k==="Food")amount+=farmWorkers*(.7-RATES.Food)*deltaMs/1000;
     if(k===materialChoice&&player.age==="V")amount+=materialPlants*(k==="Stone"?.3:.2)*deltaMs/1000;
     if(k==="Aether"&&player.age==="V")amount+=condensers*.08*deltaMs/1000;
