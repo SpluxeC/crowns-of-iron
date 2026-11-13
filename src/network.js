@@ -7,7 +7,7 @@ import {assert,clone} from "./util.js";
 // Local authoritative protocol prototype; no public deployment, matchmaking,
 // dedicated authorization backend or production fog-of-war guarantees.
 const COMMANDS=new Set(["allocate","research","cancelResearch","train","cancelTrain",
-  "move","attack","build","cancelBuild","upgrade","cancelUpgrade","ability"]);
+  "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","ability"]);
 export class MatchHost{
   constructor(participants,seed=1){
     this.match=createMatch(participants,seed);
@@ -42,6 +42,14 @@ export class MatchHost{
       const target=enemy?.units.find(u=>u.id===payload.target&&u.alive);
       assert(target&&(enemy.team===viewer.team||this.isVisible(viewer,target)),
         "Enemy target is not visible");
+    }
+    if(action==="attackStructure"){
+      const site=this.match.constructions?.[payload.siteId];
+      const location=this.match.battlefield?.structures?.find(s=>s.id===payload.siteId);
+      const viewer=this.match.players.find(p=>p.id===session.playerId);
+      assert(site&&site.completed&&location&&
+        (site.owner===viewer.id||this.isVisible(viewer,location)),
+        "Target building is not visible");
     }
     const result=command(this.match,order);
     session.lastSequence=sequence;
