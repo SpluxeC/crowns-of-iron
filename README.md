@@ -36,3 +36,8 @@ Review [the milestone plan](docs/MILESTONES.md), [new milestone boundaries](docs
 
 ## License
 No license has been granted yet; all rights reserved pending an explicit licensing decision.
+
+## Current 1.0–1.4 feature batch
+See [milestone verification and limitations](docs/MILESTONES_1_0_TO_1_4.md). The local developer protocol server is available via `npm run protocol-server` and listens on loopback only. This is not a publicly secure multiplayer game server.
+
+The full reconciled v0.2 numeric data can be loaded from `data/balance-v0.2.json` if that generated file is present. The runtime continues to use shared unit templates unless the full data catalog is explicitly loaded. The canonical 216 unit names and faction modifiers are embedded in `src/factionRoster.js`.
