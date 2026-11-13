@@ -1,3 +1,4 @@
+import {deformVertex} from "./meshAnimation.js";
 import {FACTION_SLUGS,factionMeshPath} from "./factionArt.js";
 /** Strict subset of Wavefront OBJ+MTL for Crowns of Iron authored static meshes.
  * OBJ faces become flat-shaded, interleaved world-ready position/color triangles. */
@@ -96,11 +97,15 @@ export async function loadFactionObjSet(fetcher=fetch){
  return Object.fromEntries(loaded);
 }
 /** Transform authored Y-up model local coords into the battlefield grid. */
-export function appendObjVertices(out,mesh,{x=0,y=0,z=0,scale=1,tint=null}={}){
+export function appendObjVertices(out,mesh,{x=0,y=0,z=0,scale=1,tint=null,
+ pose=null}={}){
  const src=mesh?.vertices;
  if(!src||!Number.isFinite(scale)||scale<=0)throw Error("Invalid OBJ geometry");
+ const maxHeight=mesh.bounds?.max?.[1]??1.5;
  for(let i=0;i<src.length;i+=6){
-  out.push(x+src[i]*scale,y+src[i+1]*scale,z+src[i+2]*scale,
+  const local=pose?deformVertex(src[i],src[i+1],src[i+2],pose,maxHeight):
+   [src[i],src[i+1],src[i+2]];
+  out.push(x+local[0]*scale,y+local[1]*scale,z+local[2]*scale,
    tint?Math.min(1,src[i+3]*tint[0]):src[i+3],
    tint?Math.min(1,src[i+4]*tint[1]):src[i+4],
    tint?Math.min(1,src[i+5]*tint[2]):src[i+5]);
