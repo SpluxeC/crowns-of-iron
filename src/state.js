@@ -11,8 +11,8 @@ export function createPlayer(id,faction,team=id){
     facilities:{"Town Center":1},units:[],history:[]
   };
   const worker=ARCHETYPES.Worker,scout=ARCHETYPES.Scout;
-  for(let i=0;i<3;i++)player.units.push(makeUnit(player,"Worker",worker,"start-worker-"+i));
-  player.units.push(makeUnit(player,"Scout",scout,"start-scout"));
+  for(let i=0;i<3;i++)player.units.push(makeUnit(player,"Worker",worker,id+"-start-worker-"+i));
+  player.units.push(makeUnit(player,"Scout",scout,id+"-start-scout"));
   return player;
 }
 export function makeUnit(player,archetype,definition,id){
