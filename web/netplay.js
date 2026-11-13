@@ -1,6 +1,7 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {createVersionDecoder} from "/streamProtocol.js";
 import {attackOrders,stopOrders,selectedVisibleEnemy} from "/combatOrders.js";
+import {createPerformanceTelemetry,formatTiming} from "/perfTelemetry.js";
 import {chooseAtTile,unitsInTileRectangle,updateSelection,selectByRole,recallGroup,makeFormationPayload} from "/unitSelection.js";
 import {chooseBuilder,queueSummary,formatCost,catalogBuildings,
  catalogTraining,catalogResearch,researchRequest,trainingRequest} from "/clientRules.js";
@@ -11,7 +12,7 @@ const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
 let token=null,abort=null,pollTimer=null,state=null,room=null,catalog=null,playerId=null,nextSequence=1,version=0;
 let renderer=null,view3d=false,selected=new Set(),mode="select",pending=false,refreshing=false,refreshAgain=false;
 let drag=null,boxDrag=null,ignoreClick=false;
-const controlGroups=new Map();
+const controlGroups=new Map(),telemetry=createPerformanceTelemetry({limit:120});
 function log(message){
  const div=document.createElement("div");
  div.textContent="["+new Date().toLocaleTimeString()+"] "+message;
@@ -62,10 +63,12 @@ function draw2d(){
  }
 }
 function draw(){
+ const start=performance.now();
  canvas.hidden=view3d;canvas3d.hidden=!view3d;
  if(view3d&&renderer&&state?.battlefield)
   renderer.draw(state.battlefield,{players:state.players,viewerId:playerId},selected);
  else draw2d();
+ telemetry.record(view3d?"webgl-submit":"canvas-2d",performance.now()-start);
 }
 function info(){
  const p=own(),ready=!!room?.players?.find(p=>p.id===playerId)?.ready;
@@ -150,6 +153,10 @@ function info(){
   .filter(Boolean).map(u=>u.archetype+" ["+u.hp+"/"+u.maxHp+" HP]");
  text("selection",details.length?selected.size+" units: "+details.slice(0,6).join(", ")+
   (details.length>6?" …":""):"No units selected");
+ text("perf","Canvas 2D: "+formatTiming(telemetry.summary("canvas-2d"))+
+  " · WebGL CPU submit: "+formatTiming(telemetry.summary("webgl-submit"))+
+  " · HTTP requests: "+formatTiming(telemetry.summary("http"))+
+  (renderer?" · Terrain GPU rebuilds: "+renderer.stats().terrainRebuilds:""));
  text("groups",Array.from({length:4},(_,i)=>
   (i+1)+": "+(controlGroups.get(String(i+1))?.length??0)).join(" · "));
  $("resources").replaceChildren();
@@ -160,10 +167,12 @@ function info(){
 }
 async function api(path,method="GET",payload){
  if(!token)throw Error("Connect first");
+ const start=performance.now();
  const result=await fetch(path,{method,
   headers:{"x-session-token":token,"Content-Type":"application/json"},
   body:method==="GET"?undefined:JSON.stringify(payload??{})});
  const data=await result.json();
+ telemetry.record("http",performance.now()-start);
  if(!result.ok)throw Error(data.error||"Request failed ("+result.status+")");
  return data;
 }
@@ -238,7 +247,7 @@ function disconnect(){
  abort?.abort();abort=null;
  if(pollTimer!==null){clearInterval(pollTimer);pollTimer=null;}
  token=null;state=null;room=null;catalog=null;playerId=null;
- selected.clear();controlGroups.clear();mode="select";view3d=false;
+ selected.clear();controlGroups.clear();telemetry.reset();mode="select";view3d=false;
  pending=false;refreshing=false;
  draw();info();log("Disconnected. No session token saved.");
 }
