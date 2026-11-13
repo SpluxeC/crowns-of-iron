@@ -322,7 +322,11 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     visibleAnimKeys.add(animKey);
     if(!previous||previous.clip!==clip)
      animationStates.set(animKey,{clip,from:previous?.clip??clip,changedAt:now});
-    const transition=animationStates.get(animKey),
+    const vehicleClip=previewPose==="death"?"death":previewPose==="hit"?"hit":
+      effect.death>0?"death":effect.hit>0?"hit":clip,
+     vehicleTime=vehicleClip==="death"?(previewPose==="death"?470:now-(combatStates.get(animKey)?.deathAt??now)):
+      vehicleClip==="hit"?(previewPose==="hit"?110:now-(combatStates.get(animKey)?.hitAt??now)):now,
+     transition=animationStates.get(animKey),
      blend=Math.max(0,Math.min(1,(now-transition.changedAt)/160)),
      skin=modelUnits<160&&ALL_SKINNED_ROLES.includes(u.archetype)?
        skinnedLoader?.get(p.faction,u.archetype):null,
@@ -330,11 +334,12 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
        vehicleLoader?.get(p.faction,u.archetype):null,
      rawMesh=skin?sampleSkinnedGltf(skin,clip,now,
        {transitionFrom:transition.from,transitionAlpha:blend}):
-       veh?sampleVehicleGltf(veh,clip,now):
+       veh?sampleVehicleGltf(veh,vehicleClip,vehicleTime):
        modelUnits<160?(rosterLoader?.get(p.faction,u.archetype)??
        models?.[factionMeshKey(p.faction,role)]??models?.[role]):null,
-     mesh=rawMesh?applyCombatPose(rawMesh,previewPose==="hit"?{hit:1}:
-       previewPose==="death"?{death:.72}:effect):null;
+     overlay=previewPose==="hit"?{hit:1}:previewPose==="death"?{death:.72}:effect,
+     // Vehicles use their own death transform clip, avoiding a second fall rotation.
+     mesh=rawMesh?applyCombatPose(rawMesh,veh?{hit:overlay.hit??0}:overlay):null;
     if(mesh){
      const scale=detail.role==="air"?.53:detail.role==="ship"?.69:
       detail.role==="hero"?.73:detail.role==="siege"?.63:.75;
