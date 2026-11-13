@@ -1,15 +1,14 @@
-/** Versioned, declarative proxy asset registry.
- * No executable scripts, remote URLs or binary models are loaded. Asset IDs are
- * stable hooks for later glTF model overrides and licensed art integration. */
+/** Versioned, declarative 3D asset registry. Fixed same-origin Wavefront OBJ
+ * meshes back these identifiers; no executable model scripts or third-party URLs. */
 export const ASSET_SCHEMA_VERSION=1;
 export const UNIT_ASSETS=Object.freeze({
- worker:{id:"unit.worker.v1",role:"worker",head:.22,shoulder:.25,accessory:"pack",scale:1},
- infantry:{id:"unit.infantry.v1",role:"infantry",head:.24,shoulder:.36,accessory:"shield",scale:1},
- ranged:{id:"unit.ranged.v1",role:"ranged",head:.24,shoulder:.32,accessory:"ranged",scale:1},
- hero:{id:"unit.hero.v1",role:"hero",head:.34,shoulder:.56,accessory:"banner",scale:1},
- siege:{id:"unit.siege.v1",role:"siege",head:0,shoulder:.60,accessory:"turret",scale:1},
- ship:{id:"unit.ship.v1",role:"ship",head:0,shoulder:.68,accessory:"mast",scale:1},
- air:{id:"unit.air.v1",role:"air",head:0,shoulder:.72,accessory:"wings",scale:1}
+ worker:{id:"unit.worker.v1",mesh:"/assets/models/worker.obj",role:"worker",head:.22,shoulder:.25,accessory:"pack",scale:1},
+ infantry:{id:"unit.infantry.v1",mesh:"/assets/models/infantry.obj",role:"infantry",head:.24,shoulder:.36,accessory:"shield",scale:1},
+ ranged:{id:"unit.ranged.v1",mesh:"/assets/models/ranged.obj",role:"ranged",head:.24,shoulder:.32,accessory:"ranged",scale:1},
+ hero:{id:"unit.hero.v1",mesh:"/assets/models/hero.obj",role:"hero",head:.34,shoulder:.56,accessory:"banner",scale:1},
+ siege:{id:"unit.siege.v1",mesh:"/assets/models/siege.obj",role:"siege",head:0,shoulder:.60,accessory:"turret",scale:1},
+ ship:{id:"unit.ship.v1",mesh:"/assets/models/ship.obj",role:"ship",head:0,shoulder:.68,accessory:"mast",scale:1},
+ air:{id:"unit.air.v1",mesh:"/assets/models/air.obj",role:"air",head:0,shoulder:.72,accessory:"wings",scale:1}
 });
 const RANGED=new Set(["Archer","Stone Slinger","Gunner","Anti-Air Infantry","Scout"]);
 const SIEGE=new Set(["Battering Ram","Siege Tower","Heavy Artillery","Heavy War Machine"]);
@@ -29,7 +28,8 @@ export function assetForBuilding(kind){
  const fortified=/Wall|Gate|Tower|Fort|Rampart|Bastion|Palisade/i.test(kind??"");
  const tower=/Tower|Fort|Bastion|Hangar/i.test(kind??"");
  return {id:tower?"building.tower.v1":fortified?"building.defense.v1":"building.basic.v1",
-  family:tower?"tower":fortified?"defense":"civilian",height:tower?3.3:fortified?2.2:1.9,
+  family:tower?"tower":fortified?"defense":"civilian",
+  mesh:"/assets/models/"+(tower?"tower":fortified?"defense":"civilian")+".obj",height:tower?3.3:fortified?2.2:1.9,
   wallColor:fortified?"#9eadaf":"#bda484",roofColor:fortified?"#74838e":"#876a52"};
 }
 export function validateAssetRegistry(){
