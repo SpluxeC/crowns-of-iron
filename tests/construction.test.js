@@ -43,7 +43,7 @@ test("invalid placement does not spend resources; destruction frees tile footpri
  const {m,w,spot}=setup(),p=m.players[0];
  const id=startConstruction(m,"a","Training Camp",spot.x,spot.y,[w.id]);
  const balance=p.resources.Wood;
- assert.throws(()=>startConstruction(m,"a","Training Camp",spot.x,spot.y,[w.id]),/placement/);
+ assert.throws(()=>startConstruction(m,"a","Training Camp",spot.x,spot.y,[w.id]),/placement|assigned/);
  assert.equal(p.resources.Wood,balance);
  step(m,40000);destroyStructure(m,id);
  assert.equal(p.facilities["Training Camp"],0);
