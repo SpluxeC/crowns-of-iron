@@ -31,7 +31,7 @@ function synthetic(){
    }
  }
  return {...units,buildings:{columns:["Faction"],rows:Array(228).fill(["Humans"])},
- research:tech,upgrades:{columns:["Faction"],rows:Array(126).fill(["Humans"])}};
+ research:tech,upgrades:{columns:["Faction"],rows:Array.from({length:126},(_,i)=>[FACTIONS[Math.floor(i/21)],"Barracks","II","Training Equipment I",0,100,0,50,0,0,40,"-10% training time"])}};
 }
 test("install complete 216-unit and 540-tech synthetic catalog and exercise queue",()=>{
  const m=createMatch(participants),dataset=synthetic();
