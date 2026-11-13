@@ -25,7 +25,7 @@ export function garrisonUnit(match,owner,siteId,unitId){
  assert(site?.completed&&location&&rule,"No completed garrison-capable structure");
  assert(site.owner===owner,"Cannot garrison enemy structure");
  const unit=p.units.find(u=>u.id===unitId&&u.alive);
- assert(unit&&allowed.has(unit.archetype)&&Number.isInteger(unit.x)&&!unit.garrisonedAt,
+ assert(unit&&allowed.has(unit.archetype)&&Number.isInteger(unit.x)&&!unit.garrisonedAt&&!unit.embarkedAt,
   "Only positioned infantry may garrison");
  assert(distance(unit,location)<=1,"Infantry must be next to structure");
  site.garrisonIds??=[];

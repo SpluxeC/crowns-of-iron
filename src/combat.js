@@ -15,6 +15,7 @@ export function strike(owner,targetOwner,attackerId,targetId,{nowMs=0}={}){
   const attacker=owner.units.find(u=>u.id===attackerId&&u.alive);
   const target=targetOwner.units.find(u=>u.id===targetId&&u.alive);
   assert(attacker&&target,"Missing living attacker or target");
+  assert(!attacker.embarkedAt&&!target.embarkedAt&&!attacker.garrisonedAt&&!target.garrisonedAt,"Embarked/garrisoned combatant unavailable");
   assert(owner.id!==targetOwner.id,"Cannot attack own unit");
   assert(canEngage(attacker,target),"Attack target ineligible");
   assert((attacker.nextAttackAtMs??0)<=nowMs,"Attack on cooldown");
