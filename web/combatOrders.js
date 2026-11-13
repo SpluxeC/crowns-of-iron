@@ -26,3 +26,21 @@ export function selectedVisibleEnemy(state,playerId,x,y){
  }
  return null;
 }
+
+export function attackMoveOrders(player,selected,x,y,nextSequence=1){
+ if(!Number.isInteger(x)||!Number.isInteger(y))return [];
+ const candidates=new Set((player?.units??[]).filter(u=>u.alive&&u.attack>0&&
+  Number.isInteger(u.x)&&Number.isInteger(u.y)&&!u.garrisonedAt&&!u.embarkedAt)
+  .map(u=>u.id));
+ return [...new Set(selected)].filter(id=>candidates.has(id)).slice(0,MAX_BATCH)
+  .map((unitId,index)=>({sequence:nextSequence+index,
+   action:"attackMove",payload:{unitId,x,y}}));
+}
+export function stanceOrders(player,selected,stance,nextSequence=1){
+ if(!["hold","guard","aggressive"].includes(stance))return [];
+ const candidates=new Set((player?.units??[]).filter(u=>u.alive&&u.attack>0)
+  .map(u=>u.id));
+ return [...new Set(selected)].filter(id=>candidates.has(id)).slice(0,MAX_BATCH)
+  .map((unitId,index)=>({sequence:nextSequence+index,
+   action:"stance",payload:{unitId,stance}}));
+}
