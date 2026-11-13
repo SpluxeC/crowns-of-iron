@@ -93,3 +93,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **7.6 Validated OBJ import pipeline:** strict browser-safe Wavefront OBJ+MTL parser, world-space transforms and material shading, same-origin fixed file paths and regression tests for triangles and malformed assets.
 - **7.7 WebGL model integration:** load meshes into actual GPU interleaved vertex buffers for units/buildings, cache static geometry, keep selection/HP UI and bounded fallback proxies for >160 visible units.
 - **7.8 Model gallery and asset smoke:** standalone interactive local model viewer; HTTP tests validate asset MIME and delivery; fake-GPU tests exercise mesh draw path and fallback; manual real-browser/GPU validation remains.
+
+- **7.9 Six-faction model identity:** 60 individually generated Wavefront OBJ meshes with geometry and faction palette variations for Humans, Orcs, Dwarfs, Tree Elves, Corrupt Elves and Ursa.
+- **8.0 Faction-aware WebGL integration:** faction-owned unit/building mesh selection, exact static localhost paths, generic fallback if loading fails and gallery preview dropdown.
+- **8.1 Surface patterns and animation:** six original RGB PPM maps projected onto mesh vertex colors; deterministic idle/walk/attack posing and capped visible-canvas animation refresh.
+- **8.2 Rig profiles and asset QA:** six seven-joint procedural body-region profiles, animator reference JSON, 60-file OBJ integration tests and extended localhost asset/authorization checks. Full skinned armatures, UV/PBR and browser visual QA remain.
