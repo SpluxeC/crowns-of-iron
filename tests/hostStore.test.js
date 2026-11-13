@@ -5,7 +5,7 @@ import {tmpdir} from "node:os";
 import {join} from "node:path";
 import {MatchHost} from "../src/network.js";
 import {checksum} from "../src/simulation.js";
-import {readHostCheckpoint,writeHostCheckpoint} from "../src/hostStore.js";
+import {guardCheckpointStartup,readHostCheckpoint,writeHostCheckpoint} from "../src/hostStore.js";
 const players=[{id:"alpha",faction:"Humans"},{id:"beta",faction:"Orcs"}];
 test("host checkpoint disk roundtrip resumes authoritative versions and rotates credentials",async()=>{
  const dir=await mkdtemp(join(tmpdir(),"crowns-test-")),file=join(dir,"store.json");
@@ -42,5 +42,21 @@ test("checkpoint replace is atomic at file level; corrupted input rejected",asyn
   assert.equal(restored.lobbyState(restored.credentialsFor("alpha").token).players[0].ready,true);
   await writeFile(file,'{"forged":true}',"utf8");
   await assert.rejects(readHostCheckpoint(file),/integrity|Unsupported|checkpoint/);
+ }finally{await rm(dir,{recursive:true,force:true});}
+});
+
+test("checkpoint bootstrap refuses silent overwrite and requires explicit restore/reset",async()=>{
+ const dir=await mkdtemp(join(tmpdir(),"crowns-startup-")),file=join(dir,"save.json");
+ try{
+  assert.deepEqual(await guardCheckpointStartup(file),{
+   exists:false,restore:false,reset:false});
+  await writeHostCheckpoint(new MatchHost(players,20),file);
+  await assert.rejects(guardCheckpointStartup(file),/would be overwritten/);
+  await assert.rejects(guardCheckpointStartup(file,{restore:true,reset:true}),
+   /Cannot restore and reset/);
+  assert.equal((await guardCheckpointStartup(file,{restore:true})).exists,true);
+  assert.equal((await guardCheckpointStartup(file,{reset:true})).exists,true);
+  await assert.rejects(guardCheckpointStartup(join(dir,"absent.json"),{restore:true}),
+   /does not exist/);
  }finally{await rm(dir,{recursive:true,force:true});}
 });
