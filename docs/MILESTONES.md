@@ -12,3 +12,9 @@
 - **1.0+ Multiplayer and game client:** authoritative network transport, 3D renderer, tactical AI, full faction abilities, real map objectives, mobile controls and production balancing; **not included**.
 
 The code uses simplified shared archetype data to exercise gameplay rules. Do not infer combat balance from this prototype without positional combat, faction powers, and representative populations.
+
+- **1.0 Tactical movement:** tile movement orders, Manhattan-distance target acquisition, bounded combat steps, and basic bot tactical target selection. Full collision/navmesh tactics pending.
+- **1.1 Construction:** worker-driven construction with placement checks, resource costs, age locks, progress, site cancellation and production-facility activation. Repair/reconstruction and large structures pending.
+- **1.2 Faction abilities:** six named hero actives and passive identities, cooldowns and finite buff/status effects. Detailed per-faction roster mechanics pending.
+- **1.3 Multiplayer protocol:** authenticated in-memory command sessions, monotonically increasing sequence numbers, local HTTP development server. Production networking, fog-of-war and matchmaking pending.
+- **1.4 Browser inspector:** 2D unit display, move/attack orders, worker construction and a basic enemy bot. Still not 3D or shipped mobile gameplay.

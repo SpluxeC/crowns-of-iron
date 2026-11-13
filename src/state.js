@@ -1,6 +1,7 @@
 import {FACTIONS,STARTING,POP_CAP} from "./constants.js";
 import {assert,clone} from "./util.js";
 import {ARCHETYPES,displayName} from "./catalog.js";
+import {FACTION_STAT_MODIFIERS} from "./factionRoster.js";
 export function createPlayer(id,faction,team=id){
   assert(FACTIONS.includes(faction),"Unknown faction");
   const player={
@@ -8,18 +9,21 @@ export function createPlayer(id,faction,team=id){
     alive:true,lastStandMs:null,defeated:false,
     workers:{Food:3,Wood:0,Stone:0,Metal:0,Gold:0,Aether:0},workerIncomeRemainder:{},workerUpkeepRemainder:{Gold:0,Food:0},
     completed:[],researchQueues:{"Town Center":[]},unitQueues:{"Town Center":[]},
-    facilities:{"Town Center":1},units:[],history:[]
+    facilities:{"Town Center":1},facilitySerial:{"Town Center":1},units:[],history:[]
   };
   const worker=ARCHETYPES.Worker,scout=ARCHETYPES.Scout;
-  for(let i=0;i<3;i++)player.units.push(makeUnit(player,"Worker",worker,"start-worker-"+i));
-  player.units.push(makeUnit(player,"Scout",scout,"start-scout"));
+  for(let i=0;i<3;i++)player.units.push(makeUnit(player,"Worker",worker,id+"-start-worker-"+i));
+  player.units.push(makeUnit(player,"Scout",scout,id+"-start-scout"));
   return player;
 }
 export function makeUnit(player,archetype,definition,id){
+  const modifiers=FACTION_STAT_MODIFIERS[player.faction];
+  const hp=Math.round(definition.hp*(archetype==="Hero"?1:modifiers.hp));
   return {id,owner:player.id,faction:player.faction,archetype,name:displayName(player.faction,archetype),
-    hp:definition.hp,maxHp:definition.hp,armor:definition.armor,pop:definition.pop,
-    attack:definition.attack??0,category:definition.category??"Standard",type:definition.type??"Slash",
-    cost:clone(definition.cost??{}),alive:true,status:[]};
+    hp,maxHp:hp,armor:definition.armor+modifiers.armor,pop:definition.pop,
+    attack:Math.round((definition.attack??0)*(archetype==="Hero"?1:modifiers.attack)*10)/10,
+    speedScale:modifiers.speed,category:definition.category??"Standard",type:definition.type??"Slash",
+    cost:clone(definition.cost??{}),alive:true,status:[],nextAttackAtMs:0};
 }
 export function createMatch(participants,seed=1){
   assert(Array.isArray(participants)&&participants.length>=2&&participants.length<=8,"Requires 2–8 players");
@@ -32,7 +36,9 @@ export function nextId(match,prefix="u"){match.idCounter++;return prefix+"-"+mat
 export function addFacility(player,name){
   assert(player.alive&&!player.defeated,"Player eliminated");
   player.facilities[name]=(player.facilities[name]??0)+1;
-  const key=name+"#"+player.facilities[name];
+  player.facilitySerial??={};
+  player.facilitySerial[name]=(player.facilitySerial[name]??0)+1;
+  const key=name+"#"+player.facilitySerial[name];
   if(!player.researchQueues[key])player.researchQueues[key]=[];
   if(!player.unitQueues[key])player.unitQueues[key]=[];
   return key;

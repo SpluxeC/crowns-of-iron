@@ -3,7 +3,7 @@
 A five-age fantasy RTS with Humans, Orcs, Dwarfs, Tree Elves, Corrupt Elves, and Ursa.
 
 ## Status
-**Headless simulation prototype, milestones 0.1–0.9.** This is not a playable 3D game or tested network multiplayer. Work is isolated on a development branch for review.
+**Headless simulation prototype, milestones 0.1–1.4.** This is not a playable 3D game or tested network multiplayer. Work is isolated on a development branch for review.
 
 ## Requirements
 Node.js 22+. No package installation or external runtime dependencies.
@@ -14,6 +14,7 @@ npm run demo
 npm run validate
 npm run inspect       # local 2D browser inspector (not the final game)
 npm run map-demo
+npm run protocol-server # local-only match API foundation
 npm run ai-demo        # deterministic economy-AI benchmark
 ```
 
@@ -27,6 +28,7 @@ npm run ai-demo        # deterministic economy-AI benchmark
 - Economy-only AI with Easy/Normal/Hard pacing and automated early research.
 - Objective-score cores for Great Monument, King of the Hill, and Timed Score.
 - Versioned checksum-validated save/load and normal-command replay recording.
+- Tactical tile movement, active construction, faction hero abilities, local match protocol and 2D movement/attack inspector.
 - Starter unit catalogs and authoritative balance constants, with provenance notes.
 - Node built-in unit/integration tests and GitHub Actions.
 
@@ -34,3 +36,8 @@ Review [the milestone plan](docs/MILESTONES.md), [new milestone boundaries](docs
 
 ## License
 No license has been granted yet; all rights reserved pending an explicit licensing decision.
+
+## Current 1.0–1.4 feature batch
+See [milestone verification and limitations](docs/MILESTONES_1_0_TO_1_4.md). The local developer protocol server is available via `npm run protocol-server` and listens on loopback only. This is not a publicly secure multiplayer game server.
+
+The full reconciled v0.2 numeric data can be loaded from `data/balance-v0.2.json` if that generated file is present. The runtime continues to use shared unit templates unless the full data catalog is explicitly loaded. The canonical 216 unit names and faction modifiers are embedded in `src/factionRoster.js`.

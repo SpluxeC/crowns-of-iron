@@ -4,6 +4,9 @@ import {ARCHETYPES} from "./catalog.js";
 import {setWorkerAllocation} from "./state.js";
 import {queueResearch} from "./research.js";
 import {queueUnit} from "./production.js";
+import {botTactics} from "./battlefield.js";
+import {startConstruction} from "./construction.js";
+import {canPlace} from "./map.js";
 
 const BOT_LEVELS=Object.freeze({
   Easy:{decisionMs:10000,workerGoal:8},
@@ -50,6 +53,31 @@ function tryResearch(player){
   }
   return null;
 }
+function tryBaseExpansion(match,player) {
+  const map=match.battlefield;
+  if(!map||player.age!=="I"||player.facilities["Training Camp"])return null;
+  if(Object.values(match.constructions??{}).some(j=>j.owner===player.id&&j.kind==="Training Camp"))return null;
+  const worker=player.units.find(u=>u.alive&&u.archetype==="Worker"&&Number.isInteger(u.x));
+  if(!worker||player.resources.Wood<100||player.resources.Stone<40)return null;
+  const start=map.starts[match.players.indexOf(player)];
+  for(let radius=3;radius<=8;radius++)for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
+    const x=start.x+dx,y=start.y+dy;
+    if(Math.max(Math.abs(dx),Math.abs(dy))!==radius||!canPlace(map,x,y,3,3))continue;
+    try {startConstruction(match,player.id,"Training Camp",x,y,[worker.id]);return "build Training Camp";}
+    catch(e){if(/reach|placement/.test(e.message))continue;throw e;}
+  }
+  return null;
+}
+function tryInfantry(player){
+  if(player.age!=="I"||!player.facilities["Training Camp"])return null;
+  const trained=player.units.filter(u=>u.alive&&u.archetype==="Club Fighter").length;
+  const queued=Object.values(player.unitQueues).flat().filter(j=>j.role==="Club Fighter").length;
+  if(trained+queued>=4)return null;
+  const k=Object.keys(player.unitQueues).find(x=>x.startsWith("Training Camp#"));
+  if(!k||!affordable(player.resources,ARCHETYPES["Club Fighter"].cost))return null;
+  if(player.popUsed+queued>=player.popCap)return null;
+  queueUnit(player,k,"Club Fighter");return "train Club Fighter";
+}
 function tryWorker(player,goal){
   const trained=player.units.filter(u=>u.alive&&u.archetype==="Worker").length;
   const queued=Object.values(player.unitQueues).flat().filter(j=>j.role==="Worker").length;
@@ -72,7 +100,8 @@ export function tickBots(match,deltaMs){
     bot.accumulator%=settings.decisionMs;
     assignWorkers(player);
     // AI is economy/tech only. Tactical pathing and full-combat behaviors are later milestones.
-    const decision=tryResearch(player)??tryWorker(player,settings.workerGoal);
+    const decision=tryResearch(player)??tryWorker(player,settings.workerGoal)??tryBaseExpansion(match,player)??tryInfantry(player);
+    if(match.battlefield)botTactics(match,id);
     bot.decisions++;
     if(decision)events.push({id,decision,atMs:match.elapsedMs});
   }
