@@ -62,6 +62,31 @@ export function queueSummary(player){
  for(const [facility,jobs] of Object.entries(player.researchQueues??{}))
   for(const j of jobs)out.push({facility,type:"Research",name:j.id,progressMs:j.ms});
  for(const [facility,jobs] of Object.entries(player.unitQueues??{}))
-  for(const j of jobs)out.push({facility,type:"Train",name:j.role,progressMs:j.ms});
+  jobs.forEach((j,index)=>out.push({facility,type:"Train",name:j.role,index,progressMs:j.ms}));
  return out;
+}
+
+/** Display catalog rows from an authenticated authoritative server response. */
+export function formatCost(cost={}){
+ return Object.entries(cost).filter(([,v])=>v>0)
+  .map(([resource,value])=>value+" "+resource).join(", ")||"Free";
+}
+export function catalogBuildings(catalog){
+ return (catalog?.buildings??[]).filter(b=>b.ageUnlocked);
+}
+export function catalogTraining(catalog){
+ return (catalog?.training??[]).filter(t=>t.ageUnlocked);
+}
+export function catalogResearch(catalog,filter="available"){
+ const rows=catalog?.research??[];
+ return rows.filter(t=>filter==="all"||filter==="completed"?filter==="all"||t.completed:
+  filter==="queued"?t.queued:filter==="age"?t.ageUnlocked&&!t.completed:t.available);
+}
+export function researchRequest(catalog,id){
+ const tech=(catalog?.research??[]).find(t=>t.id===id);
+ return tech?.available&&tech.facility?{facility:tech.facility,id:tech.id}:null;
+}
+export function trainingRequest(catalog,facility,role){
+ const choice=(catalog?.training??[]).find(t=>t.facility===facility&&t.role===role);
+ return choice?.available?{facility,role}:null;
 }

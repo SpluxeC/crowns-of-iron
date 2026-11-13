@@ -5,6 +5,7 @@ import {attachBattlefield} from "./battlefield.js";
 import {assert,clone,hash} from "./util.js";
 import {exportSave,importSave} from "./persistence.js";
 import {researchMultiplier} from "./technologyEffects.js";
+import {playerCommandCatalog} from "./commandCatalog.js";
 
 // Local authoritative protocol prototype; no public deployment, matchmaking,
 // dedicated authorization backend or production fog-of-war guarantees.
@@ -26,6 +27,11 @@ export class MatchHost{
       const token=randomBytes(24).toString("hex");
       this.sessions.set(token,{playerId:p.id,lastSequence:0});
     }
+  }
+  catalog(token){
+    const session=this.sessions.get(token);
+    assert(session,"Unauthorized session");
+    return playerCommandCatalog(this.match,session.playerId);
   }
   credentialsFor(playerId){
     const found=[...this.sessions.entries()].find(([token,s])=>s.playerId===playerId);

@@ -75,6 +75,7 @@ export function createLoopbackProtocolServer(host){
     return;
    }
    if(path==="/state"&&req.method==="GET")return send(res,200,host.view(token));
+   if(path==="/catalog"&&req.method==="GET")return send(res,200,host.catalog(token));
    if(path==="/lobby"&&req.method==="GET")return send(res,200,host.lobbyState(token));
    if(path==="/resync"&&req.method==="GET")
     return send(res,200,host.resync({token,

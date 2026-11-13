@@ -1,4 +1,6 @@
 import {MatchHost} from "../src/network.js";
+import {readFile} from "node:fs/promises";
+import {installFullCatalog} from "../src/fullCatalog.js";
 import {enableUnitCollision} from "../src/unitCollision.js";
 import {createLoopbackProtocolServer} from "../src/loopbackProtocol.js";
 import {guardCheckpointStartup,readHostCheckpoint,writeHostCheckpoint} from "../src/hostStore.js";
@@ -11,7 +13,13 @@ await guardCheckpointStartup(file,{restore:restoring,reset});
 const host=restoring?await readHostCheckpoint(file):
  new MatchHost([{id:"human",faction:"Humans"},{id:"orc",faction:"Orcs"}],2026,
   {requireReady:process.env.REQUIRE_READY==="1"});
-if(!restoring)enableUnitCollision(host.match);
+if(!restoring){
+ if(process.env.FULL_CATALOG!=="0"){
+  const catalog=JSON.parse(await readFile(new URL("../data/balance-v0.2.json",import.meta.url),"utf8"));
+  installFullCatalog(host.match,catalog);
+ }
+ enableUnitCollision(host.match);
+}
 const {server,publish}=createLoopbackProtocolServer(host);
 const port=Number(process.env.PORT||5190);
 let timer=null,checkpointTimer=null,pending=Promise.resolve(),closed=false,lastStored=-1;
@@ -41,8 +49,10 @@ process.on("SIGTERM",()=>{shutdown().then(()=>process.exit(0));});
 server.listen(port,"127.0.0.1",()=>{
  console.log("Crowns of Iron local multiplayer browser: http://127.0.0.1:"+port+"/client");
  console.log("Local checkpoint: "+file+(restoring?" (restored)":" (new match)"));
+ console.log("Faction catalog: "+(host.match.fullCatalog?.revision??"shared-prototype"));
  console.log("DEV ONLY: distribute each session token privately. Tokens change on restore.");
  for(const p of host.match.players)console.log(p.id+": "+host.credentialsFor(p.id).token);
+ console.log("Use FULL_CATALOG=0 for shared archetypes; fresh matches load reconciled v0.2 by default.");
  console.log("Set RESTORE_CHECKPOINT=1 to resume, RESET_CHECKPOINT=1 to discard an old save, REQUIRE_READY=1 for a new ready lobby.");
  console.log("No public TLS, accounts, matchmaking, or crash-proof server persistence.");
 });

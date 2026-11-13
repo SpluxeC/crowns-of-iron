@@ -68,3 +68,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **5.6 Research and production inspector:** mandatory discovery selection with dependency/queue checks, active facility recruitment and friendly research/production queues; not a full technology tree or polished shop UI.
 - **5.7 Disk-backed local host recovery:** atomic same-directory restricted-file snapshots, five-second periodic write and shutdown save, explicit restore/reset guard, newly issued session tokens. Still not replicated, crash-proof hosted persistence.
 - **5.8 Stream robustness:** bounded version-only SSE frame decoder, reconnect-state refresh and five-second polling fallback; still local HTTP, not secure public Internet matchmaking or transport.
+
+- **5.9 Authenticated player options:** construction, full available training roles and technology selections derived from the actual server rules and the current player's faction; fresh local matches install reconciled v0.2 data by default.
+- **6.0 Broader local RTS UI:** server-catalog-based building, unit and technology menus with availability/cost hints, age/queue research filters, and server-side queue cancellation and refunds. Not a complete RTS UX.
+- **6.1 Shared terrain cache for formations:** one static passability index per unit archetype per formation instead of repeated per-unit map traversal checks; still bounded tile BFS rather than navmesh/pathfinding crowds.
+- **6.2 Eight-player army rehearsal:** collision-enabled 192-unit formation orders and 224 living units across eight factions/player slots with deterministic host state and fog assertions; not real network load or GPU testing.

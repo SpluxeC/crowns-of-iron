@@ -4,7 +4,7 @@ import {assert,ageIndex,spend,refund} from "./util.js";
 import {refreshUnitTechnology} from "./technologyEffects.js";
 import {spawnUnitOnDomain,findAvailableSpawnPosition} from "./movementDomains.js";
 import {researchMultiplier} from "./technologyEffects.js";
-const PRODUCTION_LOCATIONS={
+export const PRODUCTION_LOCATIONS={
 "Worker":["Town Center"],"Scout":["Town Center","Training Camp"],
 "Club Fighter":["Training Camp"],"Stone Slinger":["Training Camp"],"Stone Spearman":["Training Camp"],
 "Swordsman":["Barracks"],"Archer":["Archery Range"],"Pikeman":["Barracks"],"Raider":["Barracks"],
