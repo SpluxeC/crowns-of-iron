@@ -1,11 +1,12 @@
 import {createWebGLRenderer} from "/webgl3d.js";
+import {createVersionDecoder} from "/streamProtocol.js";
 import {availableBuildings,chooseBuilder,nextMandatoryResearch,
  eligibleTrainingSites,queueSummary} from "/clientRules.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map"),ctx=canvas.getContext("2d",{alpha:false}),canvas3d=$("map3d");
 const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
  water:"#204767",deposit:"#b69a47",unknown:"#122938"};
-let token=null,abort=null,state=null,room=null,playerId=null,nextSequence=1,version=0;
+let token=null,abort=null,pollTimer=null,state=null,room=null,playerId=null,nextSequence=1,version=0;
 let renderer=null,view3d=false,selected=new Set(),mode="select",pending=false,refreshing=false,refreshAgain=false;
 let drag=null,ignoreClick=false;
 function log(message){
@@ -133,6 +134,8 @@ async function refresh(){
    const [snapshot,lobby]=await Promise.all([api("/state"),api("/lobby")]);
    if(token!==currentToken)return;
    state=snapshot.state;room=lobby;playerId=snapshot.playerId;
+   // Older racing snapshots cannot roll back authoritative client state.
+   if(snapshot.version<version&&snapshot.playerId===playerId)continue;
    version=snapshot.version;nextSequence=snapshot.nextSequence;
    const ids=new Set(own()?.units?.filter(u=>u.alive).map(u=>u.id)??[]);
    selected=new Set([...selected].filter(id=>ids.has(id)));
@@ -148,24 +151,15 @@ async function stream(controller,identity){
    const response=await fetch("/events",{headers:{"x-session-token":identity},
     signal:controller.signal});
    if(!response.ok)throw Error("Event stream HTTP "+response.status);
-   const reader=response.body.getReader(),decoder=new TextDecoder();
-   let buffer="";
+   // Recover the authoritative state immediately after every transport reconnect.
+   await refresh();
+   const reader=response.body.getReader(),decoder=new TextDecoder(),
+     eventDecoder=createVersionDecoder();
    while(token===identity&&!controller.signal.aborted){
     const {value,done}=await reader.read();if(done)break;
-    buffer+=decoder.decode(value,{stream:true});
-    let end;
-    while((end=buffer.indexOf("\n\n"))>=0){
-     const frame=buffer.slice(0,end);buffer=buffer.slice(end+2);
-     if(frame.includes("event: version")){
-      const dataLine=frame.split("\n").find(line=>line.startsWith("data: "));
-      if(dataLine){
-       try{
-        const event=JSON.parse(dataLine.slice(6));
-        if(Number.isSafeInteger(event.version)&&event.version>=version)
-         refresh().catch(e=>log("Resync: "+e.message));
-       }catch{log("Ignored malformed version notification");}
-      }
-     }
+    for(const serverVersion of eventDecoder.push(decoder.decode(value,{stream:true}))){
+     if(serverVersion>=version)
+      refresh().catch(e=>log("Resync: "+e.message));
     }
    }
   }catch(e){
@@ -187,6 +181,10 @@ async function connect(){
   pending=false;info();
   abort=new AbortController();
   stream(abort,provided).catch(e=>log("Stream: "+e.message));
+  // Polling fallback also detects missed final frames and state changes while SSE is down.
+  pollTimer=setInterval(()=>{
+   if(token&&!pending)refresh().catch(e=>log("Polling resync: "+e.message));
+  },5000);
   log("Connected to authoritative match. No local simulation runs here.");
  }catch(e){
   log("Connection rejected: "+e.message);
@@ -194,7 +192,9 @@ async function connect(){
  }
 }
 function disconnect(){
- abort?.abort();abort=null;token=null;state=null;room=null;playerId=null;
+ abort?.abort();abort=null;
+ if(pollTimer!==null){clearInterval(pollTimer);pollTimer=null;}
+ token=null;state=null;room=null;playerId=null;
  selected.clear();mode="select";view3d=false;pending=false;refreshing=false;
  draw();info();log("Disconnected. No session token saved.");
 }
