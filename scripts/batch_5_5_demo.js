@@ -14,8 +14,8 @@ assert(eligibleTrainingSites(p).some(c=>c.role==="Worker"));
 host.submit({token,sequence:1,action:"research",
  payload:{facility:"Town Center",id:"CIV-01"}});
 assert(p.researchQueues["Town Center"].length===1);
-const parsed=createVersionDecoder().push('event: version\\ndata: {"version":2}\\n\\n'
- .replaceAll("\\\\n","\\n"));
+const nl=String.fromCharCode(10);
+const parsed=createVersionDecoder().push(["event: version",'data: {"version":2}',"",""].join(nl));
 assert(parsed[0]===2,"SSE decoding failed");
 const dir=await mkdtemp(join(tmpdir(),"crowns-phase-")),path=join(dir,"checkpoint.json");
 try{
