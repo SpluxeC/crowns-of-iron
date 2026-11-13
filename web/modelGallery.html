@@ -13,16 +13,24 @@ p{line-height:1.5}small,.muted{color:#adc6c9}#details{padding:12px;background:#0
 </style></head><body>
 <header><h1>Crowns of Iron · 3D Asset Gallery</h1><a href="/client">Back to live client</a></header>
 <main><p>Original Wavefront OBJ meshes integrated with the local WebGL renderer. These are editable low-poly first-pass models, not finished character art.</p>
-<div class="controls"><label for="model">Model</label><select id="model">
+<div class="controls"><label for="faction">Faction</label><select id="faction">
+<option value="base">Generic base</option><option value="Humans">Humans</option>
+<option value="Orcs">Orcs</option><option value="Dwarfs">Dwarfs</option>
+<option value="Tree Elves">Tree Elves</option><option value="Corrupt Elves">Corrupt Elves</option>
+<option value="Ursa">Ursa</option></select>
+<label for="model">Model</label><select id="model">
 <option value="worker">Worker</option><option value="infantry">Infantry</option>
 <option value="ranged">Ranged infantry</option><option value="hero">Hero</option>
 <option value="siege">Siege machine</option><option value="ship">Ship</option>
 <option value="air">Aircraft</option><option value="civilian">Civilian building</option>
 <option value="defense">Defensive wall</option><option value="tower">Tower</option>
-</select><button id="orbitLeft">Rotate left</button><button id="orbitRight">Rotate right</button>
+</select><label for="clip">Animation</label><select id="clip">
+<option value="idle">Idle</option><option value="walk">Walk</option>
+<option value="attack">Attack</option></select>
+<button id="orbitLeft">Rotate left</button><button id="orbitRight">Rotate right</button>
 <button id="zoomIn">Zoom in</button><button id="zoomOut">Zoom out</button></div>
 <canvas id="preview" width="960" height="640" aria-label="Interactive WebGL 3D model preview"></canvas>
 <h2>Asset details</h2><div id="details" aria-live="polite">Loading OBJ models…</div>
-<p class="muted">Drag to orbit, scroll to zoom. All assets are served locally from this repository. GPU availability and browser support vary by device.</p>
+<p class="muted">Drag to orbit, scroll to zoom. Choose a faction, model family, and procedural animation clip. All mesh assets are served locally; gallery animation is limited to ten redraws per second. Full skeletal animation is not yet implemented.</p>
 </main><script type="module" src="/modelGallery.js"></script>
 </body></html>

@@ -66,7 +66,9 @@ function draw(){
  const start=performance.now();
  canvas.hidden=view3d;canvas3d.hidden=!view3d;
  if(view3d&&renderer&&state?.battlefield)
-  renderer.draw(state.battlefield,{players:state.players,viewerId:playerId},selected);
+  renderer.draw(state.battlefield,{players:state.players,viewerId:playerId,
+   // Visual-only clock drives pose interpolation between authoritative server ticks.
+   elapsedMs:performance.now(),orders:state.orders},selected);
  else draw2d();
  telemetry.record(view3d?"webgl-submit":"canvas-2d",performance.now()-start);
 }
@@ -158,6 +160,7 @@ function info(){
   " · WebGL CPU submit: "+formatTiming(telemetry.summary("webgl-submit"))+
   " · HTTP requests: "+formatTiming(telemetry.summary("http"))+
   (renderer?" · Mesh models: "+renderer.stats().loadedModels+
+   " · Faction meshes: "+renderer.stats().factionModels+
    " · Mesh units: "+renderer.stats().modelUnits+
    " · Fallback units: "+renderer.stats().fallbackUnits+
    " · Terrain GPU rebuilds: "+renderer.stats().terrainRebuilds:""));
@@ -370,7 +373,12 @@ $("view").addEventListener("click",()=>{
   try{
    renderer=createWebGLRenderer(canvas3d);
    renderer?.loadAssets({notify:()=>{if(view3d)draw();}}).then(
-    info=>log("Loaded "+info.models+" genuine OBJ mesh models."),
+    info=>{
+     log("Loaded "+info.models+" base OBJ mesh models.");
+     return renderer.loadFactionAssets({notify:()=>{if(view3d)draw();}}).then(
+      variants=>log("Loaded "+variants.factionModels+" faction OBJ models."),
+      e=>log("Faction model loading failed; base models remain: "+e.message));
+    },
     e=>log("OBJ loading failed; showing fallback proxies: "+e.message));
   }catch(e){log("WebGL: "+e.message);}
  }
@@ -460,3 +468,15 @@ canvas3d.addEventListener("wheel",e=>{
 },{passive:false});
 window.addEventListener("beforeunload",()=>abort?.abort());
 info();
+
+/** At most ~8 3D pose redraws/sec, only while the canvas is visible.
+ * Movement positions still come exclusively from authoritative state snapshots. */
+let lastArtFrameAt=0;
+function advanceArtFrame(timestamp){
+ if(view3d&&renderer&&state?.battlefield&&!document.hidden&&
+   timestamp-lastArtFrameAt>=125){
+  lastArtFrameAt=timestamp;draw();
+ }
+ requestAnimationFrame(advanceArtFrame);
+}
+requestAnimationFrame(advanceArtFrame);

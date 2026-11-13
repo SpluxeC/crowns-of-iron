@@ -107,3 +107,11 @@ Ten **original, editable Wavefront .obj 3D polygon meshes**, plus a common `.mtl
 Run `npm run protocol-server`, then open **[the local 3D model gallery](http://127.0.0.1:5190/model-gallery)** to choose and rotate individual models. The multiplayer development client at `http://127.0.0.1:5190/client` also loads the models when switching to 3D. Run `npm run model-assets-demo` to validate OBJ triangles, materials, paths and HTTP serving. See [full model editing and limitations guide](docs/MODEL_ASSETS_7_5_TO_7_8.md).
 
 These are reusable first-pass class-family models. They **do not** yet constitute 216 unique faction-specific unit designs, authored animation rigs, textured PBR production art, or verified visual browser/GPU quality.
+
+### Faction-specific 3D art — Milestones 7.9–8.2
+
+**60 new original faction-specific Wavefront OBJ meshes** (six playable factions × seven unit families + three structure families) have been generated and integrated into the existing WebGL game. Each has real polygon additions, distinctive silhouette details, faction proportions and armor/skin/primary/trim materials. Six additional **32×32 RGB PPM surface patterns** are sampled onto those OBJ meshes' **vertex colors**, and six procedural seven-joint rig profiles animate idle/walk/attack vertex poses. The local 3D gallery at `http://127.0.0.1:5190/model-gallery` allows faction/model/clip selection.
+
+All assets live in `assets/models/factions/`, `assets/textures/factions/` and `assets/rigs/`. Run `npm run faction-art-demo` to validate. The generator scripts `npm run generate-faction-art`, `npm run generate-faction-textures` and `npm run generate-faction-rigs` reproduce original art sources.
+
+See [the art stage details](docs/FACTION_ART_7_9_TO_8_2.md) for Blender editing, local preview and limitations. These are stylized original first-pass **family** assets; they are not yet 216 unique catalog models, UV/PBR textures, a skinned skeleton/FBX pipeline, professional animations or real-hardware visual testing.

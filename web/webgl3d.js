@@ -1,6 +1,10 @@
 /** WebGL 3D prototype: GPU-shaded block geometry with a mouse-orbit camera. */
 import {assetForUnit,assetForBuilding} from "./assetManifest.js";
-import {loadObjAssetSet,appendObjVertices} from "./objLoader.js";
+import {loadObjAssetSet,loadFactionObjSet,appendObjVertices} from "./objLoader.js";
+import {factionMeshKey} from "./factionArt.js";
+import {poseAt,animationModeForUnit} from "./meshAnimation.js";
+import {loadFactionTextures,textureForFaction} from "./factionTextures.js";
+import {rigForFaction} from "./rigProfiles.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
@@ -148,7 +152,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
  let yaw=.82,pitch=.72,radius=preview?18:68,worldForPick=null,camForPick=null,
   terrainKey=null,terrainVertexCount=0,rebuilds=0,
-  models=null,modelPromise=null,modelFailure=null,
+  models=null,textures=null,textureFailure=null,
+  modelPromise=null,factionPromise=null,modelFailure=null,
   modelUnits=0,modelBuildings=0,fallbackUnits=0;
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
@@ -172,10 +177,32 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    });
    return modelPromise;
   },
-  draw(world,match,selectedUnits){
+  /** Optional 60 faction meshes, loaded separately after the 10 generic fallbacks.
+   * A failure never disables already loaded playable proxy models. */
+  loadFactionAssets({fetcher,notify}={}){
+   if(models&&Object.keys(models).length>=70)
+    return Promise.resolve({factionModels:60});
+   if(factionPromise)return factionPromise;
+   factionPromise=loadFactionObjSet(fetcher).then(async variants=>{
+    try{textures=await loadFactionTextures(fetcher);textureFailure=null;}
+    catch(error){textures=null;textureFailure=error.message;}
+    models={...(models??{}),...variants};modelFailure=null;terrainKey=null;
+    if(typeof notify==="function")notify();
+    return {factionModels:Object.keys(variants).length,
+     textures:textures?Object.keys(textures).length:0};
+   }).catch(error=>{
+    modelFailure="Faction variants: "+error.message;
+    factionPromise=null;throw error;
+   });
+   return factionPromise;
+  },
+  draw(world,match,selectedUnits,{previewPose=null}={}){
    const cam=cameraForMap(world.width,world.height,{yaw,pitch,radius});
    worldForPick=world;camForPick=cam;
-   const key=terrainSignature(world);
+   const key=terrainSignature(world)+"|"+(world.structures??[]).map(s=>{
+    const owner=match.players.find(p=>p.id===s.owner);
+    return s.id+":"+(owner?.faction??"");
+   }).join(",");
    if(key!==terrainKey){
     const verts=[];
     const modeled=new Set((world.structures??[]).map(s=>s.id));
@@ -196,10 +223,13 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
       height=Math.max(1,Math.min(8,Number(site.height)||2));
      const x=site.x+width/2,z=site.y+height/2;
      const base=heightFor(world.tiles[site.y*world.width+site.x]);
-     const style=assetForBuilding(site.kind),mesh=models?.[style.family];
+     const style=assetForBuilding(site.kind),
+      faction=match.players.find(p=>p.id===site.owner)?.faction,
+      mesh=models?.[factionMeshKey(faction,style.family)]??models?.[style.family];
      if(mesh){
       // OBJ model coordinates are Y-up, centered on the structure footprint.
-      appendObjVertices(verts,mesh,{x,y:base,z,scale:Math.min(width,height)/1.8});
+      appendObjVertices(verts,mesh,{x,y:base,z,scale:Math.min(width,height)/1.8,
+       texture:textureForFaction(textures,faction)});
       modelBuildings++;
      }else{
       cube(verts,x,z,Math.min(width,height)*.82,base,base+style.height,
@@ -223,13 +253,20 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     const teamColor=selectedUnits.has(u.id)?"#fce57d":
      p.id===match.viewerId?"#c5eeff":"#f58a7c";
     const detail=unitRoleVisual(u),cx=u.x+.5,cz=u.y+.5,top=bottom+style.height;
-    const mesh=modelUnits<160?models?.[detail.role]:null;
+    const role=detail.role,
+     mesh=modelUnits<160?(models?.[factionMeshKey(p.faction,role)]??
+       models?.[role]):null;
     if(mesh){
      const scale=detail.role==="air"?.53:detail.role==="ship"?.69:
       detail.role==="hero"?.73:detail.role==="siege"?.63:.75;
      appendObjVertices(verts,mesh,{x:cx,y:bottom,z:cz,scale,
       tint:selectedUnits.has(u.id)?[1,1,.77]:
-       p.id===match.viewerId?[.82,1,1]:[1,.79,.79]});
+       p.id===match.viewerId?[.82,1,1]:[1,.79,.79],
+      pose:poseAt(previewPose??animationModeForUnit(u,match.orders?.[u.id]),
+       match.elapsedMs??0,(u.id?.length??0)*.07),
+      texture:textureForFaction(textures,p.faction),
+      rig:["worker","infantry","ranged","hero"].includes(role)?
+       rigForFaction(p.faction):null});
      modelUnits++;
     }else{
      fallbackUnits++;
@@ -279,10 +316,14 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   orbit(dx,dy){yaw+=dx*.009;pitch=Math.max(.22,Math.min(1.37,pitch+dy*.008));},
   zoom(direction){radius=Math.max(preview?9:30,Math.min(preview?45:125,radius+direction*(preview?2:5)));},
   camera(){return {yaw,pitch,radius};},
-  meshInfo(name){const mesh=models?.[name];return mesh?
+  meshInfo(name,faction=null){
+   const mesh=models?.[factionMeshKey(faction,name)]??models?.[name];return mesh?
    {triangles:mesh.triangles,vertexCount:mesh.vertexCount,bounds:mesh.bounds}:null;},
   stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount,
    modelUnits,modelBuildings,fallbackUnits,loadedModels:models?Object.keys(models).length:0,
+   factionModels:models?Object.keys(models).filter(k=>k.includes("/")).length:0,
+   factionTextures:textures?Object.keys(textures).length:0,
+   textureFailure,
    modelFailure};},
   dispose(){
    gl.deleteBuffer(staticBuffer);gl.deleteBuffer(dynamicBuffer);

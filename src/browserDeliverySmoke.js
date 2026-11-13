@@ -3,6 +3,8 @@ import {MatchHost} from "./network.js";
 import {createLoopbackProtocolServer} from "./loopbackProtocol.js";
 import {assert} from "./util.js";
 import {MODEL_NAMES,parseMtl,parseObj} from "../web/objLoader.js";
+import {FACTION_SLUGS,factionMeshPath} from "../web/factionArt.js";
+import {parsePpm} from "../web/factionTextures.js";
 
 /** Real localhost HTTP delivery/interaction contract, not a graphical browser runner. */
 export async function runBrowserDeliverySmoke(){
@@ -16,7 +18,8 @@ export async function runBrowserDeliverySmoke(){
   "trainWorker","build","researchChoice","trainChoice","buildChoice"];
  const requiredScripts=["/netplay.js","/webgl3d.js","/assetManifest.js",
   "/clientRules.js","/unitSelection.js","/combatOrders.js",
-  "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js"];
+  "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js",
+  "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
@@ -58,6 +61,29 @@ export async function runBrowserDeliverySmoke(){
    assert(res.headers.get("content-type")?.includes("text/plain"),"OBJ MIME incorrect");
    assetTriangles+=parseObj(await res.text(),materials).triangles;
   }
+  let factionMeshes=0,factionTriangles=0;
+  for(const faction of FACTION_SLUGS)for(const name of MODEL_NAMES){
+   const res=await fetch(base+factionMeshPath(faction,name));
+   assert(res.status===200,"Faction model unavailable: "+faction+"/"+name);
+   const mesh=parseObj(await res.text(),materials);
+   assert(mesh.triangles>25,"Invalid faction model geometry");
+   factionTriangles+=mesh.triangles;factionMeshes++;
+  }
+  let factionTextures=0;
+  for(const faction of FACTION_SLUGS){
+   const res=await fetch(base+"/assets/textures/factions/"+faction+".ppm");
+   assert(res.status===200,"Faction surface pattern unavailable: "+faction);
+   const image=parsePpm(await res.text());
+   assert(image.width===32&&image.height===32,"Faction pattern size changed");
+   factionTextures++;
+  }
+  const rigResponse=await fetch(base+"/assets/rigs/faction-rigs.json");
+  assert(rigResponse.status===200,"Rig metadata unavailable");
+  const rigs=await rigResponse.json();
+  assert(rigs.bones?.length===7&&Object.keys(rigs.factions??{}).length===6,
+   "Incomplete faction rigs");
+  const forbidden=await fetch(base+"/assets/models/factions/not-a-faction/worker.obj");
+  assert(forbidden.status===404,"Unknown faction asset path accepted");
   const illegal=await fetch(base+"/assets/models/unknown.obj");
   assert(illegal.status===404,"Unlisted model path unexpectedly served");
   const absent=await fetch(base+"/state");
@@ -79,7 +105,8 @@ export async function runBrowserDeliverySmoke(){
   assert(next.nextSequence===2,"Successful stance batch failed to advance sequence");
   assert(host.match.players[0].units.find(u=>u.id===unit.id).combatStance==="aggressive");
   return {htmlControls:requiredIds.length,servedModules:requiredScripts.length,
-   servedMeshes:MODEL_NAMES.length,assetTriangles,
+   servedMeshes:MODEL_NAMES.length,assetTriangles,factionMeshes,factionTriangles,
+   factionTextures,factionRigProfiles:6,
    contractsChecked:checked,anonymousRejected:true,authenticatedBatch:true,
    scope:"localhost HTTP delivery and server interaction; NOT real browser GPU/DOM automation"};
  }finally{
