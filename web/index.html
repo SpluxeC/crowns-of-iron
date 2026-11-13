@@ -47,7 +47,7 @@ h3{font-size:14px;margin:15px 0 7px}
 <button id="reset" class="warn">Reset map & match</button>
 </div>
 <canvas id="map" width="800" height="640" tabindex="0" aria-label="Generated two-dimensional game map. Click a tile to inspect it." ></canvas>
-<div class="legend">Green = land · Dark green = forest · Slate = hills · Blue = water · Gold = resource deposit · White square = starting Town Center position · Blue outline = selected tile</div>
+<div class="legend">Green = land · Dark green = forest · Slate = hills · Blue = water · Gold = deposit · White = player units · Red = AI units · Blue outline = selected tile</div>
 <div id="selected" aria-live="polite">Select a map tile to inspect terrain and resources.</div>
 <div id="status" role="status"></div>
 </section>
@@ -59,9 +59,12 @@ h3{font-size:14px;margin:15px 0 7px}
 <div class="controls">
 <button id="trainWorker" class="primary">Train Worker</button>
 <button id="research">Research next discovery</button>
-<button id="place">Place training camp (preview)</button>
+<button id="place">Build Training Camp</button>
+<button id="trainFighter">Train Club Fighter</button>
+<button id="move">Move selected unit</button>
+<button id="attack">Attack enemy unit</button>
 </div>
-<small>Placement deducts an illustrative 100 Wood + 40 Stone and reserves map tiles. Research and training use the simulation core. Controls are intentionally simplified.</small>
+<small>Click a friendly unit to select it, then use Move or Attack. Construction reserves a site, requires a worker and completes after simulation time. Red units belong to the basic AI opponent.</small>
 <h3>Event Log</h3><div id="log" aria-live="polite"></div>
 </aside>
 </main>
