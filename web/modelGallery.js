@@ -27,7 +27,10 @@ async function loadSelectedRoster(){
  rosterSelectionLoading=true;
  try{
   await renderer.loadRosterAssets({requests:[{faction,role}],notify:draw});
-  loadMessage="Roster model loaded";
+  if(role==="Swordsman"){
+   const skin=await renderer.loadSkinnedAssets({factions:[faction],notify:draw});
+   loadMessage=skin.loaded?"Skinned glTF + PBR source asset ready":"OBJ fallback";
+  }else loadMessage="Roster OBJ model loaded";
  }catch(error){loadMessage="Roster model fallback: "+error.message;}
  finally{rosterSelectionLoading=false;draw();}
 }
@@ -47,7 +50,9 @@ function draw(){
   players:[{id:"p0",faction,units:building?[]:[unit]}]},new Set(),
   {previewPose:clipChoice.value});
  const roster=!!specificRole&&!!faction,
- mesh=roster?renderer?.rosterMeshInfo(faction,specificRole):
+ mesh=roster?(specificRole==="Swordsman"?
+  renderer?.skinnedMeshInfo(faction):null)??
+  renderer?.rosterMeshInfo(faction,specificRole):
   renderer?.meshInfo(name,faction);
  details.textContent=mesh?((faction??"Generic")+" "+(specificRole||name)+
   " · "+mesh.triangles+" triangles · "+mesh.vertexCount+
