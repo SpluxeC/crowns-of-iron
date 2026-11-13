@@ -38,3 +38,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **3.2 Fortifications:** infantry garrisons for five structure types, owner-only orders, timed defensive fire, destruction evacuation and firing-slot technology.
 - **3.3 Executable tech:** now 60 of 78 optional effects per civilization; Farm, Forester and Aether condenser spatial renewables plus Corruption mitigation.
 - **3.4 Army AI:** server-side assault/defend/raid/hold stances, threat priority and reachable tactical targeting.
+
+- **3.5 Island and naval logistics:** opt-in connected island basin, legal naval combat categories, finite fishing and actual route-completion ship trade.
+- **3.6 Research effect expansion:** 70 of 78 optional tech handlers per faction; eight effect types remain descriptive. Transport capacity attributes and trade/scouting specializations included.
+- **3.7 Military formations and siege:** atomic multi-unit move assignment and reachable siege approach/attack orders; collision-aware formation retention remains pending.
+- **3.8 Multiplayer resynchronization prototype:** monotonic host versions, fog-filtered resync snapshots and credential rotation; full Internet networking and secure sessions pending.

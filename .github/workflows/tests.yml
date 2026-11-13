@@ -21,3 +21,4 @@ jobs:
       - run: npm run spatial-demo
       - run: npm run advanced-demo
       - run: npm run batch-3.1-demo
+      - run: npm run batch-3.5-demo

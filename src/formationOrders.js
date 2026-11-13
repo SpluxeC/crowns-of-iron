@@ -4,6 +4,7 @@ import {pathForUnit,movementDomain} from "./movementDomains.js";
 import {issueMove} from "./battlefield.js";
 import {ATTACK_PROFILE} from "./battlefield.js";
 import {hasLineOfSight} from "./tacticalNavigation.js";
+import {mayAttackStructure} from "./engagementRules.js";
 
 const OFFSETS=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1],
  [2,0],[-2,0],[0,2],[0,-2],[2,1],[-2,-1],[2,-1],[-2,1],
@@ -46,7 +47,7 @@ export function orderSiege(match,owner,unitId,siteId){
  assert(site?.completed&&location,"Siege target missing");
  const target=match.players.find(p=>p.id===site.owner);
  assert(target&&target.team!==p.team,"Cannot siege allied structure");
- assert(unit.attack>0,"Siege unit must have a weapon");
+ assert(mayAttackStructure(unit),"Siege unit must have an eligible weapon");
  const range=unit.range??ATTACK_PROFILE[unit.archetype]?.[0]??0;
  assert(range>0,"No siege attack range");
  const center=aim(unit,location);
