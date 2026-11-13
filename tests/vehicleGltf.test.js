@@ -32,7 +32,7 @@ test("real glTF 2.0 animated non-humanoid mesh validates and changes during atta
   assert.ok(initial.vertices.some((value,i)=>value!==attack.vertices[i]));
   const hit=sampleVehicleGltf(mesh,"hit",110),death=sampleVehicleGltf(mesh,"death",650);
   // Child rigid assembly must animate independently of hull in idle.
-  const a=sampleVehicleGltf(mesh,"idle",0),b=sampleVehicleGltf(mesh,"idle",235);
+  const a=sampleVehicleGltf(mesh,"walk",0),b=sampleVehicleGltf(mesh,"walk",235);
   const relative=(pose,index)=>Array.from(pose.vertices.slice(index*6,index*6+3))
    .map((v,k)=>v-pose.vertices[k]);
   assert.notDeepEqual(relative(a,mesh.baseCount),relative(b,mesh.baseCount));
