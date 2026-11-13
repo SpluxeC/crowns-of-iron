@@ -7,7 +7,7 @@ import {assert,clone} from "./util.js";
 // Local authoritative protocol prototype; no public deployment, matchmaking,
 // dedicated authorization backend or production fog-of-war guarantees.
 const COMMANDS=new Set(["allocate","research","cancelResearch","train","cancelTrain",
-  "move","attack","build","cancelBuild","ability"]);
+  "move","attack","build","cancelBuild","upgrade","cancelUpgrade","ability"]);
 export class MatchHost{
   constructor(participants,seed=1){
     this.match=createMatch(participants,seed);

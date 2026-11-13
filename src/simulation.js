@@ -12,6 +12,7 @@ import {useHeroAbility} from "./abilities.js";
 import {unitDefinition,researchCatalog} from "./fullCatalog.js";
 import {harvestDeposit} from "./harvesting.js";
 import {destroyToRuin,salvageRuin,rebuildRuin,tickRuins} from "./ruins.js";
+import {queueBuildingUpgrade,cancelBuildingUpgrade,tickBuildingUpgrades} from "./buildingUpgrades.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -38,6 +39,8 @@ export function command(match,input,{allowDebug=false}={}){
     case "harvest":result=harvestDeposit(match,id,input.workerId,input.x,input.y);break;
     case "salvage":result=salvageRuin(match,id,input.siteId);break;
     case "rebuild":result=rebuildRuin(match,id,input.siteId,input.workers);break;
+    case "upgrade":result=queueBuildingUpgrade(match,id,input.siteId,input.name);break;
+    case "cancelUpgrade":result=cancelBuildingUpgrade(match,id,input.siteId,input.name);break;
     case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
     case "heal":result=heal(player,input.healers,input.target);break;
     case "repair":result=repair(player,input.workers,input.target,input.amount);break;
@@ -69,6 +72,7 @@ function substep(match,ms,opts){
     tickStatuses(player,ms);
   }
   tickConstruction(match,ms);
+  tickBuildingUpgrades(match,ms);
   tickBattlefield(match,ms);
   checkElimination(match,ms);
   tickMode(match,ms);

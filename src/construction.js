@@ -3,6 +3,7 @@ import {at,canPlace,placeBuilding,removeBuilding,findPath} from "./map.js";
 import {getPlayer,addFacility} from "./state.js";
 import {destroyResearchFacility} from "./research.js";
 import {destroyProductionFacility} from "./production.js";
+import {refundDestroyedBuildingUpgrades} from "./buildingUpgrades.js";
 
 export const STRUCTURES=Object.freeze({
   "Training Camp":{age:"I",cost:{Wood:100,Stone:40},ms:40000,footprint:[3,3],hp:800,armor:5},
@@ -78,6 +79,7 @@ export function destroyStructure(match,siteId){
   const p=getPlayer(match,job.owner);
   if(!job.completed){return cancelConstruction(match,job.owner,siteId);}
   if(job.facilityKey){
+    refundDestroyedBuildingUpgrades(p,job);
     if(p.unitQueues[job.facilityKey])destroyProductionFacility(p,job.facilityKey);
     if(p.researchQueues[job.facilityKey])destroyResearchFacility(p,job.facilityKey);
     p.facilities[job.kind]=Math.max(0,(p.facilities[job.kind]??0)-1);

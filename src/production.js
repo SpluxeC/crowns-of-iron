@@ -38,20 +38,24 @@ export function queueUnit(player,facility,role,definition=ALL_ARCHETYPES[role]){
 }
 export function tickProduction(match,player,deltaMs){
   assert(Number.isSafeInteger(deltaMs)&&deltaMs>=0,"Invalid production interval");
-  for(const jobs of Object.values(player.unitQueues)){
+  for(const [facility,jobs] of Object.entries(player.unitQueues)){
     let remaining=deltaMs;
-    while(jobs.length&&(remaining>0||jobs[0].ms===jobs[0].definition.ms)){
+    const site=Object.values(match.constructions??{}).find(s=>s.completed&&s.facilityKey===facility);
+    while(jobs.length&&remaining>=0){
       const j=jobs[0],def=j.definition;
-      if(j.ms<def.ms){
-        const step=Math.min(remaining,def.ms-j.ms);j.ms+=step;remaining-=step;j.started=true;
+      const duration=Math.max(1,Math.ceil(def.ms*(site?.trainTimeFactor??1)));
+      if(j.ms<duration){
+        if(remaining===0)break;
+        const step=Math.min(remaining,duration-j.ms);j.ms+=step;remaining-=step;j.started=true;
       }
-      if(j.ms<def.ms)break;
+      if(j.ms<duration)break;
       if(player.popUsed+def.pop>player.popCap)break;
       jobs.shift();
       const unit=makeUnit(player,j.role,def,nextId(match));
       refreshUnitTechnology(player,unit);
       player.units.push(unit);player.popUsed+=def.pop;
       player.history.push("Recruited "+unit.name);
+      if(remaining===0)break;
     }
   }
 }
