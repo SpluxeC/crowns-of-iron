@@ -46,6 +46,9 @@ STATIC["/rosterArt.js"]=["../web/rosterArt.js","text/javascript; charset=utf-8"]
 STATIC["/rosterLoader.js"]=["../web/rosterLoader.js","text/javascript; charset=utf-8"];
 STATIC["/factionArt.js"]=["../web/factionArt.js","text/javascript; charset=utf-8"];
 STATIC["/meshAnimation.js"]=["../web/meshAnimation.js","text/javascript; charset=utf-8"];
+STATIC["/animationClips.js"]=["../web/animationClips.js","text/javascript; charset=utf-8"];
+STATIC["/assets/animations/rig-clips.json"]=[
+ "../assets/animations/rig-clips.json","application/json; charset=utf-8"];
 STATIC["/factionTextures.js"]=["../web/factionTextures.js","text/javascript; charset=utf-8"];
 STATIC["/rigProfiles.js"]=["../web/rigProfiles.js","text/javascript; charset=utf-8"];
 STATIC["/assets/rigs/faction-rigs.json"]=["../assets/rigs/faction-rigs.json",

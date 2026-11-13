@@ -21,7 +21,7 @@ export async function runBrowserDeliverySmoke(){
   "/clientRules.js","/unitSelection.js","/combatOrders.js",
   "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js",
   "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js",
-  "/rosterArt.js","/rosterLoader.js"];
+  "/rosterArt.js","/rosterLoader.js","/animationClips.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
@@ -79,6 +79,11 @@ export async function runBrowserDeliverySmoke(){
    assert(image.width===32&&image.height===32,"Faction pattern size changed");
    factionTextures++;
   }
+  const animationResponse=await fetch(base+"/assets/animations/rig-clips.json");
+  assert(animationResponse.status===200,"Authored animation clips not served");
+  const animations=await animationResponse.json();
+  assert(animations.bones?.length===7&&Object.keys(animations.clips??{}).length===3,
+   "Incomplete authored animation clips");
   const rigResponse=await fetch(base+"/assets/rigs/faction-rigs.json");
   assert(rigResponse.status===200,"Rig metadata unavailable");
   const rigs=await rigResponse.json();
@@ -118,7 +123,7 @@ export async function runBrowserDeliverySmoke(){
   assert(host.match.players[0].units.find(u=>u.id===unit.id).combatStance==="aggressive");
   return {htmlControls:requiredIds.length,servedModules:requiredScripts.length,
    servedMeshes:MODEL_NAMES.length,assetTriangles,factionMeshes,factionTriangles,
-   factionTextures,factionRigProfiles:6,rosterSmokeMeshes,
+   factionTextures,factionRigProfiles:6,rosterSmokeMeshes,authoredClips:3,
    contractsChecked:checked,anonymousRejected:true,authenticatedBatch:true,
    scope:"localhost HTTP delivery and server interaction; NOT real browser GPU/DOM automation"};
  }finally{

@@ -26,6 +26,9 @@ test("all 216 role × faction OBJ files contain real unique archetype-specific g
    assert.ok(source.includes("Original archetype-specific 3D art: "+faction+" / "+role));
    const mesh=parseObj(source,palette);
    assert.ok(mesh.triangles>120,faction+"/"+role+" too few triangles");
+   assert.equal(mesh.textured,true,"Missing authored UVs: "+faction+"/"+role);
+   assert.equal(mesh.uvs.length,mesh.vertexCount*2);
+   assert.match(source,/^vt /m,"OBJ lacks actual UV coordinates");
    const tail=Array.from(mesh.vertices.slice(-18)).join(",");
    signatures.add(role+"|"+mesh.triangles+"|"+tail);
    count++;
