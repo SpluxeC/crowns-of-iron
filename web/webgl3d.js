@@ -10,7 +10,7 @@ import {createSkinnedGltfLoader,sampleSkinnedGltf} from "./skinnedGltf.js";
 import {ALL_SKINNED_ROLES} from "./skinnedRoster.js";
 import {vehicleMotion} from "./vehicleMotion.js";
 import {createVehicleGltfLoader,sampleVehicleGltf} from "./vehicleGltf.js";
-import {VEHICLE_ROLES} from "./vehicleArt.js";
+import {VEHICLE_ROLES,vehicleDomain} from "./vehicleArt.js";
 import {visibleCombatUnits,applyCombatPose} from "./combatVisuals.js";
 import {applyDamageFinish} from "./damageFinish.js";
 import {factionCombatVfx} from "./factionCombatVfx.js";
@@ -354,11 +354,10 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      overlay=previewPose==="hit"?{hit:1}:previewPose==="death"?{death:.72}:effect,
      // Vehicles use their own death transform clip, avoiding a second fall rotation.
      damaged=rawMesh&&factionSlug(p.faction)&&
-      Number.isFinite(u.hp)&&Number.isFinite(u.maxHp)&&u.hp<u.maxHp&&
+      Number.isFinite(u.hp)&&Number.isFinite(u.maxHp)&&u.maxHp>0&&u.hp<u.maxHp&&
       frameBudget.claim("damageFinishes")?
       applyDamageFinish(rawMesh,u.hp,u.maxHp,{
-       domain:veh?(VEHICLE_ROLES.includes(u.archetype)?
-        (u.category==="Naval"?"naval":u.category==="Air"?"air":"siege"):"siege"):"humanoid",
+       domain:veh?vehicleDomain(u.archetype):"humanoid",
        faction:p.faction,seed:String(u.id).length}):rawMesh,
      mesh=damaged?applyCombatPose(damaged,veh?{hit:overlay.hit??0}:overlay):null;
     if(veh)vehicleStates.set(animKey,vehicleTransition);
