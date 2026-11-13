@@ -1,6 +1,6 @@
 {
   "name": "crowns-of-iron",
-  "version": "1.8.0",
+  "version": "2.2.0",
   "private": true,
   "type": "module",
   "description": "Deterministic headless RTS prototype",

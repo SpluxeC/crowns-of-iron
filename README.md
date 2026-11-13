@@ -44,3 +44,6 @@ The full reconciled v0.2 numeric data can be loaded from `data/balance-v0.2.json
 
 ## Milestones 1.5–1.8
 The reconciled six-faction data is now committed in `data/balance-v0.2.json`; run `npm run full-data-demo` to exercise the installed research and unit definitions. See [full data limitations](docs/FULL_DATA_RUNTIME.md). Additional systems include finite deposit harvesting, ruin salvage and discounted reconstruction, and protocol safety improvements. These do not yet constitute a complete 3D multiplayer game.
+
+## Milestones 1.9–2.2
+Executable optional technologies (37 shared tech IDs), three supported building-upgrade types, building siege damage and material-funded worker repairs are now in the headless simulation. Detailed support boundaries are recorded in [Milestones 1.9–2.2](docs/MILESTONES_1_9_TO_2_2.md). Unsupported tech and upgrades are **not** represented as implemented.

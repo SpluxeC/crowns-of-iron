@@ -18,3 +18,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **1.2 Faction abilities:** six named hero actives and passive identities, cooldowns and finite buff/status effects. Detailed per-faction roster mechanics pending.
 - **1.3 Multiplayer protocol:** authenticated in-memory command sessions, monotonically increasing sequence numbers, local HTTP development server. Production networking, fog-of-war and matchmaking pending.
 - **1.4 Browser inspector:** 2D unit display, move/attack orders, worker construction and a basic enemy bot. Still not 3D or shipped mobile gameplay.
+
+- **1.9 Research effects:** 37 typed optional research effect IDs out of 78 optional per faction; 12 mandatory age-progress nodes already operational. Remaining 41 optional effects per faction not yet implemented.
+- **2.0 Local building upgrades:** 126 data rows loaded; three local upgrade types have purchase/queue/execution handlers (18 faction-specific rows), remainder deliberately unavailable.
+- **2.1 Structure combat:** actual completed building HP takes attack damage with counters; destruction creates rebuildable or salvageable ruins.
+- **2.2 Repair/cooldowns:** staffed material-based building repairs; healer and mechanical repair cooldowns and network authorization tests.
