@@ -12,7 +12,7 @@ function readBuffer(uri){
 export function parseVehicleGltf(doc){
  if(doc?.asset?.version!=="2.0"||doc.buffers?.length!==1||
   doc.meshes?.length!==1||doc.nodes?.length!==1||doc.skins!==undefined||
-  doc.animations?.length!==3)throw Error("Invalid specialized vehicle glTF");
+  doc.animations?.length!==5)throw Error("Invalid specialized vehicle glTF");
  const bytes=readBuffer(doc.buffers[0].uri);
  if(bytes.length!==doc.buffers[0].byteLength)throw Error("Vehicle buffer size mismatch");
  function accessor(index){
@@ -37,7 +37,7 @@ export function parseVehicleGltf(doc){
   throw Error("Invalid vehicle vertex count");
  const animations={};
  for(const clip of doc.animations){
-  if(!["idle","walk","attack"].includes(clip.name)||animations[clip.name]||
+  if(!["idle","walk","attack","hit","death"].includes(clip.name)||animations[clip.name]||
    clip.channels?.length!==2)throw Error("Invalid vehicle clip");
   const curves={};
   for(const channel of clip.channels){
@@ -55,13 +55,14 @@ export function parseVehicleGltf(doc){
   if(!curves.rotation||!curves.translation)throw Error("Missing vehicle animation track");
   animations[clip.name]=curves;
  }
- if(Object.keys(animations).length!==3)throw Error("Missing vehicle animation");
+ if(Object.keys(animations).length!==5)throw Error("Missing vehicle animation");
  return {count,positions,uvs,colors,animations,textured:true,
   embeddedPng:doc.images?.[0]?.uri?.startsWith("data:image/png;base64,")===true};
 }
-function evaluate(track,clockMs){
+function evaluate(track,clockMs,loop=true){
  const {times,values,dimension}=track,last=times.at(-1);
- const seconds=((clockMs/1000%last)+last)%last;
+ const seconds=loop?((clockMs/1000%last)+last)%last:
+  Math.max(0,Math.min(last,clockMs/1000));
  let index=0;
  while(index+1<times.length-1&&seconds>times[index+1])index++;
  const denom=times[index+1]-times[index],
@@ -80,8 +81,9 @@ function rotate(point,[qx,qy,qz,qw]){
 export function sampleVehicleGltf(model,mode="idle",timeMs=0){
  const curves=model?.animations?.[mode];
  if(!curves||!Number.isFinite(timeMs))throw Error("Invalid vehicle animation sample");
- const translation=evaluate(curves.translation,timeMs),
-  quat=evaluate(curves.rotation,timeMs),
+ const loop=mode!=="hit"&&mode!=="death",
+  translation=evaluate(curves.translation,timeMs,loop),
+  quat=evaluate(curves.rotation,timeMs,loop),
   vertices=new Float32Array(model.count*6);
  const min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
  for(let i=0;i<model.count;i++){
