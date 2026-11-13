@@ -26,6 +26,16 @@ export function sampleFactionTexture(texture,x,y,z){
  const i=(iy*texture.width+ix)*3;
  return [0,1,2].map(j=>.66+.34*texture.pixels[i+j]/255);
 }
+/** Authored Wavefront UV lookup baked into mesh vertex colors (no GPU texture shader yet). */
+export function sampleFactionUv(texture,u,v){
+ if(!texture)return [1,1,1];
+ if(!Number.isFinite(u)||!Number.isFinite(v))throw Error("Invalid mesh UV");
+ const fract=n=>((n%1)+1)%1;
+ const px=Math.min(texture.width-1,Math.floor(fract(u)*texture.width));
+ const py=Math.min(texture.height-1,Math.floor(fract(v)*texture.height));
+ const offset=(py*texture.width+px)*3;
+ return [0,1,2].map(j=>.66+.34*texture.pixels[offset+j]/255);
+}
 export async function loadFactionTextures(fetcher=fetch){
  const pairs=await Promise.all(FACTION_SLUGS.map(async slug=>{
   const response=await fetcher("/assets/textures/factions/"+slug+".ppm");
