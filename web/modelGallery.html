@@ -24,13 +24,15 @@ p{line-height:1.5}small,.muted{color:#adc6c9}#details{padding:12px;background:#0
 <option value="siege">Siege machine</option><option value="ship">Ship</option>
 <option value="air">Aircraft</option><option value="civilian">Civilian building</option>
 <option value="defense">Defensive wall</option><option value="tower">Tower</option>
-</select><label for="clip">Animation</label><select id="clip">
+</select><label for="unitRole">Individual unit (optional)</label>
+<select id="unitRole"><option value="">Family model</option></select>
+<label for="clip">Animation</label><select id="clip">
 <option value="idle">Idle</option><option value="walk">Walk</option>
 <option value="attack">Attack</option></select>
 <button id="orbitLeft">Rotate left</button><button id="orbitRight">Rotate right</button>
 <button id="zoomIn">Zoom in</button><button id="zoomOut">Zoom out</button></div>
 <canvas id="preview" width="960" height="640" aria-label="Interactive WebGL 3D model preview"></canvas>
 <h2>Asset details</h2><div id="details" aria-live="polite">Loading OBJ models…</div>
-<p class="muted">Drag to orbit, scroll to zoom. Choose a faction, model family, and procedural animation clip. All mesh assets are served locally; gallery animation is limited to ten redraws per second. Full skeletal animation is not yet implemented.</p>
+<p class="muted">Drag to orbit, scroll to zoom. Choose a faction, a model family or one of 36 individual unit archetypes, and an animation clip. All mesh assets are served locally; gallery animation is limited to ten redraws per second. Full skeletal animation is not yet implemented.</p>
 </main><script type="module" src="/modelGallery.js"></script>
 </body></html>

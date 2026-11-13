@@ -331,7 +331,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   camera(){return {yaw,pitch,radius};},
   meshInfo(name,faction=null){
    const mesh=models?.[factionMeshKey(faction,name)]??models?.[name];return mesh?
-   {triangles:mesh.triangles,vertexCount:mesh.vertexCount,bounds:mesh.bounds}:null;},
+   {triangles:mesh.triangles,vertexCount:mesh.vertexCount,bounds:mesh.bounds,
+    textured:mesh.textured??false}:null;},
   stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount,
    modelUnits,modelBuildings,fallbackUnits,loadedModels:models?Object.keys(models).length:0,
    rosterModels:rosterLoader?.stats().loaded??0,
