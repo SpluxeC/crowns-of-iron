@@ -10,14 +10,15 @@ const key=(x,y)=>x+","+y;
 const split=k=>k.split(",").map(Number);
 
 /** One BFS per unit; reconstruct routes to all formation candidate cells. */
-function routes(match,owner,unit,goalKeys,blocked){
+function routes(unit,goalKeys,passable,diagnostics){
  const start=key(unit.x,unit.y),prev=new Map([[start,null]]);
  const q=[{x:unit.x,y:unit.y}],wanted=new Set(goalKeys);
  for(let head=0;head<q.length&&wanted.size;head++){
   const p=q[head],k=key(p.x,p.y);wanted.delete(k);
+  if(diagnostics)diagnostics.routeExpansions=(diagnostics.routeExpansions??0)+1;
   for(const [dx,dy] of DIR){
    const x=p.x+dx,y=p.y+dy,next=key(x,y);
-   if(prev.has(next)||blocked(x,y)||!tileTraversable(match,owner,unit.archetype,x,y))continue;
+   if(prev.has(next)||!passable.has(next))continue;
    prev.set(next,k);q.push({x,y});
   }
  }
@@ -61,7 +62,7 @@ function minimumAssignment(cost){
  return result;
 }
 
-export function planFormation(match,owner,units,x,y){
+export function planFormation(match,owner,units,x,y,{diagnostics=null}={}){
  assert(match?.battlefield,"Battlefield required");
  assert(Number.isInteger(x)&&Number.isInteger(y),"Invalid formation destination");
  assert(Array.isArray(units)&&units.length>0&&units.length<=24&&
@@ -69,14 +70,27 @@ export function planFormation(match,owner,units,x,y){
  const chosen=[...units].sort((a,b)=>a.id.localeCompare(b.id));
  const goal=OFFSETS.map(([dx,dy])=>({x:x+dx,y:y+dy}));
  const group=new Set(chosen.map(u=>u.id)),occupied=match.unitCollision?occupiedCells(match):null;
+ // Compile terrain and stationary non-group occupancy once per unit archetype,
+ // rather than rechecking the same tile in up to 24 independent BFS searches.
+ const passability=new Map();
  const matrix=[],perUnit=[];
  for(const unit of chosen){
-  const domain=movementDomain(unit.archetype);
-  const stuck=(tx,ty)=>!!(occupied&&domain!=="air"&&
-    (occupied[domain]?.get(key(tx,ty))??[]).some(id=>!group.has(id)));
-  const available=goal.filter(g=>!stuck(g.x,g.y)&&
-    tileTraversable(match,owner,unit.archetype,g.x,g.y)).map(g=>key(g.x,g.y));
-  const found=routes(match,owner,unit,available,stuck);
+  let passable=passability.get(unit.archetype);
+  if(!passable){
+   const domain=movementDomain(unit.archetype);
+   const blocked=occupied?.[domain]??null;
+   passable=new Set();
+   for(const tile of match.battlefield.tiles){
+    if(diagnostics)diagnostics.terrainChecks=(diagnostics.terrainChecks??0)+1;
+    if(blocked&&(blocked.get(key(tile.x,tile.y))??[]).some(id=>!group.has(id)))continue;
+    if(tileTraversable(match,owner,unit.archetype,tile.x,tile.y))
+     passable.add(key(tile.x,tile.y));
+   }
+   passability.set(unit.archetype,passable);
+   if(diagnostics)diagnostics.passabilityIndexes=(diagnostics.passabilityIndexes??0)+1;
+  }
+  const available=goal.filter(g=>passable.has(key(g.x,g.y))).map(g=>key(g.x,g.y));
+  const found=routes(unit,available,passable,diagnostics);
   perUnit.push(found);
   matrix.push(goal.map((g,i)=>found.has(key(g.x,g.y))
     ?(found.get(key(g.x,g.y)).length-1)*100+i:1e12));
