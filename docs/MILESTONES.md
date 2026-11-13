@@ -78,3 +78,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **6.4 WebGL rendering correctness and caching:** homogeneous perspective projection fix, static terrain GPU buffer reuse across moving-unit/camera frames, player-relative team coloring; still block models without real GPU visual QA.
 - **6.5 Incremental collision occupancy:** build one per-tick occupancy index and update on movement instead of rescanning the entire army at each unit step. No full crowd deadlock solution.
 - **6.6 Active army rehearsal:** eight players, 16 distinct squads and 384 formation-controlled soldiers (416 total live units), deterministic feasible destination search, collision and privacy assertions. Headless Node rehearsal only.
+
+- **6.7 Readable procedural 3D:** visible building rooflines/defensive structures, low-poly workers, infantry, siege, naval and air silhouettes and damaged/selected unit HP pips. Still no authored character assets, animations or actual GPU hardware validation.
+- **6.8 Atomic group combat controls:** browser target-focused up-to-16 combat batch, server-validated Stop orders and rollback tests for invalid ownership or visibility; not attack-move or auto-targeting.
+- **6.9 Live browser performance telemetry:** bounded p50/p95 for CPU-render submission and authenticated HTTP round trips, no server upload, not GPU FPS.
+- **7.0 Actual localhost HTTP benchmark:** up to eight authenticated simulated sessions, fog-filtered private-resource checks and response size/duration p50/p95. No WAN/TLS/remote client load.
