@@ -1,0 +1,215 @@
+{
+  "schema": 1,
+  "coordinateSystem": "Y-up",
+  "units": "joint X-axis radians",
+  "mode": "reusable procedural seven-joint animation curves (not glTF skin)",
+  "bones": [
+    "root",
+    "spine",
+    "head",
+    "leftArm",
+    "rightArm",
+    "leftLeg",
+    "rightLeg"
+  ],
+  "clips": {
+    "idle": {
+      "durationMs": 2400,
+      "loop": true,
+      "keyframes": [
+        {
+          "t": 0,
+          "angles": {
+            "root": 0,
+            "spine": 0,
+            "head": 0,
+            "leftArm": 0,
+            "rightArm": 0,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        },
+        {
+          "t": 0.25,
+          "angles": {
+            "root": 0,
+            "spine": 0.035,
+            "head": 0.012,
+            "leftArm": 0.025,
+            "rightArm": -0.025,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        },
+        {
+          "t": 0.5,
+          "angles": {
+            "root": 0,
+            "spine": 0,
+            "head": 0,
+            "leftArm": 0,
+            "rightArm": 0,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        },
+        {
+          "t": 0.75,
+          "angles": {
+            "root": 0,
+            "spine": -0.03,
+            "head": -0.01,
+            "leftArm": -0.025,
+            "rightArm": 0.025,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        },
+        {
+          "t": 1,
+          "angles": {
+            "root": 0,
+            "spine": 0,
+            "head": 0,
+            "leftArm": 0,
+            "rightArm": 0,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        }
+      ]
+    },
+    "walk": {
+      "durationMs": 720,
+      "loop": true,
+      "keyframes": [
+        {
+          "t": 0,
+          "angles": {
+            "root": 0,
+            "spine": 0,
+            "head": 0,
+            "leftArm": 0,
+            "rightArm": 0,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        },
+        {
+          "t": 0.25,
+          "angles": {
+            "root": 0,
+            "spine": 0.03,
+            "head": 0.01,
+            "leftArm": -0.28,
+            "rightArm": 0.28,
+            "leftLeg": 0.32,
+            "rightLeg": -0.32
+          }
+        },
+        {
+          "t": 0.5,
+          "angles": {
+            "root": 0,
+            "spine": 0,
+            "head": 0,
+            "leftArm": 0,
+            "rightArm": 0,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        },
+        {
+          "t": 0.75,
+          "angles": {
+            "root": 0,
+            "spine": -0.03,
+            "head": -0.01,
+            "leftArm": 0.28,
+            "rightArm": -0.28,
+            "leftLeg": -0.32,
+            "rightLeg": 0.32
+          }
+        },
+        {
+          "t": 1,
+          "angles": {
+            "root": 0,
+            "spine": 0,
+            "head": 0,
+            "leftArm": 0,
+            "rightArm": 0,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        }
+      ]
+    },
+    "attack": {
+      "durationMs": 560,
+      "loop": true,
+      "keyframes": [
+        {
+          "t": 0,
+          "angles": {
+            "root": 0,
+            "spine": 0,
+            "head": 0,
+            "leftArm": 0,
+            "rightArm": 0,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        },
+        {
+          "t": 0.2,
+          "angles": {
+            "root": 0,
+            "spine": -0.12,
+            "head": 0.02,
+            "leftArm": 0.13,
+            "rightArm": 0.42,
+            "leftLeg": -0.06,
+            "rightLeg": 0.06
+          }
+        },
+        {
+          "t": 0.5,
+          "angles": {
+            "root": 0,
+            "spine": 0.22,
+            "head": -0.04,
+            "leftArm": -0.18,
+            "rightArm": -0.61,
+            "leftLeg": 0.04,
+            "rightLeg": -0.04
+          }
+        },
+        {
+          "t": 0.75,
+          "angles": {
+            "root": 0,
+            "spine": 0.08,
+            "head": 0.02,
+            "leftArm": 0.05,
+            "rightArm": -0.18,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        },
+        {
+          "t": 1,
+          "angles": {
+            "root": 0,
+            "spine": 0,
+            "head": 0,
+            "leftArm": 0,
+            "rightArm": 0,
+            "leftLeg": 0,
+            "rightLeg": 0
+          }
+        }
+      ]
+    }
+  }
+}
