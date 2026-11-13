@@ -2,6 +2,7 @@ import {CATEGORY,COUNTERS} from "./constants.js";
 import {assert,spend} from "./util.js";
 import {killUnit} from "./state.js";
 import {researchMultiplier} from "./technologyEffects.js";
+import {canEngage} from "./engagementRules.js";
 export function damage(attack,armor,type="Slash",targetCategory="Standard",specialist=0){
   assert(Number.isFinite(attack)&&attack>=0&&Number.isFinite(armor),"Invalid combat stats");
   const table=COUNTERS[type];assert(table,"Unknown damage type");
@@ -15,8 +16,7 @@ export function strike(owner,targetOwner,attackerId,targetId,{nowMs=0}={}){
   const target=targetOwner.units.find(u=>u.id===targetId&&u.alive);
   assert(attacker&&target,"Missing living attacker or target");
   assert(owner.id!==targetOwner.id,"Cannot attack own unit");
-  const antiAir=["Anti-Air Infantry","Interceptor","Gunship","Aerial Battleship"];
-  if(target.category==="Air")assert(antiAir.includes(attacker.archetype),"Air target ineligible");
+  assert(canEngage(attacker,target),"Attack target ineligible");
   assert((attacker.nextAttackAtMs??0)<=nowMs,"Attack on cooldown");
   const specialist=target.category==="Air"&&["Anti-Air Infantry","Interceptor"].includes(attacker.archetype)?1.5:0;
   const attackerBuffs=(attacker.buffs??[]).filter(b=>b.expiresMs>nowMs);
