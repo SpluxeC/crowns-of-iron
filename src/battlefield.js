@@ -7,6 +7,7 @@ import {pathForUnit,tileTraversable,movementDomain} from "./movementDomains.js";
 import {canEngage} from "./engagementRules.js";
 import {refreshSiegePath} from "./formationOrders.js";
 import {occupiedCells,occupancyDomain as collisionDomain} from "./unitCollision.js";
+import {selectAutomaticTarget} from "./combatDirectives.js";
 
 export const ATTACK_PROFILE=Object.freeze({
   Worker:[1,2000],Scout:[1,1600],"Club Fighter":[1,1800],"Stone Slinger":[5,2200],
@@ -106,19 +107,57 @@ export function tickBattlefield(match,deltaMs){
         if(movementDomain(unit.archetype)!=="land"||match.unitCollision)continue;
         unit.x=start.x;unit.y=start.y;
       }
-      const order=match.orders?.[unit.id];
+      let order=match.orders?.[unit.id];
+      if(!order&&["guard","aggressive"].includes(unit.combatStance)){
+        const [defaultRange]=ATTACK_PROFILE[unit.archetype]??[1,2000];
+        const radius=unit.combatStance==="guard"?(unit.range??defaultRange):4;
+        const focus=selectAutomaticTarget(match,p.id,unit,radius);
+        if(focus){
+          match.orders[unit.id]={kind:"attack",targetPlayer:focus.targetPlayer,
+           targetId:focus.targetId,carryMs:0,automatic:true,
+           guard:unit.combatStance==="guard"};
+          order=match.orders[unit.id];
+        }
+      }
       if(!order)continue;
+      if(order.kind==="attackMove"){
+        if(!order.engaged){
+          order.engaged=selectAutomaticTarget(match,p.id,unit);
+        }
+        if(order.engaged){
+          const opponent=match.players.find(x=>x.id===order.engaged.targetPlayer);
+          const target=opponent?.units.find(x=>x.id===order.engaged.targetId&&x.alive);
+          if(!target||!canEngage(unit,target)){
+            order.engaged=null;
+            const path=pathForUnit(match,p.id,unit.archetype,{x:unit.x,y:unit.y},
+              order.destination);
+            if(!path){
+          if(order.kind==="attackMove"){order.engaged=null;continue;}
+          delete match.orders[unit.id];continue;
+        }
+            order.path=path.slice(1);
+          }
+        }
+      }
       if(order.kind==="siege"){
         refreshSiegePath(match,unit,order);
         if(!match.orders?.[unit.id])continue;
       }
-      if(order.kind==="attack"){
-        const enemy=match.players.find(x=>x.id===order.targetPlayer);
-        const target=enemy?.units.find(x=>x.id===order.targetId&&x.alive);
-        if(!target||target.embarkedAt||!canEngage(unit,target)){delete match.orders[unit.id];continue;}
+      if(order.kind==="attack"||(order.kind==="attackMove"&&order.engaged)){
+        const targetPlayer=order.engaged?.targetPlayer??order.targetPlayer,
+          targetId=order.engaged?.targetId??order.targetId;
+        const enemy=match.players.find(x=>x.id===targetPlayer);
+        const target=enemy?.units.find(x=>x.id===targetId&&x.alive);
+        if(!target||target.embarkedAt||!canEngage(unit,target)){
+          if(order.kind==="attackMove"){order.engaged=null;continue;}
+          delete match.orders[unit.id];continue;
+        }
         const [fallbackRange,fallbackInterval]=ATTACK_PROFILE[unit.archetype]??[1,2000];
         const range=unit.range??fallbackRange,interval=unit.intervalMs||fallbackInterval;
         if(!range){delete match.orders[unit.id];continue;}
+        if(order.guard&&!neighborsInRange(unit,target,range)){
+          delete match.orders[unit.id];continue;
+        }
         if(neighborsInRange(unit,target,range)&&
           (range<=1||movementDomain(unit.archetype)==="air"||hasLineOfSight(map,unit,target))){
           if((unit.nextAttackAtMs??0)<=match.elapsedMs){
@@ -148,7 +187,8 @@ export function tickBattlefield(match,deltaMs){
         if(!walkOne(match,p.id,unit,order,occupancy)){
           // 4.7: deterministic, bounded reroute around moving congestion.
           // An occupied final destination is left pending until it becomes free.
-          if(match.unitCollision&&order.kind==="move"&&order.destination){
+          if(match.unitCollision&&(order.kind==="move"||order.kind==="attackMove")&&
+             order.destination&&!order.engaged){
             order.blockedSteps=(order.blockedSteps??0)+1;
             if(order.blockedSteps%2===1){
               const route=pathForUnit(match,p.id,unit.archetype,
@@ -162,7 +202,8 @@ export function tickBattlefield(match,deltaMs){
         order.blockedSteps=0;
         order.carryMs-=speedMs;
       }
-      if(order.kind==="move"&&!order.path.length)delete match.orders[unit.id];
+      if((order.kind==="move"||order.kind==="attackMove")&&
+         !order.engaged&&!order.path.length)delete match.orders[unit.id];
     }
   }
   return events;
