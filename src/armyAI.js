@@ -37,10 +37,10 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  assert(p&&!p.defeated,"Unknown active AI");
  const start=match.battlefield.starts[match.players.indexOf(p)];
  const attackers=p.units.filter(u=>u.alive&&Number.isInteger(u.x)&&
-    u.attack>0&&u.archetype!=="Worker"&&!u.garrisonedAt)
+    u.attack>0&&u.archetype!=="Worker"&&!u.garrisonedAt&&!u.embarkedAt)
    .sort((a,b)=>a.id.localeCompare(b.id));
  const enemies=match.players.filter(x=>x.team!==p.team&&!x.defeated).flatMap(owner=>
-  owner.units.filter(u=>u.alive&&Number.isInteger(u.x)&&!u.garrisonedAt)
+  owner.units.filter(u=>u.alive&&Number.isInteger(u.x)&&!u.garrisonedAt&&!u.embarkedAt)
    .map(unit=>({owner,unit})));
  const issued=[];let focus=null;
  for(const unit of attackers){

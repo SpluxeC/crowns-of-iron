@@ -6,6 +6,9 @@ const specs={
 "ECO-10":{kind:"carry",pct:.08},
 "BLD-02":{kind:"dropoff",pct:.05},
 "BLD-07":{kind:"garrisonSlots",amount:1},
+"BLD-03":{kind:"primitiveFittings"},
+"BLD-04":{kind:"reinforcedStoneUnlock"},
+"BLD-05":{kind:"gateAutomation"},
 "ECO-03":{kind:"gather",resource:"Stone",pct:.08},
 "ECO-04":{kind:"gather",resource:"Metal",pct:.08},
 "ECO-05":{kind:"farmOutput",pct:.10},
@@ -22,6 +25,7 @@ const specs={
 "MIL-08":{kind:"unitAttack",target:"ranged",pct:.05},
 "MIL-09":{kind:"unitAttack",target:"mobile",pct:.05},
 "MIL-10":{kind:"healing",pct:.05},
+"MIL-07":{kind:"combatXp",pct:.05},
 "NAV-01":{kind:"unitSpeed",target:"ship",pct:.05},
 "NAV-02":{kind:"unitHp",target:"ship",pct:.08},
 "NAV-03":{kind:"fishOutput",pct:.10},
@@ -48,6 +52,10 @@ const specs={
 "SPC-08":{kind:"healing",pct:.05},
 "SPC-10":{kind:"aetherOutput",pct:.10},
 "SPC-05":{kind:"corruptionMitigation",pct:.10},
+"SPC-02":{kind:"channelStability",pct:.05},
+"SPC-03":{kind:"surveyUnlock"},
+"SPC-04":{kind:"aetherPulseUnlock"},
+"SPC-06":{kind:"siegeDisruption",pct:.10},
 "FAC-01":{kind:"gather",resource:"Food",pct:.05},
 "FAC-02":{kind:"gather",resource:"Wood",pct:.05},
 "FAC-04":{kind:"gather",resource:"Stone",pct:.05},
@@ -121,10 +129,12 @@ export function refreshUnitTechnology(player,unit){
  unit.baseSpeed??=unit.speed;
  unit.basePassengerCapacity??=unit.passengerCapacity??0;
  unit.passengerCapacity=unit.basePassengerCapacity;
- const hp=Math.max(1,Math.round(unit.baseMaxHp*researchMultiplier(player,"unitHp",{unit})));
+ const vetHp=unit.rank==="Elite"?.10:unit.rank==="Veteran"?.05:0;
+ const vetAttack=unit.rank==="Elite"?.08:unit.rank==="Veteran"?.04:0;
+ const hp=Math.max(1,Math.round(unit.baseMaxHp*(researchMultiplier(player,"unitHp",{unit})+vetHp)));
  const lost=unit.maxHp-unit.hp;
  unit.maxHp=hp;unit.hp=Math.max(1,hp-lost);
- unit.attack=Math.round(unit.baseAttack*researchMultiplier(player,"unitAttack",{unit})*1000)/1000;
+ unit.attack=Math.round(unit.baseAttack*(researchMultiplier(player,"unitAttack",{unit})+vetAttack)*1000)/1000;
  if(unit.baseSpeed>0)unit.speed=Math.round(unit.baseSpeed*researchMultiplier(player,"unitSpeed",{unit})*1000)/1000;
  for(const id of player.completed??[]){
    const effect=specs[id];

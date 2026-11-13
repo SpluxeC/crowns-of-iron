@@ -18,7 +18,7 @@ if(!sea.connected||map.fishShoals.length!==3)throw Error("Island naval map is in
 attachBattlefield(match,map);setEconomyMode(match,"spatial");enableBot(match,"ursa","Hard");
 for(let i=0;i<30;i++)step(match,1000);
 const coverage=executableCoverage(Object.keys(match.fullCatalog.techs.Humans));
-if(coverage.implemented!==70||coverage.pending!==8)throw Error("Incorrect research coverage");
+if(coverage.implemented!==78||coverage.pending!==0)throw Error("Incorrect research coverage");
 const host=new MatchHost(players,86),session=host.credentialsFor("humans");
 host.advance(1000);
 const resync=host.resync({token:session.token,afterVersion:0});

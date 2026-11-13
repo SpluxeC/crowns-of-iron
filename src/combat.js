@@ -2,6 +2,7 @@ import {CATEGORY,COUNTERS} from "./constants.js";
 import {assert,spend} from "./util.js";
 import {killUnit} from "./state.js";
 import {researchMultiplier} from "./technologyEffects.js";
+import {grantCombatExperience} from "./experience.js";
 import {canEngage} from "./engagementRules.js";
 export function damage(attack,armor,type="Slash",targetCategory="Standard",specialist=0){
   assert(Number.isFinite(attack)&&attack>=0&&Number.isFinite(armor),"Invalid combat stats");
@@ -15,6 +16,7 @@ export function strike(owner,targetOwner,attackerId,targetId,{nowMs=0}={}){
   const attacker=owner.units.find(u=>u.id===attackerId&&u.alive);
   const target=targetOwner.units.find(u=>u.id===targetId&&u.alive);
   assert(attacker&&target,"Missing living attacker or target");
+  assert(!attacker.embarkedAt&&!target.embarkedAt&&!attacker.garrisonedAt&&!target.garrisonedAt,"Embarked/garrisoned combatant unavailable");
   assert(owner.id!==targetOwner.id,"Cannot attack own unit");
   assert(canEngage(attacker,target),"Attack target ineligible");
   assert((attacker.nextAttackAtMs??0)<=nowMs,"Attack on cooldown");
@@ -26,7 +28,7 @@ export function strike(owner,targetOwner,attackerId,targetId,{nowMs=0}={}){
   const hit=damage(attack,armor,attacker.type,target.category,specialist);
   attacker.nextAttackAtMs=nowMs+2000;
   target.hp=Math.max(0,target.hp-hit);
-  if(target.hp===0)killUnit(targetOwner,target.id);
+  if(target.hp===0){killUnit(targetOwner,target.id);grantCombatExperience(owner,attacker,target);}
   return hit;
 }
 export function heal(player,healerIds,targetId,nowMs=0){

@@ -17,7 +17,7 @@ for(let t=0;t<60;t++)step(match,1000);
 const coverage=executableCoverage(Object.keys(match.fullCatalog.techs.Humans));
 const bots=botSummary(match);
 const jobs=Object.values(match.harvestJobs??{}).filter(job=>job.owner==="ursa");
-if(coverage.implemented!==70||coverage.pending!==8||bots.ursa.decisions<1||jobs.length<1)
+if(coverage.implemented!==78||coverage.pending!==0||bots.ursa.decisions<1||jobs.length<1)
  throw new Error("Milestone 2.7–3.0 integration failed");
 console.log(JSON.stringify({
  milestone:"2.7–3.0 headless validation",
