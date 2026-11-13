@@ -4,6 +4,7 @@
  */
 import {mkdir,readFile} from "node:fs/promises";
 import {createHash} from "node:crypto";
+import {fileURLToPath} from "node:url";
 import {chromium} from "playwright";
 import {MatchHost} from "../src/network.js";
 import {createLoopbackProtocolServer} from "../src/loopbackProtocol.js";
@@ -44,7 +45,7 @@ try{
    return text.includes(role)&&text.includes(expected);
   },{role,expected},{timeout:60000});
   await page.waitForTimeout(380);
-  const path=new URL(label+".png",dir);
+  const path=fileURLToPath(new URL(label+".png",dir));
   await page.screenshot({path,animations:"disabled"});
   const bytes=await readFile(path);
   if(bytes.length<10000)throw Error("Unexpectedly small browser screenshot");
@@ -56,7 +57,7 @@ try{
  await inspect("Orcs","Bomber","idle","orcs-bomber-idle","Roster OBJ");
  await page.goto(base+"/client",{waitUntil:"domcontentloaded"});
  await page.waitForSelector("#map");
- await page.screenshot({path:new URL("client-start-screen.png",dir)});
+ await page.screenshot({path:fileURLToPath(new URL("client-start-screen.png",dir))});
  if(summary.browserErrors.length||failed.length)
   throw Error("Browser JavaScript or server failures: "+JSON.stringify({
    errors:summary.browserErrors,failed}));
