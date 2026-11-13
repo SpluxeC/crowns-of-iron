@@ -161,6 +161,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
   skinnedLoader=null,
   modelUnits=0,modelBuildings=0,fallbackUnits=0;
+ const animationStates=new Map();
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
   gl.enableVertexAttribArray(position);gl.vertexAttribPointer(position,3,gl.FLOAT,false,24,0);
@@ -277,7 +278,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
     terrainVertexCount=data.length/6;terrainKey=key;rebuilds++;
    }
-   const verts=[],uvBatches=new Map();modelUnits=0;fallbackUnits=0;
+   const verts=[],uvBatches=new Map(),visibleAnimKeys=new Set();
+   modelUnits=0;fallbackUnits=0;
    for(const [i,p] of match.players.entries())for(const u of p.units.filter(
       u=>u.alive&&Number.isInteger(u.x)&&!u.embarkedAt&&!u.garrisonedAt)){
     const terrain=world.tiles[u.y*world.width+u.x],base=heightFor(terrain);
@@ -288,11 +290,19 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      p.id===match.viewerId?"#c5eeff":"#f58a7c";
     const detail=unitRoleVisual(u),cx=u.x+.5,cz=u.y+.5,top=bottom+style.height;
     const role=detail.role,
+     clip=previewPose??animationModeForUnit(u,match.orders?.[u.id]),
+     animKey=p.id+"/"+u.id,
+     now=Number.isFinite(match.elapsedMs)?match.elapsedMs:0,
+     previous=animationStates.get(animKey);
+    visibleAnimKeys.add(animKey);
+    if(!previous||previous.clip!==clip)
+     animationStates.set(animKey,{clip,from:previous?.clip??clip,changedAt:now});
+    const transition=animationStates.get(animKey),
+     blend=Math.max(0,Math.min(1,(now-transition.changedAt)/160)),
      skin=modelUnits<160&&SKINNED_ROLES.includes(u.archetype)?
        skinnedLoader?.get(p.faction,u.archetype):null,
-     mesh=skin?sampleSkinnedGltf(skin,
-       previewPose??animationModeForUnit(u,match.orders?.[u.id]),
-       match.elapsedMs??0):
+     mesh=skin?sampleSkinnedGltf(skin,clip,now,
+       {transitionFrom:transition.from,transitionAlpha:blend}):
        modelUnits<160?(rosterLoader?.get(p.faction,u.archetype)??
        models?.[factionMeshKey(p.faction,role)]??models?.[role]):null;
     if(mesh){
@@ -308,8 +318,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      }else appendObjVertices(verts,mesh,{x:cx,y:bottom,z:cz,scale,
       tint:selectedUnits.has(u.id)?[1,1,.77]:
        p.id===match.viewerId?[.82,1,1]:[1,.79,.79],
-      pose:skin?null:poseAt(previewPose??animationModeForUnit(u,match.orders?.[u.id]),
-       match.elapsedMs??0,(u.id?.length??0)*.07),
+      pose:skin?null:poseAt(clip,now,(u.id?.length??0)*.07),
       texture:textureForFaction(textures,p.faction),
       rig:skin?null:["worker","infantry","ranged","hero"].includes(role)?
        rigForFaction(p.faction):null});
@@ -343,6 +352,9 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
        segments[i]?"#78d59a":"#b95453");
     }
    }
+   // Cap transient state growth even in a long match with many dead/spawned IDs.
+   for(const key of animationStates.keys())if(!visibleAnimKeys.has(key))
+    animationStates.delete(key);
    const data=new Float32Array(verts);
    gl.viewport(0,0,canvas.width,canvas.height);
    gl.clearColor(.06,.12,.19,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
