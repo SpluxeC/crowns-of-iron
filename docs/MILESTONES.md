@@ -48,3 +48,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **4.0 Research effect completion:** 78/78 optional technology IDs have executable shared prototype handlers across all six civilizations, including XP, defensive unlocks, conversion, Aether, and siege disruption; effect balance/UX incomplete.
 - **4.1 Siege Tower ramp:** five-second deployment, abstract battlement garrison assaults and tower collapse passenger evacuation; no pathable wall-top geometry.
 - **4.2 Local network hardening:** atomic authenticated command batches, per-tick command budget, restricted client checksums and fogged enemy-unit metadata; public multiplayer architecture remains pending.
+
+- **4.3 Complete local upgrade handler coverage:** 21 upgrades per faction, 126 executable records; staffed hospital/vehicle support, local renewable and trade modifiers, defensive slots and timed gate mechanisms.
+- **4.4 Unit collision prototype:** opt-in deterministic placement and grid occupancy-blocking with formation destination reservations; congestion/pathing still limited.
+- **4.5 Host reliability probes:** loopback resync, atomic command-batch and token-rotation endpoints; in-process 8-player/2,400-population stress fixture, not real network load.
+- **4.6 Browser interactions:** switchable top-down/isometric 2.5D preview and Shift+click group movement; true GPU 3D client still to build.
