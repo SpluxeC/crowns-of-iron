@@ -17,6 +17,8 @@ import {queueBuildingUpgrade,cancelBuildingUpgrade,tickBuildingUpgrades} from ".
 import {orderStructureAttack,tickStructureCombat,repairBuilding} from "./structureCombat.js";
 import {setGateOpen} from "./gates.js";
 import {refreshStructureTechnology} from "./technologyEffects.js";
+import {garrisonUnit,ungarrisonUnit,tickFortificationFire} from "./fortifications.js";
+import {tickRenewables} from "./renewableEconomy.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -51,6 +53,8 @@ export function command(match,input,{allowDebug=false}={}){
     case "attackStructure":result=orderStructureAttack(match,id,input.unitId,input.siteId);break;
     case "repairBuilding":result=repairBuilding(match,id,input.siteId,input.workers,input.amount);break;
     case "gate":result=setGateOpen(match,id,input.siteId,input.open);break;
+    case "garrison":result=garrisonUnit(match,id,input.siteId,input.unitId);break;
+    case "ungarrison":result=ungarrisonUnit(match,id,input.unitId);break;
     case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
     case "heal":result=heal(player,input.healers,input.target,match.elapsedMs);break;
     case "repair":result=repair(player,input.workers,input.target,input.amount,match.elapsedMs);break;
@@ -85,8 +89,10 @@ function substep(match,ms,opts){
   }
   tickConstruction(match,ms);
   tickBuildingUpgrades(match,ms);
+  tickRenewables(match,ms);
   tickSpatialHarvest(match);
   tickBattlefield(match,ms);
+  tickFortificationFire(match);
   tickStructureCombat(match);
   checkElimination(match,ms);
   tickMode(match,ms);

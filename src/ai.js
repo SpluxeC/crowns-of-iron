@@ -4,7 +4,7 @@ import {ARCHETYPES} from "./catalog.js";
 import {setWorkerAllocation} from "./state.js";
 import {queueResearch} from "./research.js";
 import {queueUnit} from "./production.js";
-import {botTactics} from "./battlefield.js";
+import {planArmyOrders} from "./armyAI.js";
 import {startConstruction} from "./construction.js";
 import {canPlace} from "./map.js";
 import {unitDefinition,researchCatalog} from "./fullCatalog.js";
@@ -106,7 +106,7 @@ export function tickBots(match,deltaMs){
     const harvest=match.economyMode==="spatial"?assignSpatialBotWorker(match,id):null;
     const decision=tryResearch(player,match)??tryWorker(player,settings.workerGoal,match)??
       tryBaseExpansion(match,player)??tryInfantry(player,match)??(harvest?"harvest "+harvest.resource:null);
-    if(match.battlefield)botTactics(match,id);
+    if(match.battlefield)planArmyOrders(match,id,{stance:bot.stance??"assault",maxOrders:bot.difficulty==="Hard"?12:bot.difficulty==="Normal"?6:3});
     bot.decisions++;
     if(decision)events.push({id,decision,atMs:match.elapsedMs});
   }

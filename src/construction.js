@@ -7,6 +7,8 @@ import {refundDestroyedBuildingUpgrades} from "./buildingUpgrades.js";
 import {constructionDefinition} from "./structureCatalog.js";
 import {addMonument,removeMonument} from "./modes.js";
 import {refreshStructureTechnology} from "./technologyEffects.js";
+import {isCoastalStructure,validCoastalPlacement} from "./coastal.js";
+import {evacuateGarrison} from "./fortifications.js";
 
 export const STRUCTURES=Object.freeze({
   "Training Camp":{age:"I",cost:{Wood:100,Stone:40},ms:40000,footprint:[3,3],hp:800,armor:5},
@@ -39,6 +41,7 @@ export function startConstruction(match,owner,kind,x,y,workerIds){
   [x,y]=[Math.round(x),Math.round(y)];
   const [width,height]=def.footprint;
   assert(canPlace(map,x,y,width,height),"Invalid building placement");
+  if(isCoastalStructure(kind))assert(validCoastalPlacement(map,x,y,width,height),"Coastal building requires adjacent water");
   assert(workers.every(w=>Number.isInteger(w.x)&&findPath(map,{x:w.x,y:w.y},{x,y})),"Workers cannot reach site");
   assert(affordable(p.resources,def.cost),"Insufficient resources");
   spend(p.resources,def.cost);
@@ -83,6 +86,7 @@ export function destroyStructure(match,siteId){
   const job=match.constructions?.[siteId];assert(job,"Unknown constructed structure");
   const p=getPlayer(match,job.owner);
   if(!job.completed){return cancelConstruction(match,job.owner,siteId);}
+  evacuateGarrison(match,job);
   if(job.facilityKey){
     refundDestroyedBuildingUpgrades(p,job);
     if(p.unitQueues[job.facilityKey])destroyProductionFacility(p,job.facilityKey);
