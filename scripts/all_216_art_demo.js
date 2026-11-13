@@ -33,7 +33,7 @@ for(const faction of FACTION_SLUGS){
   assert(still.vertices.some((v,i)=>v!==moving.vertices[i]),
    "Vehicle animation absent "+faction+"/"+role);
   const hit=sampleVehicleGltf(model,"hit",110),death=sampleVehicleGltf(model,"death",650);
-  const idle0=sampleVehicleGltf(model,"idle",0),idle1=sampleVehicleGltf(model,"idle",235);
+  const idle0=sampleVehicleGltf(model,"walk",0),idle1=sampleVehicleGltf(model,"walk",235);
   for(const region of model.regions.slice(1))
    assert(idle0.vertices.some((v,i)=>i>=region.start*6&&i<region.end*6&&
     v!==idle1.vertices[i]),
