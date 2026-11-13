@@ -39,7 +39,10 @@ export function runArmyRehearsal({seed=609,ticks=3,squads=1}={}){
      }
    }
    assert(ids.length===24,"Not enough distinct squad spawn positions");
-   const target={x:home.x+direction.x*10,y:home.y+direction.y*10};
+   // The 25-slot formation includes a two-tile radius; keep every goal on map.
+   const clamp=(n,max)=>Math.max(3,Math.min(max-4,n));
+   const target={x:clamp(home.x+direction.x*10,map.width),
+    y:clamp(home.y+direction.y*10,map.height)};
    let result;
    try{
     result=host.submit({token:host.credentialsFor(p.id).token,
