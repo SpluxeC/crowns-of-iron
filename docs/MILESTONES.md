@@ -33,3 +33,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **2.8 Gates and walls:** explicit owner-only open/close gate commands, allied land passage and blocking walls; advanced siege interactions remain pending.
 - **2.9 Domain navigation:** separate terrain eligibility for land/sea/air and water-only naval spawns; water-map generation, docking and altitude remain pending.
 - **3.0 AI spatial harvesting:** opt-in spatial economy bots find finite deposits and haul to delivery; strategic AI/build orders and spatial multiplayer incomplete.
+
+- **3.1 Coastal generator:** explicit connected naval perimeter, deterministic shore pads and validated Dock/Shipyard adjacency; normal generator unchanged.
+- **3.2 Fortifications:** infantry garrisons for five structure types, owner-only orders, timed defensive fire, destruction evacuation and firing-slot technology.
+- **3.3 Executable tech:** now 60 of 78 optional effects per civilization; Farm, Forester and Aether condenser spatial renewables plus Corruption mitigation.
+- **3.4 Army AI:** server-side assault/defend/raid/hold stances, threat priority and reachable tactical targeting.
