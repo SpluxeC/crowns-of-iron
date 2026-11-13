@@ -107,7 +107,7 @@ function shader(gl,type,source){
  if(!gl.getShaderParameter(value,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(value));
  return value;
 }
-export function createWebGLRenderer(canvas){
+export function createWebGLRenderer(canvas,{preview=false}={}){
  const gl=canvas.getContext("webgl2",{antialias:true,alpha:false})||
   canvas.getContext("webgl",{antialias:true,alpha:false});
  if(!gl)return null;
@@ -146,7 +146,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   .map(k=>[k,gl.getUniformLocation(program,k)]));
  const staticBuffer=gl.createBuffer(),dynamicBuffer=gl.createBuffer();
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
- let yaw=.82,pitch=.72,radius=68,worldForPick=null,camForPick=null,
+ let yaw=.82,pitch=.72,radius=preview?18:68,worldForPick=null,camForPick=null,
   terrainKey=null,terrainVertexCount=0,rebuilds=0,
   models=null,modelPromise=null,modelFailure=null,
   modelUnits=0,modelBuildings=0,fallbackUnits=0;
@@ -277,7 +277,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   pick(px,py){return camForPick&&worldForPick
     ?raycastTerrain(camForPick,px,py,canvas.width,canvas.height,worldForPick):null},
   orbit(dx,dy){yaw+=dx*.009;pitch=Math.max(.22,Math.min(1.37,pitch+dy*.008));},
-  zoom(direction){radius=Math.max(30,Math.min(125,radius+direction*5));},
+  zoom(direction){radius=Math.max(preview?9:30,Math.min(preview?45:125,radius+direction*(preview?2:5)));},
   camera(){return {yaw,pitch,radius};},
   stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount,
    modelUnits,modelBuildings,fallbackUnits,loadedModels:models?Object.keys(models).length:0,

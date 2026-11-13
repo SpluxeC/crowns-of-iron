@@ -5,6 +5,8 @@ import {assert} from "./util.js";
 // Same-origin loopback development transport. Never publicly bind this server.
 const STATIC={
  "/client":["../web/netplay.html","text/html; charset=utf-8"],
+ "/model-gallery":["../web/modelGallery.html","text/html; charset=utf-8"],
+ "/modelGallery.js":["../web/modelGallery.js","text/javascript; charset=utf-8"],
  "/netplay.js":["../web/netplay.js","text/javascript; charset=utf-8"],
  "/webgl3d.js":["../web/webgl3d.js","text/javascript; charset=utf-8"],
  "/assetManifest.js":["../web/assetManifest.js","text/javascript; charset=utf-8"],
