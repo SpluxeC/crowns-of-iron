@@ -56,14 +56,19 @@ export function exportVehicleGltf(mesh,texture,{faction="humans",role="Bomber"}=
   uv=accessor(mesh.uvs,"VEC2",{target:34962}),
   color=accessor(colors,"VEC4",{target:34962});
  const animations=[];
- for(const mode of ["idle","walk","attack"]){
-  const duration=mode==="attack"?.7:mode==="walk"?1.2:2.2;
+ for(const mode of ["idle","walk","attack","hit","death"]){
+  const duration=mode==="hit"?.22:mode==="death"?.65:mode==="attack"?.7:mode==="walk"?1.2:2.2;
   const times=new Float32Array(Array.from({length:9},(_,i)=>duration*i/8));
   const translation=[],rotation=[];
   for(let i=0;i<times.length;i++){
-   const motion=vehicleMotion(role,mode,times[i]*1000,0);
-   translation.push(0,motion.rise,motion.recoil*-1);
-   rotation.push(...quaternion(motion.pitch,motion.roll,motion.yaw));
+   const motion=vehicleMotion(role,["hit","death"].includes(mode)?"idle":mode,times[i]*1000,0);
+   const progress=times[i]/duration;
+   // Finite, non-looping physical reaction curves. These remain visual only.
+   const kick=mode==="hit"?Math.sin(Math.PI*progress):0;
+   const fall=mode==="death"?progress*progress:0;
+   translation.push(0,motion.rise-.55*fall-.09*kick,motion.recoil*-1-.17*kick);
+   rotation.push(...quaternion(motion.pitch+.19*kick+.85*fall,
+    motion.roll+.07*kick+.52*fall,motion.yaw));
   }
   const input=accessor(times,"SCALAR",{min:[0],max:[duration]}),
    t=accessor(new Float32Array(translation),"VEC3"),
@@ -76,7 +81,7 @@ export function exportVehicleGltf(mesh,texture,{faction="humans",role="Bomber"}=
  }
  const image=ppmToPng(texture);
  const buffer=Buffer.concat(parts);
- return {asset:{version:"2.0",generator:"Crowns of Iron specialized vehicle art 9.9"},
+ return {asset:{version:"2.0",generator:"Crowns of Iron specialized vehicle art 10.3"},
   scene:0,scenes:[{nodes:[0]}],nodes:[{name:faction+" "+role,mesh:0}],
   meshes:[{name:role,primitives:[{attributes:{POSITION:position,NORMAL:n,
    TEXCOORD_0:uv,COLOR_0:color},material:0,mode:4}]}],
