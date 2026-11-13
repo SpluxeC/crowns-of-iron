@@ -1,14 +1,17 @@
 import {randomBytes} from "node:crypto";
 import {createMatch,command,step,snapshot,checksum} from "./simulation.js";
+import {makeMap} from "./map.js";
+import {attachBattlefield} from "./battlefield.js";
 import {assert,clone} from "./util.js";
 
 // Local authoritative protocol prototype. No public deployment, sockets,
 // authentication service or fog-of-war redaction is claimed.
 const COMMANDS=new Set(["allocate","research","cancelResearch","train","cancelTrain",
-  "move","attack","build","cancelBuild","ability","heal","repair"]);
+  "move","attack","build","cancelBuild","ability"]);
 export class MatchHost{
   constructor(participants,seed=1){
     this.match=createMatch(participants,seed);
+    attachBattlefield(this.match,makeMap({players:participants.length,seed}));
     this.sessions=new Map();
     this.events=[];
     this.sequence=0;
@@ -30,7 +33,7 @@ export class MatchHost{
     assert(COMMANDS.has(action),"Command forbidden by network protocol");
     assert(payload&&typeof payload==="object"&&!Array.isArray(payload),"Invalid command payload");
     assert(!("player" in payload)||payload.player===session.playerId,"Spoofed player");
-    // Assign owner based solely on the authenticated session.
+    // Healing/repair are withheld from this remote protocol until server-verified\n    // healer range, casting interval and engineer work loops are implemented.\n    // Assign owner based solely on the authenticated session.
     const order={...clone(payload),player:session.playerId,action};
     // Do not advance sequence on rejected commands. Client may retry properly.
     const result=command(this.match,order);
