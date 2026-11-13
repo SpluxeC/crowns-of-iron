@@ -28,14 +28,18 @@ for(const faction of FACTION_SLUGS){
    ROLE_SLUGS[role]+".gltf",import.meta.url),"utf8");
   const model=parseVehicleGltf(JSON.parse(source));
   assert(model.embeddedPng&&model.count>50);
+  for(const mode of ["hit","death"])assert.ok(model.animations[mode]);
   const still=sampleVehicleGltf(model,"idle",0),moving=sampleVehicleGltf(model,"attack",245);
   assert(still.vertices.some((v,i)=>v!==moving.vertices[i]),
    "Vehicle animation absent "+faction+"/"+role);
+  const hit=sampleVehicleGltf(model,"hit",110),death=sampleVehicleGltf(model,"death",650);
+  assert(still.vertices.some((v,i)=>v!==hit.vertices[i]));
+  assert(still.vertices.some((v,i)=>v!==death.vertices[i]));
   bytes+=Buffer.byteLength(source);vertices+=model.count;animated++;
  }
 }
 assert(animated===216);
-console.log(JSON.stringify({milestones:"9.9–10.2",
+console.log(JSON.stringify({milestones:"9.9–10.3",
  exportedGltfModels:animated,humanoidSkinned:96,specializedVehicles:120,
  sourceVertexCount:vertices,totalJsonBytes:bytes,
  animationFamilies:["humanoid bones","animated non-skinned vehicle mesh nodes"],
