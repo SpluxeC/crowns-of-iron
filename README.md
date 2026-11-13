@@ -81,3 +81,9 @@ For an opt-in ready/start lobby, run with `REQUIRE_READY=1` (PowerShell: `$env:R
 See [the 5.5–5.8 milestone notes](docs/MILESTONES_5_5_TO_5_8.md). The local multiplayer browser now supports early building placement with a selected Worker, choosing recruitment facilities, mandatory Age I–IV discoveries, and readable queues. The development server writes a local checkpoint to `.local/crowns-host-checkpoint.json` approximately every 5 seconds and at normal SIGINT/SIGTERM shutdown.
 
 **Existing saves are protected.** Restart with `RESTORE_CHECKPOINT=1` to explicitly resume, or `RESET_CHECKPOINT=1` to explicitly discard an old local checkpoint. On restoration all dev session tokens change; use the newly printed credentials in your browser tabs. Neither mode should be used against untrusted checkpoint files. Browser updates use authenticated SSE and a polling safety net. This remains a developer-only loopback prototype.
+
+### Milestones 5.9–6.2 — Full faction option UI and army rehearsal
+
+See [5.9–6.2 detailed notes](docs/MILESTONES_5_9_TO_6_2.md). The loopback multiplayer prototype now loads the checked-in, reconciled v0.2 six-faction catalog on fresh startup by default, exposes an authenticated **GET /catalog** containing only the requesting player's buildings, trainable roles and technologies, and uses that catalog to power the browser's option menus, research filters and cancelable queues. Set `FULL_CATALOG=0` for the original shared-archetype-only prototype.
+
+Multi-unit formation path planning now shares passability preprocessing across same-role soldiers. A deterministic eight-player in-process rehearsal executes 192 formation orders across 224 living units (including starting workers/scouts) and validates collision and fog invariants. Run `npm run batch-5.9-demo` and `npm test` to verify. **Not** a final 3D experience, an actual multi-computer test or production Internet multiplayer.
