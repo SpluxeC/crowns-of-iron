@@ -14,7 +14,7 @@ h1{font-size:21px;margin:0;font-weight:750;letter-spacing:.02em}
 small,.muted{color:#9cb6c7}
 main{display:grid;grid-template-columns:minmax(360px,1fr) 340px;gap:16px;padding:18px;max-width:1500px;margin:0 auto}
 .panel{background:#182d40;border:1px solid #345168;border-radius:12px;padding:15px;min-width:0}
-#map{background:#1b3d3b;width:100%;height:auto;border-radius:8px;image-rendering:pixelated;border:1px solid #58776e;touch-action:manipulation}
+#map,#map3d{background:#1b3d3b;width:100%;height:auto;border-radius:8px;image-rendering:pixelated;border:1px solid #58776e;touch-action:manipulation}
 .controls{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0 12px}
 button,select{border:1px solid #567086;background:#22485c;color:white;padding:10px 12px;border-radius:7px;font:inherit;cursor:pointer}
 button:hover{background:#2c6077}
@@ -33,21 +33,24 @@ h3{font-size:14px;margin:15px 0 7px}
 .badge{border:1px solid #406b69;background:#1b554e;border-radius:16px;padding:5px 9px;color:#bde8d9;font-size:11px}
 .legend{font-size:12px;color:#b4cbda;line-height:1.5;padding:8px 1px}
 #status{font-size:12px;color:#a8c7d3}
+[hidden]{display:none!important}
+#map3d{touch-action:none}
 @media(max-width:820px){main{grid-template-columns:1fr;padding:10px}.panel{padding:12px}header{padding:12px}h1{font-size:18px}}
 </style>
 </head>
 <body>
-<header><div><h1>Crowns of Iron</h1><small>Interactive Browser Prototype — Isometric Preview Available</small></div><span class="badge">Not the final 3D game</span></header>
+<header><div><h1>Crowns of Iron</h1><small>Interactive Browser Prototype — WebGL 3D Preview Available</small></div><span class="badge">Not the final 3D game</span></header>
 <main>
 <section class="panel" aria-label="Map and simulation controls">
 <div class="controls">
-<button id="viewMode" title="Toggle experimental isometric terrain preview">View: Top-down</button>
+<button id="viewMode" title="Cycle top-down, isometric and WebGL 3D terrain previews">View: Top-down</button>
 <button class="primary" id="advance10">Advance 10 seconds</button>
 <button id="advance60">Advance 60 seconds</button>
 <button id="auto">Auto-run: Off</button>
 <button id="reset" class="warn">Reset map & match</button>
 </div>
 <canvas id="map" width="800" height="640" tabindex="0" aria-label="Generated two-dimensional game map. Click a tile to inspect it." ></canvas>
+<canvas id="map3d" width="800" height="640" tabindex="0" aria-label="WebGL 3D terrain and units; drag to orbit, wheel to zoom, click to inspect a tile" hidden></canvas>
 <div class="legend">Green = land · Dark green = forest · Slate = hills · Blue = water · Gold = deposit · White = player units · Red = AI units · Blue outline = selected tile</div>
 <div id="selected" aria-live="polite">Select a map tile to inspect terrain and resources.</div>
 <div id="status" role="status"></div>
@@ -66,7 +69,7 @@ h3{font-size:14px;margin:15px 0 7px}
 <button id="formation">Move selected group</button>
 <button id="attack">Attack enemy unit</button>
 </div>
-<small>Click a friendly unit to select it, Shift+click to select several, then choose Move, Move selected group, or Attack. The isometric view is a 2.5D preview, not the final 3D renderer. Construction reserves a site, requires a worker and completes after simulation time. Red units belong to the basic AI opponent.</small>
+<small>Click a friendly unit to select it, Shift+click to select several, then choose Move, Move selected group, or Attack. WebGL draws GPU 3D block geometry: drag to orbit and scroll to zoom. This is not final art. Construction reserves a site, requires a worker and completes after simulation time. Red units belong to the basic AI opponent.</small>
 <h3>Event Log</h3><div id="log" aria-live="polite"></div>
 </aside>
 </main>

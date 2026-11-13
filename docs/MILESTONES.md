@@ -53,3 +53,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **4.4 Unit collision prototype:** opt-in deterministic placement and grid occupancy-blocking with formation destination reservations; congestion/pathing still limited.
 - **4.5 Host reliability probes:** loopback resync, atomic command-batch and token-rotation endpoints; in-process 8-player/2,400-population stress fixture, not real network load.
 - **4.6 Browser interactions:** switchable top-down/isometric 2.5D preview and Shift+click group movement; true GPU 3D client still to build.
+
+- **4.7 Congestion detours:** deterministic, bounded occupancy-aware movement replanning in opt-in collision mode; no physics footprint or sophisticated chokepoint control.
+- **4.8 WebGL 3D terrain preview:** orbit/zoom camera and GPU block geometry for terrain, elevation, sites and units; no final art, animation or physically accurate picking.
+- **4.9 Pre-match readiness:** opt-in authenticated local lobby, all-ready check and host-only launch before commands/advancement.
+- **5.0 Host checkpoints:** checked match, sequence/version and readiness restoration with newly generated session tokens; not secure signed saves or persistent hosted service.
