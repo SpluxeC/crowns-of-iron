@@ -19,6 +19,8 @@ import {setGateOpen} from "./gates.js";
 import {refreshStructureTechnology} from "./technologyEffects.js";
 import {garrisonUnit,ungarrisonUnit,tickFortificationFire} from "./fortifications.js";
 import {tickRenewables} from "./renewableEconomy.js";
+import {orderFormation,orderSiege} from "./formationOrders.js";
+import {assignSeaTrade,cancelSeaTrade,tickNavalEconomy} from "./navalEconomy.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -53,6 +55,10 @@ export function command(match,input,{allowDebug=false}={}){
     case "attackStructure":result=orderStructureAttack(match,id,input.unitId,input.siteId);break;
     case "repairBuilding":result=repairBuilding(match,id,input.siteId,input.workers,input.amount);break;
     case "gate":result=setGateOpen(match,id,input.siteId,input.open);break;
+    case "formation":result=orderFormation(match,id,input.units,input.x,input.y);break;
+    case "siege":result=orderSiege(match,id,input.unitId,input.siteId);break;
+    case "seaTrade":result=assignSeaTrade(match,id,input.vesselId,input.fromSite,input.toSite);break;
+    case "cancelSeaTrade":result=cancelSeaTrade(match,id,input.vesselId);break;
     case "garrison":result=garrisonUnit(match,id,input.siteId,input.unitId);break;
     case "ungarrison":result=ungarrisonUnit(match,id,input.unitId);break;
     case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
@@ -92,6 +98,7 @@ function substep(match,ms,opts){
   tickRenewables(match,ms);
   tickSpatialHarvest(match);
   tickBattlefield(match,ms);
+  tickNavalEconomy(match,ms);
   tickFortificationFire(match);
   tickStructureCombat(match);
   checkElimination(match,ms);

@@ -12,6 +12,7 @@ const specs={
 "ECO-06":{kind:"farmOutput",pct:.10},
 "ECO-07":{kind:"foresterOutput",pct:.10},
 "ECO-08":{kind:"gather",resource:"all",pct:.05},
+"ECO-09":{kind:"tradeRevenue",pct:.05},
 "MIL-01":{kind:"unitAttack",target:"physical",pct:.05},
 "MIL-02":{kind:"unitAttack",target:"physical",pct:.05},
 "MIL-03":{kind:"unitHp",target:"infantry",pct:.05},
@@ -20,12 +21,18 @@ const specs={
 "MIL-06":{kind:"unitHp",target:"infantry",pct:.05},
 "MIL-08":{kind:"unitAttack",target:"ranged",pct:.05},
 "MIL-09":{kind:"unitAttack",target:"mobile",pct:.05},
+"MIL-10":{kind:"healing",pct:.05},
 "NAV-01":{kind:"unitSpeed",target:"ship",pct:.05},
 "NAV-02":{kind:"unitHp",target:"ship",pct:.08},
+"NAV-03":{kind:"fishOutput",pct:.10},
+"NAV-04":{kind:"passengers",target:"Transport Ship",amount:2},
+"NAV-05":{kind:"structureAttack",target:"shoreSiege",pct:.05},
 "NAV-06":{kind:"unitSpeed",target:"ship",pct:.05},
 "NAV-07":{kind:"unitHp",target:"heavyShip",pct:.08},
 "NAV-08":{kind:"unitAttack",target:"navalSiege",pct:.10},
 "NAV-09":{kind:"unitSpeed",target:"steamShip",pct:.05},
+"NAV-10":{kind:"tradeRevenue",pct:.05},
+"AIR-01":{kind:"scoutSight",pct:.10},
 "AIR-02":{kind:"scoutSight",pct:.10},
 "AIR-03":{kind:"unitSpeed",target:"air",pct:.05},
 "AIR-04":{kind:"unitSpeed",target:"air",pct:.05},
@@ -33,10 +40,12 @@ const specs={
 "AIR-06":{kind:"unitAttack",target:"Interceptor",pct:.05},
 "AIR-07":{kind:"unitAttack",target:"Gunship",pct:.05},
 "AIR-08":{kind:"structureAttack",target:"Bomber",pct:.08},
+"AIR-09":{kind:"passengers",target:"Air Transport",amount:2},
 "AIR-10":{kind:"unitAttack",target:"combatAir",pct:.05},
 "SPC-01":{kind:"healing",pct:.05},
 "SPC-07":{kind:"salvage",pct:.05},
 "SPC-09":{kind:"repair",pct:.10},
+"SPC-08":{kind:"healing",pct:.05},
 "SPC-10":{kind:"aetherOutput",pct:.10},
 "SPC-05":{kind:"corruptionMitigation",pct:.10},
 "FAC-01":{kind:"gather",resource:"Food",pct:.05},
@@ -46,6 +55,7 @@ const specs={
 "FAC-06":{kind:"unitHp",target:"infantry",pct:.05},
 "FAC-07":{kind:"production",pct:.05},
 "FAC-13":{kind:"aetherOutput",pct:.05},
+"FAC-14":{kind:"tradeRevenue",pct:.05},
 "FAC-08":{kind:"unitAttack",target:"siege",pct:.08},
 "FAC-09":{kind:"healing",pct:.05},
 "FAC-11":{kind:"unitAttack",target:"Legendary Land",pct:.08},
@@ -85,6 +95,7 @@ function matches(unit,target){
  case "heavyLand":return heavyLand.has(role);
  case "steamShip":return heavyShips.has(role);
  case "siege":return ["Battering Ram","Heavy Artillery","Heavy War Machine","Naval Siege Ship"].includes(role);
+ case "shoreSiege":return ["Heavy Warship","Naval Siege Ship","Legendary Warship"].includes(role);
  default:return role===target;
  }
 }
@@ -108,11 +119,17 @@ export function refreshUnitTechnology(player,unit){
  unit.baseMaxHp??=unit.maxHp;
  unit.baseAttack??=unit.attack;
  unit.baseSpeed??=unit.speed;
+ unit.basePassengerCapacity??=unit.passengerCapacity??0;
+ unit.passengerCapacity=unit.basePassengerCapacity;
  const hp=Math.max(1,Math.round(unit.baseMaxHp*researchMultiplier(player,"unitHp",{unit})));
  const lost=unit.maxHp-unit.hp;
  unit.maxHp=hp;unit.hp=Math.max(1,hp-lost);
  unit.attack=Math.round(unit.baseAttack*researchMultiplier(player,"unitAttack",{unit})*1000)/1000;
  if(unit.baseSpeed>0)unit.speed=Math.round(unit.baseSpeed*researchMultiplier(player,"unitSpeed",{unit})*1000)/1000;
+ for(const id of player.completed??[]){
+   const effect=specs[id];
+   if(effect?.kind==="passengers"&&matches(unit,effect.target))unit.passengerCapacity+=effect.amount;
+ }
 }
 export function structureTechnologyMultiplier(player,kind){
  const basic=new Set(["Shelter","Resource Depot","Training Camp","Farm"]);
@@ -146,7 +163,7 @@ export function refreshStructureTechnology(match,player){
 export function applyTechnologyCompletion(player,id){
  const effect=specs[id];
  if(!effect)return;
- if(effect.kind.startsWith("unit"))for(const unit of player.units)refreshUnitTechnology(player,unit);
+ if(effect.kind.startsWith("unit")||effect.kind==="passengers")for(const unit of player.units)refreshUnitTechnology(player,unit);
  if(effect.kind==="townHousing")player.popCap=Math.min(300,player.popCap+effect.amount);
 }
 export function executableCoverage(ids){

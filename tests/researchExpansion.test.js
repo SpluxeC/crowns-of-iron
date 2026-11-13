@@ -8,9 +8,9 @@ import {refreshStructureTechnology,researchMultiplier,structureTechnologyMultipl
 import {readFileSync} from "node:fs";
 const data=JSON.parse(readFileSync("data/balance-v0.2.json","utf8"));
 const participants=[{id:"a",faction:"Humans"},{id:"b",faction:"Orcs"}];
-test("60 optional technologies have typed handlers; 18 per faction remain pending",()=>{
+test("70 optional technologies have typed handlers; 8 per faction remain pending",()=>{
  const ids=data.research.rows.filter(r=>r[0]==="Humans").map(r=>r[1]);
- assert.deepEqual(executableCoverage(ids),{total:90,ageProgression:12,implemented:60,pending:18});
+ assert.deepEqual(executableCoverage(ids),{total:90,ageProgression:12,implemented:70,pending:8});
 });
 test("building research upgrades stack additively, preserve missing HP, do not regenerate",()=>{
  const m=createMatch(participants),p=m.players[0];

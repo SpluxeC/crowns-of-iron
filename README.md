@@ -3,7 +3,7 @@
 A five-age fantasy RTS with Humans, Orcs, Dwarfs, Tree Elves, Corrupt Elves, and Ursa.
 
 ## Status
-**Headless simulation prototype, milestones 0.1–3.4.** This is not a playable 3D game or tested network multiplayer. Work is isolated on a development branch for review.
+**Headless simulation prototype, milestones 0.1–3.8.** This is not a playable 3D game or tested network multiplayer. Work is isolated on a development branch for review.
 
 ## Requirements
 Node.js 22+. No package installation or external runtime dependencies.
@@ -56,3 +56,6 @@ The executable optional technology handlers now cover 52/78 research IDs per fac
 
 ## Milestones 3.1–3.4
 The prototype now includes opt-in connected coastal maps, coast-only Docks/Shipyards, staffed defensive towers/garrisons, **60 of 78 executable optional technologies per civilization**, renewable Farm/Forester/Aether production in spatial economy mode and deterministic army AI stances. Run `npm run batch-3.1-demo` for a reproducible smoke test. See [Milestones 3.1–3.4](docs/MILESTONES_3_1_TO_3_4.md) for implementation scope and remaining limitations.
+
+## Milestones 3.5–3.8
+Opt-in connected island sea lanes, finite ship fishing and completed dock-to-dock trade, naval-vs-land/air attack eligibility, **70 of 78 executable optional technologies per faction**, group formation and siege orders, and local authoritative snapshot resynchronization with reconnect-token rotation. Run `npm run batch-3.5-demo` and review [Milestones 3.5–3.8](docs/MILESTONES_3_5_TO_3_8.md). Eight optional tech effects per faction and full transport boarding, real network multiplayer, unit collision and the complete 3D game are still unfinished.

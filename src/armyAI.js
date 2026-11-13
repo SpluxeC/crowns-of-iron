@@ -1,6 +1,7 @@
 import {assert} from "./util.js";
 import {pathForUnit,movementDomain} from "./movementDomains.js";
 import {ATTACK_PROFILE} from "./battlefield.js";
+import {canEngage} from "./engagementRules.js";
 
 const STANCES=new Set(["assault","defend","raid","hold"]);
 const ANTI_AIR=new Set(["Anti-Air Infantry","Interceptor","Gunship","Aerial Battleship"]);
@@ -17,7 +18,7 @@ export function setArmyStance(match,owner,stance){
  return stance;
 }
 function eligible(u,target){
- return target.category!=="Air"||ANTI_AIR.has(u.archetype);
+ return canEngage(u,target);
 }
 function score(target,unit,stance,allyFocus){
  let s=distance(target,unit)*10;

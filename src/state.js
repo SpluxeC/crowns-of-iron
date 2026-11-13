@@ -25,6 +25,7 @@ export function makeUnit(player,archetype,definition,id){
     attack:alreadyBalanced?definition.attack:Math.round((definition.attack??0)*(archetype==="Hero"?1:modifiers.attack)*10)/10,
     speedScale:alreadyBalanced?1:modifiers.speed,
     speed:definition.speed??null,range:definition.range??null,intervalMs:definition.intervalMs??null,
+    passengerCapacity:definition.passengerPop??0,
     category:definition.category??"Standard",type:definition.type??"Slash",
     cost:clone(definition.cost??{}),alive:true,status:[],nextAttackAtMs:0};
 }

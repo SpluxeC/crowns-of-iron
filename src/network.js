@@ -8,7 +8,7 @@ import {researchMultiplier} from "./technologyEffects.js";
 // Local authoritative protocol prototype; no public deployment, matchmaking,
 // dedicated authorization backend or production fog-of-war guarantees.
 const COMMANDS=new Set(["allocate","research","cancelResearch","train","cancelTrain",
-  "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","ability"]);
+  "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","formation","siege","seaTrade","cancelSeaTrade","ability"]);
 export class MatchHost{
   constructor(participants,seed=1){
     this.match=createMatch(participants,seed);
@@ -16,6 +16,7 @@ export class MatchHost{
     this.sessions=new Map();
     this.events=[];
     this.sequence=0;
+    this.version=0;
     for(const p of this.match.players){
       const token=randomBytes(24).toString("hex");
       this.sessions.set(token,{playerId:p.id,lastSequence:0});
@@ -44,7 +45,7 @@ export class MatchHost{
       assert(target&&(enemy.team===viewer.team||this.isVisible(viewer,target)),
         "Enemy target is not visible");
     }
-    if(action==="attackStructure"){
+    if(action==="attackStructure"||action==="siege"){
       const site=this.match.constructions?.[payload.siteId];
       const location=this.match.battlefield?.structures?.find(s=>s.id===payload.siteId);
       const viewer=this.match.players.find(p=>p.id===session.playerId);
@@ -55,13 +56,15 @@ export class MatchHost{
     const result=command(this.match,order);
     session.lastSequence=sequence;
     this.sequence++;
-    this.events.push({sequence:this.sequence,player:session.playerId,action,atMs:this.match.elapsedMs});
+    this.version++;
+    this.events.push({sequence:this.sequence,version:this.version,player:session.playerId,action,atMs:this.match.elapsedMs});
     return {accepted:true,sequence,matchChecksum:checksum(this.match),result:result??null};
   }
   advance(ms){
     assert(Number.isSafeInteger(ms)&&ms>0&&ms<=60000,"Invalid host tick");
     step(this.match,ms);
-    return {nowMs:this.match.elapsedMs,checksum:checksum(this.match)};
+    this.version++;
+    return {nowMs:this.match.elapsedMs,version:this.version,checksum:checksum(this.match)};
   }
   isVisible(viewer,target){
     if(!Number.isInteger(target.x)||!Number.isInteger(target.y))return false;
@@ -91,6 +94,10 @@ export class MatchHost{
         }))};
     });
     if(state.battlefield){
+      if(state.battlefield.fishShoals)state.battlefield.fishShoals=state.battlefield.fishShoals.filter(t=>inVision(t.x,t.y));
+      if(state.battlefield.coastalPads)state.battlefield.coastalPads=state.battlefield.coastalPads.filter(t=>{
+        const player=this.match.players[t.player];return player?.team===team||inVision(t.x,t.y);
+      });
       state.battlefield.tiles=state.battlefield.tiles.map(t=>inVision(t.x,t.y)?t:
         {x:t.x,y:t.y,terrain:"unknown",resource:null,amount:0,occupied:null});
       state.battlefield.structures=state.battlefield.structures.filter(s=>
@@ -110,7 +117,27 @@ export class MatchHost{
     delete state.commands;
     delete state.bots;
     delete state.fullCatalog;
-    return {playerId:viewer.id,state,checksum:checksum(state)};
+    return {playerId:viewer.id,version:this.version,state,checksum:checksum(state)};
+  }
+  resync({token,afterVersion=0}){
+    const session=this.sessions.get(token);
+    assert(session,"Unauthorized session");
+    assert(Number.isSafeInteger(afterVersion)&&afterVersion>=0&&
+      afterVersion<=this.version,"Invalid client state version");
+    // Event metadata excludes private payloads. Only the server's fog-filtered
+    // full snapshot is authoritative; a client must never merge guessed units.
+    const state=this.view(token);
+    const events=this.events.filter(e=>e.version>afterVersion&&e.player===session.playerId)
+      .map(e=>({...e}));
+    return {...state,events};
+  }
+  rotateToken(token){
+    const session=this.sessions.get(token);
+    assert(session,"Unauthorized session");
+    this.sessions.delete(token);
+    const replacement=randomBytes(24).toString("hex");
+    this.sessions.set(replacement,session);
+    return {playerId:session.playerId,token:replacement,version:this.version};
   }
   activity(){return this.events.map(e=>({...e}));}
 }

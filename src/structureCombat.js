@@ -5,6 +5,7 @@ import {damage} from "./combat.js";
 import {destroyToRuin} from "./ruins.js";
 import {hasLineOfSight} from "./tacticalNavigation.js";
 import {researchMultiplier} from "./technologyEffects.js";
+import {mayAttackStructure} from "./engagementRules.js";
 
 const timber=new Set(["Shelter","Resource Depot","Training Camp","Farm","Archery Range"]);
 function distToSite(unit,placement){
@@ -34,7 +35,7 @@ export function orderStructureAttack(match,owner,unitId,siteId){
   const targetOwner=getPlayer(match,site.owner);
   assert(targetOwner.team!==player.team,"Cannot attack friendly buildings");
   const range=unit.range??(ATTACK_PROFILE[unit.archetype]?.[0]??0);
-  assert(unit.attack>0&&range>0,"Unit has no siege-capable direct attack");
+  assert(mayAttackStructure(unit)&&range>0,"Unit has no siege-capable direct attack");
   assert(distToSite(unit,location)<=range,"Target structure out of weapon range");
   assert(range<=1||hasLineOfSight(match.battlefield,unit,structureAim(unit,location)),
     "Structure blocked by line of sight");
@@ -47,15 +48,16 @@ export function tickStructureCombat(match){
   for(const player of match.players){
     for(const unit of player.units.filter(x=>x.alive)){
       const order=match.orders?.[unit.id];
-      if(order?.kind!=="structure")continue;
+      if(order?.kind!=="structure"&&order?.kind!=="siege")continue;
       const site=match.constructions?.[order.siteId];
       const loc=match.battlefield.structures.find(s=>s.id===order.siteId);
       if(!site?.completed||!loc){delete match.orders[unit.id];continue;}
-      if(getPlayer(match,site.owner).team===player.team){delete match.orders[unit.id];continue;}
+      if(getPlayer(match,site.owner).team===player.team||!mayAttackStructure(unit)){delete match.orders[unit.id];continue;}
       const range=unit.range??(ATTACK_PROFILE[unit.archetype]?.[0]??0);
       if(distToSite(unit,loc)>range||
         (range>1&&!hasLineOfSight(match.battlefield,unit,structureAim(unit,loc)))){
-        delete match.orders[unit.id];continue;}
+        if(order.kind==="structure")delete match.orders[unit.id];
+        continue;}
       if((unit.nextAttackAtMs??0)>match.elapsedMs)continue;
       const buff=(unit.buffs??[]).filter(b=>b.expiresMs>match.elapsedMs);
       const attack=buff.reduce((sum,b)=>sum*(b.attackMultiplier??1),unit.attack)*

@@ -4,6 +4,8 @@ import {strike} from "./combat.js";
 import {getPlayer} from "./state.js";
 import {hasLineOfSight} from "./tacticalNavigation.js";
 import {pathForUnit,tileTraversable,movementDomain} from "./movementDomains.js";
+import {canEngage} from "./engagementRules.js";
+import {refreshSiegePath} from "./formationOrders.js";
 
 export const ATTACK_PROFILE=Object.freeze({
   Worker:[1,2000],Scout:[1,1600],"Club Fighter":[1,1800],"Stone Slinger":[5,2200],
@@ -55,6 +57,7 @@ export function issueAttack(match,pid,unitId,targetPlayer,targetId){
   const p=getPlayer(match,pid),other=getPlayer(match,targetPlayer);
   assert(p.team!==other.team,"Cannot attack an allied team");
   assert(unit.attack>0,"Unit has no direct weapon");
+  assert(canEngage(unit,enemy),"Target domain ineligible");
   assert(!unit.garrisonedAt&&!enemy.garrisonedAt&&Number.isInteger(unit.x)&&Number.isInteger(enemy.x),"Units lack positions or are garrisoned");
   match.orders[unitId]={kind:"attack",targetPlayer,targetId,carryMs:0};
 }
@@ -79,10 +82,14 @@ export function tickBattlefield(match,deltaMs){
       }
       const order=match.orders?.[unit.id];
       if(!order)continue;
+      if(order.kind==="siege"){
+        refreshSiegePath(match,unit,order);
+        if(!match.orders?.[unit.id])continue;
+      }
       if(order.kind==="attack"){
         const enemy=match.players.find(x=>x.id===order.targetPlayer);
         const target=enemy?.units.find(x=>x.id===order.targetId&&x.alive);
-        if(!target){delete match.orders[unit.id];continue;}
+        if(!target||!canEngage(unit,target)){delete match.orders[unit.id];continue;}
         const [fallbackRange,fallbackInterval]=ATTACK_PROFILE[unit.archetype]??[1,2000];
         const range=unit.range??fallbackRange,interval=unit.intervalMs||fallbackInterval;
         if(!range){delete match.orders[unit.id];continue;}
@@ -131,7 +138,7 @@ export function botTactics(match,playerId){
   for(const u of p.units.filter(x=>x.alive&&x.attack>0&&Number.isInteger(x.x)&&
     !(match.economyMode==="spatial"&&x.archetype==="Worker"))){
     if(match.orders?.[u.id]?.kind==="attack")continue;
-    const candidates=targets.filter(t=>t.unit.category!=="Air"||["Anti-Air Infantry","Interceptor","Gunship","Aerial Battleship"].includes(u.archetype));
+    const candidates=targets.filter(t=>canEngage(u,t.unit));
     candidates.sort((a,b)=>{
       const da=Math.abs(u.x-a.unit.x)+Math.abs(u.y-a.unit.y);
       const db=Math.abs(u.x-b.unit.x)+Math.abs(u.y-b.unit.y);
