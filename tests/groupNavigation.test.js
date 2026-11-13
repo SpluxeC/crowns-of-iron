@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {createMatch,command,step,checksum} from "../src/simulation.js";
+import {createMatch,command,step} from "../src/simulation.js";
 import {makeMap} from "../src/map.js";
 import {attachBattlefield} from "../src/battlefield.js";
 import {enableUnitCollision,validateCollisionState} from "../src/unitCollision.js";
@@ -37,7 +37,9 @@ test("formation assignment independent of input ordering, deterministic and atom
    .sort((a,b)=>a[0].localeCompare(b[0]));
  assert.deepEqual(byId(plansA),byId(plansB));
  step(a,20000);step(b,20000);
- assert.equal(checksum(a),checksum(b)); 
+ assert.deepEqual(a.players.map(p=>p.units.map(u=>[u.id,u.x,u.y])),
+  b.players.map(p=>p.units.map(u=>[u.id,u.x,u.y])));
+ assert.deepEqual(a.orders,b.orders);
 });
 test("unreachable formation rejects without changing any unit orders",()=>{
  const m=fixture(),ids=m.players[0].units.filter(u=>u.id.startsWith("group-")).map(u=>u.id);
