@@ -27,7 +27,7 @@ export async function runBrowserDeliverySmoke(){
   "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js",
   "/rosterArt.js","/rosterLoader.js","/animationClips.js",
   "/skinnedGltf.js","/textureShader.js","/skinnedRoster.js","/materialDetail.js",
-  "/vehicleMotion.js","/vehicleArt.js","/vehicleGltf.js","/combatVisuals.js"];
+  "/vehicleMotion.js","/vehicleArt.js","/vehicleGltf.js","/combatVisuals.js","/vehicleComponents.js","/vehicleAccessories.js","/vehicleFinish.js","/battleWear.js","/combatVfx.js","/damageFinish.js","/factionCombatVfx.js","/artFrameBudget.js","/buildingArchitecture.js","/terrainAtmosphere.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
