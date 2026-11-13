@@ -21,7 +21,10 @@ test("real glTF 2.0 animated non-humanoid mesh validates and changes during atta
   assert.equal(mesh.embeddedPng,true);
   assert.ok(mesh.componentCount>=36);
   assert.ok(mesh.baseCount>50);
-  assert.equal(mesh.count,mesh.baseCount+mesh.componentCount);
+  assert.equal(mesh.attachmentCount,3);
+  assert.equal(mesh.regions.length,4);
+  assert.equal(mesh.regions.at(-1).end,mesh.count);
+  assert.equal(mesh.regions[1].end-mesh.regions[1].start,mesh.componentCount);
   for(const mode of ["hit","death"])assert.ok(mesh.animations[mode]);
   const initial=sampleVehicleGltf(mesh,"idle",0);
   const attack=sampleVehicleGltf(mesh,"attack",350);
@@ -29,10 +32,13 @@ test("real glTF 2.0 animated non-humanoid mesh validates and changes during atta
   assert.ok(initial.vertices.some((value,i)=>value!==attack.vertices[i]));
   const hit=sampleVehicleGltf(mesh,"hit",110),death=sampleVehicleGltf(mesh,"death",650);
   // Child rigid assembly must animate independently of hull in idle.
-  const a=sampleVehicleGltf(mesh,"idle",0),b=sampleVehicleGltf(mesh,"idle",235);
+  const a=sampleVehicleGltf(mesh,"walk",0),b=sampleVehicleGltf(mesh,"walk",235);
   const relative=(pose,index)=>Array.from(pose.vertices.slice(index*6,index*6+3))
    .map((v,k)=>v-pose.vertices[k]);
   assert.notDeepEqual(relative(a,mesh.baseCount),relative(b,mesh.baseCount));
+  // Every added independently animated subassembly changes relative to hull.
+  for(const region of mesh.regions.slice(1))
+   assert.notDeepEqual(relative(a,region.start),relative(b,region.start));
   assert.ok(initial.vertices.some((v,i)=>v!==hit.vertices[i]));
   assert.ok(initial.vertices.some((v,i)=>v!==death.vertices[i]));
   assert.deepEqual(sampleVehicleGltf(mesh,"death",650).vertices,
@@ -45,7 +51,7 @@ test("vehicle glTF input validation rejects skin attachment, malformed buffers a
  delete doc.skins;
  doc.nodes[0].children=[];
  assert.throws(()=>parseVehicleGltf(doc),/Invalid specialized/);
- doc.nodes[0].children=[1];
+ doc.nodes[0].children=[1,2,3];
  doc.animations[0].channels[2].target.node=42;
  assert.throws(()=>parseVehicleGltf(doc),/Invalid vehicle track/);
  const loader=createVehicleGltfLoader(async()=>({ok:false}));
