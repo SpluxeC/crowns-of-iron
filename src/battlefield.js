@@ -4,6 +4,8 @@ import {strike} from "./combat.js";
 import {getPlayer} from "./state.js";
 import {hasLineOfSight} from "./tacticalNavigation.js";
 import {pathForUnit,tileTraversable,movementDomain} from "./movementDomains.js";
+import {canEngage} from "./engagementRules.js";
+import {refreshSiegePath} from "./formationOrders.js";
 
 export const ATTACK_PROFILE=Object.freeze({
   Worker:[1,2000],Scout:[1,1600],"Club Fighter":[1,1800],"Stone Slinger":[5,2200],
