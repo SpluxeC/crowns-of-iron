@@ -121,7 +121,21 @@ export function tickBattlefield(match,deltaMs){
       order.carryMs=Math.min(2000,(order.carryMs??0)+deltaMs);
       // Bounded movement: up to 3 tiles per simulation step.
       for(let n=0;n<3&&order.carryMs>=speedMs&&order.path?.length;n++){
-        if(!walkOne(match,p.id,unit,order))break;
+        if(!walkOne(match,p.id,unit,order)){
+          // 4.7: deterministic, bounded reroute around moving congestion.
+          // An occupied final destination is left pending until it becomes free.
+          if(match.unitCollision&&order.kind==="move"&&order.destination){
+            order.blockedSteps=(order.blockedSteps??0)+1;
+            if(order.blockedSteps%2===1){
+              const route=pathForUnit(match,p.id,unit.archetype,
+                {x:unit.x,y:unit.y},order.destination,
+                {blocked:(x,y)=>isOccupiedByUnit(match,unit,x,y)});
+              if(route?.length>1)order.path=route.slice(1);
+            }
+          }
+          break;
+        }
+        order.blockedSteps=0;
         order.carryMs-=speedMs;
       }
       if(order.kind==="move"&&!order.path.length)delete match.orders[unit.id];

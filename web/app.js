@@ -1,5 +1,6 @@
 import {makeMap,at,placeBuilding,canPlace,asciiMap,mapChecksum} from "../src/map.js";
 import {projectTile,unprojectTile,diamond,block} from "./isometric.js";
+import {createWebGLRenderer} from "./webgl3d.js";
 import {createMatch,command,step,checksum} from "../src/simulation.js";
 import {FACTIONS,mandatory} from "../src/constants.js";
 import {attachBattlefield} from "../src/battlefield.js";
@@ -8,7 +9,7 @@ import {installFullCatalog} from "../src/fullCatalog.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map"),ctx=canvas.getContext("2d",{alpha:false});
 const WIDTH=40,HEIGHT=32,TILE=20;
-let selected=null,selectedUnit=null,selectedUnits=new Set(),isometric=false,mode="inspect",auto=null,seed=42,world,match;
+let selected=null,selectedUnit=null,selectedUnits=new Set(),isometric=false,view3d=false,renderer3d=null,mode="inspect",auto=null,seed=42,world,match;
 let fullData=null;
 function log(s){
  const d=document.createElement("div");
@@ -94,15 +95,21 @@ function drawIsometric(){
   ctx.lineTo(point.x-10,point.y);ctx.closePath();ctx.stroke();
  }
 }
-function draw(){if(isometric)drawIsometric();else drawTopDown();}
+function draw(){
+ canvas.hidden=view3d;$("map3d").hidden=!view3d;
+ if(view3d)renderer3d?.draw(world,match,selectedUnits);
+ else if(isometric)drawIsometric();else drawTopDown();
+}
 function tileInfo(x,y){
  const t=at(world,x,y);
  $("selected").textContent=t?("Tile "+x+","+y+" | "+t.terrain+" | "+(t.resource?t.resource+" ("+t.amount+")":"No deposit")+(t.occupied?" | Occupied":"")):"Outside the map";
 }
 function clickMap(ev){
- const rect=canvas.getBoundingClientRect();
- const px=(ev.clientX-rect.left)*canvas.width/rect.width,py=(ev.clientY-rect.top)*canvas.height/rect.height;
- const tile=isometric?unprojectTile(px,py):{x:Math.floor(px/TILE),y:Math.floor(py/TILE)};
+ const active=view3d?$("map3d"):canvas,rect=active.getBoundingClientRect();
+ const px=(ev.clientX-rect.left)*active.width/rect.width,py=(ev.clientY-rect.top)*active.height/rect.height;
+ const tile=view3d?renderer3d?.pick(px,py):isometric?unprojectTile(px,py):
+  {x:Math.floor(px/TILE),y:Math.floor(py/TILE)};
+ if(!tile){log("No terrain tile at that point.");return;}
  const {x,y}=tile;
  selected={x,y};
  try {
@@ -143,11 +150,43 @@ function tick(ms){
 }
 $("map").addEventListener("click",clickMap);
 $("viewMode").addEventListener("click",()=>{
- isometric=!isometric;
- $("viewMode").textContent=isometric?"View: Isometric":"View: Top-down";
- $("map").setAttribute("aria-label",isometric?"Isometric 2.5D terrain preview map":"Top-down terrain map");
+ if(!isometric&&!view3d)isometric=true;
+ else if(isometric){
+  if(!renderer3d){
+   try{renderer3d=createWebGLRenderer($("map3d"));}
+   catch(e){log("WebGL initialization failed: "+e.message);}
+  }
+  if(renderer3d){isometric=false;view3d=true;}
+  else{isometric=false;log("WebGL unavailable; staying in top-down view.");}
+ }else view3d=false;
+ $("viewMode").textContent=view3d?"View: WebGL 3D":isometric?"View: Isometric":"View: Top-down";
  draw();
 });
+let dragging=null,ignoreNextClick=false;
+const map3d=$("map3d");
+map3d.addEventListener("pointerdown",e=>{
+ dragging={x:e.clientX,y:e.clientY,moved:false};
+ map3d.setPointerCapture(e.pointerId);
+});
+map3d.addEventListener("pointermove",e=>{
+ if(!dragging)return;
+ const dx=e.clientX-dragging.x,dy=e.clientY-dragging.y;
+ if(Math.abs(dx)+Math.abs(dy)>2)dragging.moved=true;
+ dragging.x=e.clientX;dragging.y=e.clientY;
+ if(dragging.moved){renderer3d?.orbit(dx,dy);draw();}
+});
+map3d.addEventListener("pointerup",()=>{
+ if(dragging?.moved)ignoreNextClick=true;
+ dragging=null;
+});
+map3d.addEventListener("pointercancel",()=>{dragging=null;});
+map3d.addEventListener("click",e=>{
+ if(ignoreNextClick){ignoreNextClick=false;return;}
+ clickMap(e);
+});
+map3d.addEventListener("wheel",e=>{
+ e.preventDefault();renderer3d?.zoom(Math.sign(e.deltaY));draw();
+},{passive:false});
 $("formation").addEventListener("click",()=>{
  mode="formation";log("Click the destination for the selected group (up to 24 units).");
 });

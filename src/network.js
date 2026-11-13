@@ -2,7 +2,8 @@ import {randomBytes} from "node:crypto";
 import {createMatch,command,step,snapshot,checksum} from "./simulation.js";
 import {makeMap} from "./map.js";
 import {attachBattlefield} from "./battlefield.js";
-import {assert,clone} from "./util.js";
+import {assert,clone,hash} from "./util.js";
+import {exportSave,importSave} from "./persistence.js";
 import {researchMultiplier} from "./technologyEffects.js";
 
 // Local authoritative protocol prototype; no public deployment, matchmaking,
@@ -10,8 +11,11 @@ import {researchMultiplier} from "./technologyEffects.js";
 const COMMANDS=new Set(["allocate","research","cancelResearch","train","cancelTrain",
   "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","formation","siege","seaTrade","cancelSeaTrade","embark","disembark","deployRamp","assaultBattlement","convert","surveyAether","aetherPulse","disrupt","hospitalHeal","vehicleRepair","ability"]);
 export class MatchHost{
-  constructor(participants,seed=1){
+  constructor(participants,seed=1,{requireReady=false}={}){
+    assert(typeof requireReady==="boolean","Invalid lobby configuration");
     this.match=createMatch(participants,seed);
+    this.lobby={required:requireReady,started:!requireReady,
+      ready:Object.fromEntries(this.match.players.map(p=>[p.id,false]))};
     attachBattlefield(this.match,makeMap({players:participants.length,seed}));
     this.sessions=new Map();
     this.events=[];
@@ -29,6 +33,7 @@ export class MatchHost{
     return {playerId,token:found[0]}; // distribute privately/out of band
   }
   submit({token,sequence,action,payload={}}){
+    assert(this.lobby.started,"Match has not started");
     const session=this.sessions.get(token);
     assert(session,"Unauthorized session");
     assert(Number.isSafeInteger(sequence)&&sequence>session.lastSequence,
@@ -83,6 +88,7 @@ export class MatchHost{
     return {accepted:true,sequence,version:this.version,matchChecksum:this.view(token).checksum,result:result??null};
   }
   submitBatch({token,expectedVersion,orders}){
+    assert(this.lobby.started,"Match has not started");
     const session=this.sessions.get(token);
     assert(session,"Unauthorized session");
     assert(Number.isSafeInteger(expectedVersion)&&expectedVersion===this.version,
@@ -110,6 +116,7 @@ export class MatchHost{
       checksum:this.view(token).checksum};
   }
   advance(ms){
+    assert(this.lobby.started,"Match has not started");
     assert(Number.isSafeInteger(ms)&&ms>0&&ms<=60000,"Invalid host tick");
     step(this.match,ms);
     this.version++;
@@ -202,6 +209,77 @@ export class MatchHost{
     const replacement=randomBytes(24).toString("hex");
     this.sessions.set(replacement,session);
     return {playerId:session.playerId,token:replacement,version:this.version};
+  }
+  // 4.9: local, server-authoritative readiness. This is not matchmaking or identity proof.
+  lobbyState(token){
+    const session=this.sessions.get(token);
+    assert(session,"Unauthorized session");
+    return {playerId:session.playerId,hostPlayerId:this.match.players[0].id,
+      version:this.version,required:this.lobby.required,started:this.lobby.started,
+      players:this.match.players.map(p=>({id:p.id,faction:p.faction,team:p.team,
+        ready:this.lobby.ready[p.id]}))};
+  }
+  setReady(token,ready){
+    const session=this.sessions.get(token);
+    assert(session,"Unauthorized session");
+    assert(this.lobby.required&&!this.lobby.started,"Lobby is not accepting ready changes");
+    assert(typeof ready==="boolean","Ready must be a boolean");
+    if(this.lobby.ready[session.playerId]!==ready){
+      this.lobby.ready[session.playerId]=ready;
+      this.version++;
+    }
+    return this.lobbyState(token);
+  }
+  startMatch(token){
+    const session=this.sessions.get(token);
+    assert(session,"Unauthorized session");
+    assert(this.lobby.required&&!this.lobby.started,"Match already started or lobby disabled");
+    assert(session.playerId===this.match.players[0].id,"Only lobby host may launch");
+    assert(this.match.players.every(p=>this.lobby.ready[p.id]),"All players must be ready");
+    this.lobby.started=true;
+    this.version++;
+    return this.lobbyState(token);
+  }
+  // 5.0: accidental-corruption checked development checkpoint, never a signed credential.
+  // Tokens are deliberately NOT serialized; restoration issues fresh credentials.
+  checkpoint(){
+    const sequences=Object.fromEntries([...this.sessions.values()]
+      .map(s=>[s.playerId,s.lastSequence]));
+    const payload={save:exportSave(this.match),version:this.version,sequence:this.sequence,
+      events:clone(this.events.slice(-5000)),lobby:clone(this.lobby),
+      sequences};
+    return JSON.stringify({format:"crowns-of-iron-host-checkpoint",version:1,
+      integrity:hash(payload),payload});
+  }
+  static fromCheckpoint(encoded){
+    assert(typeof encoded==="string"&&encoded.length<50000000,"Invalid host checkpoint");
+    const doc=JSON.parse(encoded),payload=doc?.payload;
+    assert(doc?.format==="crowns-of-iron-host-checkpoint"&&doc.version===1&&
+      payload&&doc.integrity===hash(payload),"Host checkpoint integrity mismatch");
+    const restored=importSave(payload.save);
+    assert(Number.isSafeInteger(payload.version)&&payload.version>=0&&
+      Number.isSafeInteger(payload.sequence)&&payload.sequence>=0,"Invalid host version");
+    assert(Array.isArray(payload.events)&&payload.events.length<=5000&&
+      payload.events.every(e=>Number.isSafeInteger(e.version)&&e.version<=payload.version),
+      "Invalid host history");
+    assert(payload.lobby&&typeof payload.lobby.required==="boolean"&&
+      typeof payload.lobby.started==="boolean","Invalid checkpoint lobby");
+    const participants=restored.players.map(p=>({id:p.id,faction:p.faction,team:p.team}));
+    const host=new MatchHost(participants,restored.seed,
+      {requireReady:payload.lobby.required});
+    assert(participants.every(p=>typeof payload.lobby.ready?.[p.id]==="boolean"),
+      "Missing lobby readiness");
+    host.match=restored;
+    host.version=payload.version;
+    host.sequence=payload.sequence;
+    host.events=clone(payload.events);
+    host.lobby=clone(payload.lobby);
+    for(const session of host.sessions.values()){
+      const n=payload.sequences?.[session.playerId];
+      assert(Number.isSafeInteger(n)&&n>=0,"Missing player command sequence");
+      session.lastSequence=n;
+    }
+    return host;
   }
   activity(){return this.events.map(e=>({...e}));}
 }

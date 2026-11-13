@@ -65,3 +65,7 @@ Real population-counted transport boarding/unloading, Siege Tower passenger ramp
 
 ## Milestones 4.3–4.6
 All **126 local faction building-upgrade records** now have executable prototype effects. Opt-in collision separates ground/sea units and blocks destination stacking; eight-player/2,400-population in-process host stress and extra loopback reconnect/batch endpoints are included. The browser inspector now has a selectable isometric 2.5D view and group movement controls. Run `npm run batch-4.3-demo` and `npm run multiplayer-stress-demo`; use `npm run inspect` to try the UI. See [milestone details and limitations](docs/MILESTONES_4_3_TO_4_6.md). This is **not yet a full 3D or production multiplayer game**.
+
+### Latest development batch (4.7–5.0)
+
+See [milestones 4.7–5.0](docs/MILESTONES_4_7_TO_5_0.md). Collision-enabled movement detours around occupied cells, the browser cycles through top-down/isometric/WebGL 3D block geometry with an orbit/zoom camera, and the local host supports optional lobby readiness plus integrity-checked checkpoint restoration. Development prototypes only, not production multiplayer or finished 3D gameplay. Run `npm run batch-4.7-demo`, `npm test`, and `npm run inspect` (manual browser QA required).
