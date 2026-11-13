@@ -8,6 +8,7 @@ import {botTactics} from "./battlefield.js";
 import {startConstruction} from "./construction.js";
 import {canPlace} from "./map.js";
 import {unitDefinition,researchCatalog} from "./fullCatalog.js";
+import {assignSpatialBotWorker} from "./spatialBot.js";
 
 const BOT_LEVELS=Object.freeze({
   Easy:{decisionMs:10000,workerGoal:8},
@@ -58,7 +59,8 @@ function tryBaseExpansion(match,player) {
   const map=match.battlefield;
   if(!map||player.age!=="I"||player.facilities["Training Camp"])return null;
   if(Object.values(match.constructions??{}).some(j=>j.owner===player.id&&j.kind==="Training Camp"))return null;
-  const worker=player.units.find(u=>u.alive&&u.archetype==="Worker"&&Number.isInteger(u.x));
+  const worker=player.units.find(u=>u.alive&&u.archetype==="Worker"&&Number.isInteger(u.x)&&
+    !match.harvestJobs?.[u.id]);
   if(!worker||player.resources.Wood<100||player.resources.Stone<40)return null;
   const start=map.starts[match.players.indexOf(player)];
   for(let radius=3;radius<=8;radius++)for(let dy=-radius;dy<=radius;dy++)for(let dx=-radius;dx<=radius;dx++){
@@ -99,9 +101,11 @@ export function tickBots(match,deltaMs){
     // One decision per tick, irrespective of accelerated time, prevents burst orders.
     if(bot.accumulator<settings.decisionMs)continue;
     bot.accumulator%=settings.decisionMs;
-    assignWorkers(player);
+    if(match.economyMode!=="spatial")assignWorkers(player);
     // AI is economy/tech only. Tactical pathing and full-combat behaviors are later milestones.
-    const decision=tryResearch(player,match)??tryWorker(player,settings.workerGoal,match)??tryBaseExpansion(match,player)??tryInfantry(player,match);
+    const harvest=match.economyMode==="spatial"?assignSpatialBotWorker(match,id):null;
+    const decision=tryResearch(player,match)??tryWorker(player,settings.workerGoal,match)??
+      tryBaseExpansion(match,player)??tryInfantry(player,match)??(harvest?"harvest "+harvest.resource:null);
     if(match.battlefield)botTactics(match,id);
     bot.decisions++;
     if(decision)events.push({id,decision,atMs:match.elapsedMs});

@@ -1,5 +1,6 @@
 import {assert,ageIndex,spend,refund} from "./util.js";
 import {getPlayer} from "./state.js";
+import {refreshStructureTechnology} from "./technologyEffects.js";
 
 // Only effects with real simulation support are purchasable. All remaining 126
 // definitions remain visible data but are not deceptively "completed" upgrades.
@@ -60,9 +61,8 @@ function complete(match,site,name){
    p.popCap=Math.min(300,p.popCap+kind.amount);
  }
  if(kind.kind==="buildingHp"){
-   const original=site.maxHp??site.hp;
-   site.maxHp=Math.round(original*kind.factor);
-   site.hp=Math.min(site.maxHp,(site.hp??original)+(site.maxHp-original));
+   site.localHpFactor=(site.localHpFactor??1)*kind.factor;
+   refreshStructureTechnology(match,getPlayer(match,site.owner));
  }
 }
 export function tickBuildingUpgrades(match,deltaMs){

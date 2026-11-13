@@ -19,3 +19,4 @@ jobs:
       - run: npm run syntax-check
       - run: npm run full-data-demo
       - run: npm run spatial-demo
+      - run: npm run advanced-demo

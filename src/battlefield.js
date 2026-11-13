@@ -2,7 +2,8 @@ import {assert} from "./util.js";
 import {at,findPath,walkable} from "./map.js";
 import {strike} from "./combat.js";
 import {getPlayer} from "./state.js";
-import {hasLineOfSight,findAttackApproach} from "./tacticalNavigation.js";
+import {hasLineOfSight} from "./tacticalNavigation.js";
+import {pathForUnit,tileTraversable,movementDomain} from "./movementDomains.js";
 
 export const ATTACK_PROFILE=Object.freeze({
   Worker:[1,2000],Scout:[1,1600],"Club Fighter":[1,1800],"Stone Slinger":[5,2200],
@@ -41,10 +42,10 @@ export function issueMove(match,pid,unitId,x,y){
   const map=match.battlefield;
   assert(map,"Battlefield is not attached");
   assert(Number.isInteger(x)&&Number.isInteger(y),"Invalid tile coordinates");
-  assert(walkable(map,x,y),"Destination not walkable");
   const u=ownsUnit(match,pid,unitId);
+  assert(tileTraversable(match,pid,u.archetype,x,y),"Destination not walkable or traversable");
   assert(Number.isInteger(u.x)&&Number.isInteger(u.y),"Unit lacks a position");
-  const path=findPath(map,{x:u.x,y:u.y},{x,y});
+  const path=pathForUnit(match,pid,u.archetype,{x:u.x,y:u.y},{x,y});
   assert(path,"No route to destination");
   match.orders[unitId]={kind:"move",path:path.slice(1),carryMs:0,destination:{x,y}};
   return path.length-1;
@@ -60,10 +61,10 @@ export function issueAttack(match,pid,unitId,targetPlayer,targetId){
 function neighborsInRange(a,b,range){
   return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)<=range;
 }
-function walkOne(map,u,order){
+function walkOne(match,owner,u,order){
   if(!order.path?.length)return false;
   const next=order.path[0];
-  if(!walkable(map,next.x,next.y))return false;
+  if(!tileTraversable(match,owner,u.archetype,next.x,next.y))return false;
   u.x=next.x;u.y=next.y;order.path.shift();return true;
 }
 export function tickBattlefield(match,deltaMs){
@@ -72,7 +73,10 @@ export function tickBattlefield(match,deltaMs){
   for(let i=0;i<match.players.length;i++){
     const p=match.players[i],start=map.starts[i];
     for(const unit of p.units.filter(u=>u.alive)){
-      if(!Number.isInteger(unit.x)){unit.x=start.x;unit.y=start.y;}
+      if(!Number.isInteger(unit.x)){
+        if(movementDomain(unit.archetype)!=="land")continue;
+        unit.x=start.x;unit.y=start.y;
+      }
       const order=match.orders?.[unit.id];
       if(!order)continue;
       if(order.kind==="attack"){
@@ -83,7 +87,7 @@ export function tickBattlefield(match,deltaMs){
         const range=unit.range??fallbackRange,interval=unit.intervalMs||fallbackInterval;
         if(!range){delete match.orders[unit.id];continue;}
         if(neighborsInRange(unit,target,range)&&
-          (range<=1||hasLineOfSight(map,unit,target))){
+          (range<=1||movementDomain(unit.archetype)==="air"||hasLineOfSight(map,unit,target))){
           if((unit.nextAttackAtMs??0)<=match.elapsedMs){
             try{
               const amount=strike(p,enemy,unit.id,target.id,{nowMs:match.elapsedMs});
@@ -97,7 +101,9 @@ export function tickBattlefield(match,deltaMs){
           continue;
         }
         // Melee/ranged units approach the target until their weapon can fire.
-        const path=findAttackApproach(map,{x:unit.x,y:unit.y},{x:target.x,y:target.y},range);
+        const path=pathForUnit(match,p.id,unit.archetype,{x:unit.x,y:unit.y},{x:target.x,y:target.y},
+          {range,visible:position=>range<=1||movementDomain(unit.archetype)==="air"||
+            hasLineOfSight(map,position,target)});
         if(!path){delete match.orders[unit.id];continue;}
         order.path=path.slice(1);
       }
@@ -106,7 +112,7 @@ export function tickBattlefield(match,deltaMs){
       order.carryMs=Math.min(2000,(order.carryMs??0)+deltaMs);
       // Bounded movement: up to 3 tiles per simulation step.
       for(let n=0;n<3&&order.carryMs>=speedMs&&order.path?.length;n++){
-        if(!walkOne(map,unit,order))break;
+        if(!walkOne(match,p.id,unit,order))break;
         order.carryMs-=speedMs;
       }
       if(order.kind==="move"&&!order.path.length)delete match.orders[unit.id];
@@ -122,7 +128,8 @@ export function botTactics(match,playerId){
     .map(u=>({player:x,unit:u})));
   if(!targets.length)return false;
   let issued=false;
-  for(const u of p.units.filter(x=>x.alive&&x.attack>0&&Number.isInteger(x.x))){
+  for(const u of p.units.filter(x=>x.alive&&x.attack>0&&Number.isInteger(x.x)&&
+    !(match.economyMode==="spatial"&&x.archetype==="Worker"))){
     if(match.orders?.[u.id]?.kind==="attack")continue;
     const candidates=targets.filter(t=>t.unit.category!=="Air"||["Anti-Air Infantry","Interceptor","Gunship","Aerial Battleship"].includes(u.archetype));
     candidates.sort((a,b)=>{

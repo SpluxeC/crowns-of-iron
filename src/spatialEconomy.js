@@ -2,6 +2,7 @@ import {assert} from "./util.js";
 import {at,findPath,walkable} from "./map.js";
 import {getPlayer} from "./state.js";
 import {issueMove} from "./battlefield.js";
+import {researchMultiplier} from "./technologyEffects.js";
 export function setEconomyMode(match,mode){
  assert(["abstract","spatial"].includes(mode),"Unknown economy mode");
  assert(match.elapsedMs===0&&match.tick===0,"Economy mode must be configured before play");
@@ -64,6 +65,7 @@ export function deliverCargo(match,owner,workerId){
  if(!held.amount)return 0;
  p.resources[held.resource]+=held.amount;
  const amount=held.amount;held.amount=0;held.resource=null;
+ worker.nextDeliveryAtMs=match.elapsedMs+Math.ceil(1000/researchMultiplier(p,"dropoff"));
  return amount;
 }
 function travel(match,owner,worker,target){
@@ -81,7 +83,8 @@ export function tickSpatialHarvest(match){
    const tile=at(match.battlefield,job.x,job.y);
    const held=cargo(worker),base=home(match,job.owner,worker);
    if(job.phase==="return"){
-     if(base&&Math.abs(worker.x-base.x)+Math.abs(worker.y-base.y)<=1){
+     if(base&&Math.abs(worker.x-base.x)+Math.abs(worker.y-base.y)<=1&&
+       (worker.nextDeliveryAtMs??0)<=match.elapsedMs){
        deliverCargo(match,job.owner,workerId);
        if(!tile?.resource||tile.amount<=0){delete match.harvestJobs[workerId];continue;}
        job.phase="harvest";travel(match,job.owner,worker,{x:job.x,y:job.y});
@@ -98,7 +101,7 @@ export function tickSpatialHarvest(match){
      travel(match,job.owner,worker,{x:job.x,y:job.y});continue;
    }
    if((worker.nextHarvestAtMs??0)>match.elapsedMs)continue;
-   const capacity=30;
+   const capacity=Math.floor(30*researchMultiplier(p,"carry"));
    const amount=Math.min(10,tile.amount,capacity-held.amount);
    if(amount>0){
      held.resource=tile.resource;held.amount+=amount;tile.amount-=amount;
