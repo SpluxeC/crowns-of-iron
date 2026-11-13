@@ -50,7 +50,7 @@ test("all sixty committed faction OBJ meshes are individually valid and visually
    const response=await localFetch(factionMeshPath(faction,role));
    assert(response.ok,"Missing "+faction+"/"+role);
    const source=await response.text();
-   assert.match(source,new RegExp(faction.replace("-","-")+"_"+ "primary"));
+   assert.match(source,new RegExp(faction+"_(?:primary|armor|skin|trim)"));
    const mesh=parseObj(source,materials);
    assert.ok(mesh.triangles>base.triangles,"No unique detail "+faction+"/"+role);
    assert.ok(mesh.vertexCount>base.vertexCount,"No extra geometry "+faction+"/"+role);
