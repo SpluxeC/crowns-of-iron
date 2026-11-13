@@ -2,6 +2,7 @@ import {createWebGLRenderer} from "/webgl3d.js";
 import {MODEL_NAMES} from "/objLoader.js";
 import {ROSTER_ROLES,roleFamily} from "/rosterArt.js";
 import {ALL_SKINNED_ROLES} from "/skinnedRoster.js";
+import {VEHICLE_ROLES} from "/vehicleArt.js";
 const canvas=document.getElementById("preview"),select=document.getElementById("model");
 const details=document.getElementById("details"),
  roleChoice=document.getElementById("unitRole");
@@ -25,13 +26,17 @@ async function loadSelectedRoster(){
  const faction=factionChoice.value,role=roleChoice.value;
  if(!renderer||!assetsReady||!role||faction==="base"||rosterSelectionLoading)return;
  if(renderer.rosterMeshInfo(faction,role)&&
-   (!ALL_SKINNED_ROLES.includes(role)||renderer.skinnedMeshInfo(faction,role)))return;
+   (!ALL_SKINNED_ROLES.includes(role)||renderer.skinnedMeshInfo(faction,role))&&
+   (!VEHICLE_ROLES.includes(role)||renderer.vehicleMeshInfo(faction,role)))return;
  rosterSelectionLoading=true;
  try{
   await renderer.loadRosterAssets({requests:[{faction,role}],notify:draw});
   if(ALL_SKINNED_ROLES.includes(role)){
    const skin=await renderer.loadSkinnedAssets({requests:[{faction,role}],notify:draw});
    loadMessage=skin.loaded?"Skinned glTF + PBR source asset ready":"OBJ fallback";
+  }else if(VEHICLE_ROLES.includes(role)){
+   const vehicle=await renderer.loadVehicleAssets({requests:[{faction,role}],notify:draw});
+   loadMessage=vehicle.loaded?"Animated vehicle glTF ready":"Roster OBJ fallback";
   }else loadMessage="Roster OBJ model loaded";
  }catch(error){loadMessage="Roster model fallback: "+error.message;}
  finally{rosterSelectionLoading=false;draw();}
@@ -54,6 +59,8 @@ function draw(){
  const roster=!!specificRole&&!!faction,
  mesh=roster?(ALL_SKINNED_ROLES.includes(specificRole)?
   renderer?.skinnedMeshInfo(faction,specificRole):null)??
+  (VEHICLE_ROLES.includes(specificRole)?
+   renderer?.vehicleMeshInfo(faction,specificRole):null)??
   renderer?.rosterMeshInfo(faction,specificRole):
   renderer?.meshInfo(name,faction);
  details.textContent=mesh?((faction??"Generic")+" "+(specificRole||name)+

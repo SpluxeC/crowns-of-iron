@@ -1,5 +1,6 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {ALL_SKINNED_ROLES} from "/skinnedRoster.js";
+import {VEHICLE_ROLES} from "/vehicleArt.js";
 import {createVersionDecoder} from "/streamProtocol.js";
 import {attackOrders,stopOrders,selectedVisibleEnemy,attackMoveOrders,stanceOrders} from "/combatOrders.js";
 import {createPerformanceTelemetry,formatTiming} from "/perfTelemetry.js";
@@ -77,13 +78,22 @@ async function queueRosterArt(){
   (p.units??[]).filter(u=>u.alive&&ALL_SKINNED_ROLES.includes(u.archetype)&&
     Number.isInteger(u.x)).map(u=>({faction:p.faction,role:u.archetype})))
   .map(x=>[x.faction+"/"+x.role,x])).values()];
- if(!wanted.length&&!skins.length)return;
+ const vehicles=[...new Map((state.players??[]).flatMap(p=>
+  (p.units??[]).filter(u=>u.alive&&VEHICLE_ROLES.includes(u.archetype)&&
+    Number.isInteger(u.x)).map(u=>({faction:p.faction,role:u.archetype})))
+  .map(x=>[x.faction+"/"+x.role,x])).values()];
+ if(!wanted.length&&!skins.length&&!vehicles.length)return;
  loadingRoster=true;
  try{
   if(skins.length){
    const skinResult=await renderer.loadSkinnedAssets({requests:skins,
     notify:()=>{if(view3d)draw();}});
    if(skinResult.failed)log("Some glTF skins unavailable; using OBJ fallbacks.");
+  }
+  for(let i=0;i<vehicles.length&&view3d;i+=12){
+   const result=await renderer.loadVehicleAssets({requests:vehicles.slice(i,i+12),
+    notify:()=>{if(view3d)draw();}});
+   if(result.failed)log("Vehicle glTF fallback to OBJ for unavailable asset.");
   }
   for(let i=0;i<wanted.length&&view3d;i+=12){
    const chunk=wanted.slice(i,i+12);

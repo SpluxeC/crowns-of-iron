@@ -55,7 +55,9 @@ try{
  }
  await inspect("Humans","Swordsman","walk","humans-swordsman-walk","Skinned glTF");
  await inspect("Ursa","Archer","attack","ursa-archer-attack","Skinned glTF");
- await inspect("Orcs","Bomber","idle","orcs-bomber-idle","Roster OBJ");
+ await inspect("Orcs","Bomber","idle","orcs-bomber-idle","Animated vehicle glTF");
+ await inspect("Humans","Heavy Warship","walk","humans-warship-sailing","Animated vehicle glTF");
+ await inspect("Ursa","Heavy Artillery","attack","ursa-artillery-firing","Animated vehicle glTF");
  await page.goto(base+"/client",{waitUntil:"domcontentloaded"});
  await page.waitForSelector("#map");
  await page.screenshot({path:fileURLToPath(new URL("client-start-screen.png",dir))});
