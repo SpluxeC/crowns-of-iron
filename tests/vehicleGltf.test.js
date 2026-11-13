@@ -19,10 +19,16 @@ test("real glTF 2.0 animated non-humanoid mesh validates and changes during atta
   const mesh=parseVehicleGltf(await source(role));
   assert.ok(mesh.count>50);
   assert.equal(mesh.embeddedPng,true);
+  for(const mode of ["hit","death"])assert.ok(mesh.animations[mode]);
   const initial=sampleVehicleGltf(mesh,"idle",0);
   const attack=sampleVehicleGltf(mesh,"attack",350);
   assert.equal(initial.vertices.length,mesh.count*6);
   assert.ok(initial.vertices.some((value,i)=>value!==attack.vertices[i]));
+  const hit=sampleVehicleGltf(mesh,"hit",110),death=sampleVehicleGltf(mesh,"death",650);
+  assert.ok(initial.vertices.some((v,i)=>v!==hit.vertices[i]));
+  assert.ok(initial.vertices.some((v,i)=>v!==death.vertices[i]));
+  assert.deepEqual(sampleVehicleGltf(mesh,"death",650).vertices,
+   sampleVehicleGltf(mesh,"death",12000).vertices);
  }
 });
 test("vehicle glTF input validation rejects skin attachment, malformed buffers and unsafe paths",async()=>{
