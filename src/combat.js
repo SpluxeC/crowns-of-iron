@@ -2,6 +2,7 @@ import {CATEGORY,COUNTERS} from "./constants.js";
 import {assert,spend} from "./util.js";
 import {killUnit} from "./state.js";
 import {researchMultiplier} from "./technologyEffects.js";
+import {grantCombatExperience} from "./experience.js";
 import {canEngage} from "./engagementRules.js";
 export function damage(attack,armor,type="Slash",targetCategory="Standard",specialist=0){
   assert(Number.isFinite(attack)&&attack>=0&&Number.isFinite(armor),"Invalid combat stats");
@@ -27,7 +28,7 @@ export function strike(owner,targetOwner,attackerId,targetId,{nowMs=0}={}){
   const hit=damage(attack,armor,attacker.type,target.category,specialist);
   attacker.nextAttackAtMs=nowMs+2000;
   target.hp=Math.max(0,target.hp-hit);
-  if(target.hp===0)killUnit(targetOwner,target.id);
+  if(target.hp===0){killUnit(targetOwner,target.id);grantCombatExperience(owner,attacker,target);}
   return hit;
 }
 export function heal(player,healerIds,targetId,nowMs=0){

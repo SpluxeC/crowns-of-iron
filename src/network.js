@@ -8,7 +8,7 @@ import {researchMultiplier} from "./technologyEffects.js";
 // Local authoritative protocol prototype; no public deployment, matchmaking,
 // dedicated authorization backend or production fog-of-war guarantees.
 const COMMANDS=new Set(["allocate","research","cancelResearch","train","cancelTrain",
-  "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","formation","siege","seaTrade","cancelSeaTrade","embark","disembark","deployRamp","assaultBattlement","ability"]);
+  "move","attack","attackStructure","repairBuilding","build","cancelBuild","upgrade","cancelUpgrade","gate","garrison","ungarrison","formation","siege","seaTrade","cancelSeaTrade","embark","disembark","deployRamp","assaultBattlement","convert","surveyAether","aetherPulse","disrupt","ability"]);
 export class MatchHost{
   constructor(participants,seed=1){
     this.match=createMatch(participants,seed);
@@ -45,13 +45,19 @@ export class MatchHost{
       assert(target&&(enemy.team===viewer.team||this.isVisible(viewer,target)),
         "Enemy target is not visible");
     }
-    if(action==="attackStructure"||action==="siege"||action==="deployRamp"){
+    if(action==="attackStructure"||action==="siege"||action==="deployRamp"||action==="disrupt"){
       const site=this.match.constructions?.[payload.siteId];
       const location=this.match.battlefield?.structures?.find(s=>s.id===payload.siteId);
       const viewer=this.match.players.find(p=>p.id===session.playerId);
       assert(site&&site.completed&&location&&
         (site.owner===viewer.id||this.isVisible(viewer,location)),
         "Target building is not visible");
+    }
+    if(action==="convert"){
+      const viewer=this.match.players.find(p=>p.id===session.playerId);
+      const defender=this.match.players.find(p=>p.id===payload.targetPlayer);
+      const target=defender?.units.find(u=>u.id===payload.targetId&&u.alive);
+      assert(target&&this.isVisible(viewer,target),"Conversion target is not visible");
     }
     const result=command(this.match,order);
     session.lastSequence=sequence;

@@ -15,7 +15,9 @@ import {assignHarvestJob,cancelHarvestJob,deliverCargo,tickSpatialHarvest} from 
 import {destroyToRuin,salvageRuin,rebuildRuin,tickRuins} from "./ruins.js";
 import {queueBuildingUpgrade,cancelBuildingUpgrade,tickBuildingUpgrades} from "./buildingUpgrades.js";
 import {orderStructureAttack,tickStructureCombat,repairBuilding} from "./structureCombat.js";
-import {setGateOpen} from "./gates.js";
+import {setGateOpen,tickGateMechanisms} from "./gates.js";
+import {startConversion,tickConversions,surveyAether,aetherPulse} from "./arcaneResearch.js";
+import {disruptFortification} from "./siegeDisruption.js";
 import {refreshStructureTechnology} from "./technologyEffects.js";
 import {garrisonUnit,ungarrisonUnit,tickFortificationFire} from "./fortifications.js";
 import {tickRenewables} from "./renewableEconomy.js";
@@ -56,7 +58,11 @@ export function command(match,input,{allowDebug=false}={}){
     case "cancelUpgrade":result=cancelBuildingUpgrade(match,id,input.siteId,input.name);break;
     case "attackStructure":result=orderStructureAttack(match,id,input.unitId,input.siteId);break;
     case "repairBuilding":result=repairBuilding(match,id,input.siteId,input.workers,input.amount);break;
-    case "gate":result=setGateOpen(match,id,input.siteId,input.open);break;
+    case "gate":result=setGateOpen(match,id,input.siteId,input.open,input.autoClose??false);break;
+    case "convert":result=startConversion(match,id,input.converterId,input.targetPlayer,input.targetId);break;
+    case "surveyAether":result=surveyAether(match,id,input.workerId);break;
+    case "aetherPulse":result=aetherPulse(match,id,input.workerId,input.x,input.y);break;
+    case "disrupt":result=disruptFortification(match,id,input.unitId,input.siteId);break;
     case "formation":result=orderFormation(match,id,input.units,input.x,input.y);break;
     case "siege":result=orderSiege(match,id,input.unitId,input.siteId);break;
     case "seaTrade":result=assignSeaTrade(match,id,input.vesselId,input.fromSite,input.toSite);break;
@@ -107,6 +113,8 @@ function substep(match,ms,opts){
   tickNavalEconomy(match,ms);
   tickFortificationFire(match);
   tickStructureCombat(match);
+  tickConversions(match);
+  tickGateMechanisms(match);
   transportLosses(match);
   resetInvalidRamps(match);
   checkElimination(match,ms);

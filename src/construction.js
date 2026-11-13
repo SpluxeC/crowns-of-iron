@@ -30,6 +30,7 @@ export function startConstruction(match,owner,kind,x,y,workerIds){
   const map=match.battlefield;assert(map,"Battlefield required");
   const p=getPlayer(match,owner);
   const def=constructionDefinition(match,p,kind,STRUCTURES);assert(def,"Unknown building type");
+  if(kind==="Reinforced Stone Wall")assert(p.completed.includes("BLD-04"),"Strengthened Stone Wall research required");
   assert(ageIndex(p.age)>=ageIndex(def.age),"Building age locked");
   assert(Array.isArray(workerIds)&&workerIds.length>0&&new Set(workerIds).size===workerIds.length,"Invalid worker assignment");
   const workers=workerIds.map(id=>p.units.find(u=>u.id===id&&u.alive&&u.archetype==="Worker"));

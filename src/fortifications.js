@@ -6,6 +6,7 @@ import {hasLineOfSight} from "./tacticalNavigation.js";
 import {researchMultiplier} from "./technologyEffects.js";
 
 const GARRISON={
+  "Primitive Gate":{capacity:2,slots:1,range:4,attack:10,ms:2700,type:"Pierce"},
   Watchtower:{capacity:2,slots:1,range:6,attack:20,ms:2500,type:"Pierce"},
   Fortress:{capacity:8,slots:3,range:8,attack:32,ms:2400,type:"Pierce"},
   "Stone Gatehouse":{capacity:4,slots:2,range:5,attack:18,ms:2700,type:"Pierce"},
@@ -23,6 +24,7 @@ export function garrisonUnit(match,owner,siteId,unitId){
  const site=match.constructions?.[siteId],location=match.battlefield?.structures.find(s=>s.id===siteId);
  const rule=site&&GARRISON[site.kind],p=getPlayer(match,owner);
  assert(site?.completed&&location&&rule,"No completed garrison-capable structure");
+ if(site.kind==="Primitive Gate")assert(p.completed.includes("BLD-03"),"Primitive defensive fittings required");
  assert(site.owner===owner,"Cannot garrison enemy structure");
  const unit=p.units.find(u=>u.id===unitId&&u.alive);
  assert(unit&&allowed.has(unit.archetype)&&Number.isInteger(unit.x)&&!unit.garrisonedAt&&!unit.embarkedAt,
@@ -82,6 +84,7 @@ export function tickFortificationFire(match){
  for(const site of Object.values(match.constructions??{}).sort((a,b)=>a.siteId.localeCompare(b.siteId))){
    const rule=GARRISON[site.kind];
    if(!site.completed||!rule||!site.garrisonIds?.length)continue;
+   if((site.disruptedUntilMs??0)>match.elapsedMs)continue;
    if((site.nextFireAtMs??0)>match.elapsedMs)continue;
    const loc=match.battlefield.structures.find(s=>s.id===site.siteId);
    const owner=getPlayer(match,site.owner);
