@@ -9,7 +9,7 @@ const server=createServer(async(req,res)=>{
   const u=new URL(req.url,"http://"+HOST);
   let path=u.pathname==="/"?"/web/index.html":u.pathname;
   path=decodeURIComponent(path);
-  if(!(/^\/(web|src)\//.test(path))||path.includes("\0"))throw new Error("Invalid request path");
+  if(!(/^\/(web|src|data)\//.test(path))||path.includes("\0"))throw new Error("Invalid request path");
   const file=resolve(root,"."+path);
   if(relative(root,file).startsWith(".."))throw new Error("Path traversal");
   const contents=await readFile(file);

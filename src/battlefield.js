@@ -78,7 +78,8 @@ export function tickBattlefield(match,deltaMs){
         const enemy=match.players.find(x=>x.id===order.targetPlayer);
         const target=enemy?.units.find(x=>x.id===order.targetId&&x.alive);
         if(!target){delete match.orders[unit.id];continue;}
-        const [range,interval]=ATTACK_PROFILE[unit.archetype]??[1,2000];
+        const [fallbackRange,fallbackInterval]=ATTACK_PROFILE[unit.archetype]??[1,2000];
+        const range=unit.range??fallbackRange,interval=unit.intervalMs||fallbackInterval;
         if(!range){delete match.orders[unit.id];continue;}
         if(neighborsInRange(unit,target,range)){
           if((unit.nextAttackAtMs??0)<=match.elapsedMs){
@@ -98,7 +99,8 @@ export function tickBattlefield(match,deltaMs){
         if(!path){delete match.orders[unit.id];continue;}
         order.path=path.slice(1);
       }
-      const speedMs=Math.round((unit.archetype==="Scout"?400:650)/(unit.speedScale??1));
+      const speedMs=unit.speed>0?Math.max(1,Math.round(1000/unit.speed)):
+        Math.round((unit.archetype==="Scout"?400:650)/(unit.speedScale??1));
       order.carryMs=Math.min(2000,(order.carryMs??0)+deltaMs);
       // Bounded movement: up to 3 tiles per simulation step.
       for(let n=0;n<3&&order.carryMs>=speedMs&&order.path?.length;n++){

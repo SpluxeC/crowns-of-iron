@@ -65,7 +65,7 @@ export function installFullCatalog(match,data){
           intervalMs:Math.round(number(row[6]??0,"Interval")*1000),
           speed:number(row[9]??0,"Speed"),category:nominalCategory(role,domain),
           type:row[18]==="None"?(base.type??"Slash"):(row[18]||base.type),
-          unique:base.unique
+          unique:base.unique,factionBalanced:true
         };
       }
     }

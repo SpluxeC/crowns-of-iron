@@ -18,11 +18,14 @@ export function createPlayer(id,faction,team=id){
 }
 export function makeUnit(player,archetype,definition,id){
   const modifiers=FACTION_STAT_MODIFIERS[player.faction];
-  const hp=Math.round(definition.hp*(archetype==="Hero"?1:modifiers.hp));
-  return {id,owner:player.id,faction:player.faction,archetype,name:displayName(player.faction,archetype),
-    hp,maxHp:hp,armor:definition.armor+modifiers.armor,pop:definition.pop,
-    attack:Math.round((definition.attack??0)*(archetype==="Hero"?1:modifiers.attack)*10)/10,
-    speedScale:modifiers.speed,category:definition.category??"Standard",type:definition.type??"Slash",
+  const alreadyBalanced=definition.factionBalanced===true;
+  const hp=alreadyBalanced?definition.hp:Math.round(definition.hp*(archetype==="Hero"?1:modifiers.hp));
+  return {id,owner:player.id,faction:player.faction,archetype,name:definition.name??displayName(player.faction,archetype),
+    hp,maxHp:hp,armor:definition.armor+(alreadyBalanced?0:modifiers.armor),pop:definition.pop,
+    attack:alreadyBalanced?definition.attack:Math.round((definition.attack??0)*(archetype==="Hero"?1:modifiers.attack)*10)/10,
+    speedScale:alreadyBalanced?1:modifiers.speed,
+    speed:definition.speed??null,range:definition.range??null,intervalMs:definition.intervalMs??null,
+    category:definition.category??"Standard",type:definition.type??"Slash",
     cost:clone(definition.cost??{}),alive:true,status:[],nextAttackAtMs:0};
 }
 export function createMatch(participants,seed=1){

@@ -10,6 +10,8 @@ import {issueMove,issueAttack,tickBattlefield} from "./battlefield.js";
 import {startConstruction,cancelConstruction,tickConstruction} from "./construction.js";
 import {useHeroAbility} from "./abilities.js";
 import {unitDefinition,researchCatalog} from "./fullCatalog.js";
+import {harvestDeposit} from "./harvesting.js";
+import {destroyToRuin,salvageRuin,rebuildRuin,tickRuins} from "./ruins.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -33,6 +35,9 @@ export function command(match,input,{allowDebug=false}={}){
     case "move":result=issueMove(match,id,input.unitId,input.x,input.y);break;
     case "build":result=startConstruction(match,id,input.kind,input.x,input.y,input.workers);break;
     case "cancelBuild":result=cancelConstruction(match,id,input.siteId);break;
+    case "harvest":result=harvestDeposit(match,id,input.workerId,input.x,input.y);break;
+    case "salvage":result=salvageRuin(match,id,input.siteId);break;
+    case "rebuild":result=rebuildRuin(match,id,input.siteId,input.workers);break;
     case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
     case "heal":result=heal(player,input.healers,input.target);break;
     case "repair":result=repair(player,input.workers,input.target,input.amount);break;
@@ -70,6 +75,7 @@ export function step(match,deltaMs,opts={}){
   checkElimination(match,deltaMs);
   tickMode(match,deltaMs);
   match.elapsedMs+=deltaMs;match.tick++;
+  tickRuins(match);
   return match;
 }
 export function snapshot(match){return clone(match);}

@@ -38,3 +38,32 @@ test("unvalidated remote healing and direct resource injection are rejected",()=
  for(const action of ["heal","repair","income","facility","popCap"])
    assert.throws(()=>host.submit({token:a.token,sequence:1,action,payload:{}}),/forbidden/);
 });
+
+test("each player view hides enemy economy, queues, fogged tiles and hidden units",()=>{
+ const host=new MatchHost(players);
+ const alice=host.credentialsFor("alice"),bob=host.credentialsFor("bob");
+ const a=host.view(alice.token),b=host.view(bob.token);
+ const enemy=a.state.players.find(p=>p.id==="bob");
+ assert.equal(enemy.resources,undefined);
+ assert.equal(enemy.researchQueues,undefined);
+ assert.equal(enemy.unitQueues,undefined);
+ assert.equal(enemy.units.length,0);
+ assert.equal(a.state.commands,undefined);
+ assert.ok(a.state.battlefield.tiles.some(t=>t.terrain==="unknown"));
+ assert.notEqual(a.checksum,b.checksum);
+ assert.equal(a.state.players.find(p=>p.id==="alice").resources.Food,250);
+});
+test("a client cannot attack a guessed enemy ID through fog",()=>{
+ const host=new MatchHost(players),auth=host.credentialsFor("alice");
+ const own=host.match.players[0].units[1],target=host.match.players[1].units[0];
+ assert.throws(()=>host.submit({token:auth.token,sequence:1,action:"attack",payload:{
+   attacker:own.id,targetPlayer:"bob",target:target.id
+ }}),/not visible/);
+ assert.equal(host.match.orders[own.id],undefined);
+ // When an enemy is actually within shared vision the authenticated command is allowed.
+ target.x=own.x+1;target.y=own.y;
+ const accepted=host.submit({token:auth.token,sequence:1,action:"attack",payload:{
+   attacker:own.id,targetPlayer:"bob",target:target.id
+ }});
+ assert.equal(accepted.accepted,true);
+});

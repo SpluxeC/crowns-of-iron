@@ -3,10 +3,12 @@ import {createMatch,command,step,checksum} from "../src/simulation.js";
 import {FACTIONS,mandatory} from "../src/constants.js";
 import {attachBattlefield} from "../src/battlefield.js";
 import {enableBot} from "../src/ai.js";
+import {installFullCatalog} from "../src/fullCatalog.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map"),ctx=canvas.getContext("2d",{alpha:false});
 const WIDTH=40,HEIGHT=32,TILE=20;
 let selected=null,selectedUnit=null,mode="inspect",auto=null,seed=42,world,match;
+let fullData=null;
 function log(s){
  const d=document.createElement("div");
  d.textContent="["+new Date().toLocaleTimeString()+"] "+s;
@@ -18,6 +20,7 @@ function reset(){
  world=makeMap({width:WIDTH,height:HEIGHT,seed,players:2});
  const faction=$("faction").value;
  match=createMatch([{id:"player",faction},{id:"opponent",faction:faction==="Orcs"?"Humans":"Orcs"}],seed);
+ if(fullData)installFullCatalog(match,fullData);
  attachBattlefield(match,world);
  enableBot(match,"opponent","Normal");
  selected=null;selectedUnit=match.players[0].units[0].id;mode="inspect";$("log").replaceChildren();
@@ -124,3 +127,11 @@ $("trainFighter").addEventListener("click",()=>{
  catch(e){log("Recruitment failed: "+e.message);}
 });
 reset();
+fetch("/data/balance-v0.2.json")
+ .then(response=>{if(!response.ok)throw Error("HTTP "+response.status);return response.json();})
+ .then(data=>{
+   fullData=data;
+   if(match.elapsedMs===0)reset();
+   else log("Full faction data loaded. Reset the inspector to activate it.");
+ })
+ .catch(error=>log("Full faction data unavailable; using shared archetypes: "+error.message));
