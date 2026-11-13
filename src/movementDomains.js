@@ -25,7 +25,7 @@ export function tileTraversable(match,owner,role,x,y){
  return walkable(match.battlefield,x,y)||
    (tile.terrain!=="water"&&tile.terrain!=="hill"&&openFriendlyGate(match,owner,tile));
 }
-export function pathForUnit(match,owner,role,from,to,{range=0,visible=()=>true}={}){
+export function pathForUnit(match,owner,role,from,to,{range=0,visible=()=>true,blocked=()=>false}={}){
  const map=match.battlefield;
  assert(map&&at(map,from.x,from.y)&&at(map,to.x,to.y),"Path outside battlefield");
  const domain=movementDomain(role);
@@ -40,7 +40,7 @@ export function pathForUnit(match,owner,role,from,to,{range=0,visible=()=>true}=
   }
   for(const [dx,dy] of STEPS){
    const x=p.x+dx,y=p.y+dy,k=key(x,y);
-   if(!previous.has(k)&&tileTraversable(match,owner,role,x,y)){
+   if(!previous.has(k)&&tileTraversable(match,owner,role,x,y)&&!blocked(x,y)){
     previous.set(k,key(p.x,p.y));queue.push({x,y});
    }
   }
