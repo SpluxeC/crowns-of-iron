@@ -30,7 +30,7 @@ export function applyDamageFinish(mesh,hp,maxHp,{domain="humanoid",faction="Huma
   const grain=((Math.imul(triangle+1+seed,1103515245)>>>0)%1021)/1020;
   const shadow=amount*(profile.soot+grain*profile.scorch);
   for(let k=0;k<3;k++){
-   const scratch=(amount>.6&&grain>.78)?profile.edge*amount*profile.accent[k]:0;
+   const scratch=profile.edge*amount*profile.accent[k]*(.12+(amount>.6&&grain>.78?1:0));
    out[i+3+k]=clamp(src[i+3+k]*(1-shadow)+scratch);
   }
  }
