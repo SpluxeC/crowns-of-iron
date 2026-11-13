@@ -7,6 +7,7 @@ import {loadFactionTextures,textureForFaction} from "./factionTextures.js";
 import {rigForFaction} from "./rigProfiles.js";
 import {createRosterMeshLoader} from "./rosterLoader.js";
 import {createSkinnedGltfLoader,sampleSkinnedGltf} from "./skinnedGltf.js";
+import {SKINNED_ROLES} from "./skinnedRoster.js";
 import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
@@ -208,17 +209,19 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    if(result.loaded>0&&typeof notify==="function")notify();
    return result;
   },
-  async loadSkinnedAssets({factions=[],fetcher,notify}={}){
+  async loadSkinnedAssets({factions=[],requests=[],fetcher,notify}={}){
    if(!skinnedLoader)skinnedLoader=createSkinnedGltfLoader(fetcher);
-   const unique=[...new Set(factions)].slice(0,6);
-   const results=await Promise.allSettled(unique.map(x=>skinnedLoader.load(x)));
+   const desired=requests.length?requests:factions.map(faction=>({faction,role:"Swordsman"}));
+   const unique=[...new Map(desired.map(x=>[x.faction+"/"+x.role,x])).values()].slice(0,12);
+   const results=await Promise.allSettled(unique.map(x=>
+    skinnedLoader.load(x.faction,x.role)));
    const result={loaded:results.filter(x=>x.status==="fulfilled").length,
     failed:results.filter(x=>x.status==="rejected").length};
    if(result.loaded&&typeof notify==="function")notify();
    return result;
   },
-  skinnedMeshInfo(faction){
-   const mesh=skinnedLoader?.get(faction);
+  skinnedMeshInfo(faction,role="Swordsman"){
+   const mesh=skinnedLoader?.get(faction,role);
    return mesh?{vertexCount:mesh.count,triangles:mesh.count/3,skinned:true,
     pbrTexture:mesh.textureEmbedded}:null;
   },
@@ -285,8 +288,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      p.id===match.viewerId?"#c5eeff":"#f58a7c";
     const detail=unitRoleVisual(u),cx=u.x+.5,cz=u.y+.5,top=bottom+style.height;
     const role=detail.role,
-     skin=modelUnits<160&&u.archetype==="Swordsman"?
-       skinnedLoader?.get(p.faction):null,
+     skin=modelUnits<160&&SKINNED_ROLES.includes(u.archetype)?
+       skinnedLoader?.get(p.faction,u.archetype):null,
      mesh=skin?sampleSkinnedGltf(skin,
        previewPose??animationModeForUnit(u,match.orders?.[u.id]),
        match.elapsedMs??0):
