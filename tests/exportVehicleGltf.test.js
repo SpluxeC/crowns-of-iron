@@ -5,6 +5,7 @@ import {parseObj,parseMtl} from "../web/objLoader.js";
 import {parsePpm} from "../web/factionTextures.js";
 import {refineFactionTexture} from "../web/materialDetail.js";
 import {exportVehicleGltf} from "../scripts/export_vehicle_gltf.js";
+import {parseVehicleGltf} from "../web/vehicleGltf.js";
 test("specialized vehicle glTF has real UV mesh and five valid transform animations",async()=>{
  const palette=parseMtl(await readFile(new URL("../assets/models/crowns-palette.mtl",import.meta.url),"utf8"));
  const mesh=parseObj(await readFile(new URL("../assets/models/roster/humans/bomber.obj",import.meta.url),"utf8"),palette);
@@ -31,4 +32,11 @@ test("specialized vehicle glTF has real UV mesh and five valid transform animati
  assert.equal(doc.accessors[doc.meshes[0].primitives[0].attributes.POSITION].count,
   mesh.vertexCount);
  assert.throws(()=>exportVehicleGltf(mesh,texture,{role:"Archer"}),/vehicle/);
+ const humans=parseVehicleGltf(doc),
+  orcs=parseVehicleGltf(exportVehicleGltf(mesh,texture,{role:"Bomber",faction:"orcs"}));
+ assert.deepEqual(humans.positions,orcs.positions);
+ const start=humans.regions[1].start*4;
+ assert.notDeepEqual(humans.colors.slice(start),orcs.colors.slice(start),
+  "Faction metal and trim finishes must be distinct");
+ assert.deepEqual(doc.extras.accessories,["tail rudder","wing aileron"]);
 });
