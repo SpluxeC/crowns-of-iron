@@ -1,5 +1,6 @@
 import {mandatory,AGE_GATE} from "./constants.js";
 import {assert,ageIndex,spend,refund} from "./util.js";
+import {applyTechnologyCompletion} from "./technologyEffects.js";
 export const knownResearch=new Map(mandatory.map(x=>[x.id,x]));
 export function researchDefinition(id,catalog=knownResearch){
   const def=catalog.get(id);assert(def,"Unknown technology "+id);return def;
@@ -50,6 +51,7 @@ export function tickResearch(player,deltaMs,catalog=knownResearch){
       job.ms+=step;remaining-=step;
       if(job.ms<job.duration)break;
       jobs.shift();player.completed.push(job.id);player.history.push("Research "+job.id);
+      applyTechnologyCompletion(player,job.id);
       advanceAge(player);
     }
   }
