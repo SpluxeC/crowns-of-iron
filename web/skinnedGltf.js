@@ -84,8 +84,9 @@ function rotate(v,q){
   v[1]+qw*t[1]+qz*t[0]-qx*t[2],
   v[2]+qw*t[2]+qx*t[1]-qy*t[0]];
 }
-export function sampleSkinnedGltf(model,clip="idle",timeMs=0){
- if(!Number.isFinite(timeMs))throw Error("Invalid glTF animation time");
+/** Animation blend is pose-space normalized quaternion interpolation, with
+ * a 160ms crossfade after clip changes. This is separate from simulation state. */
+function jointPoses(model,clip,timeMs){
  const channels=model.clips[clip];
  if(!channels)throw Error("Unknown glTF clip");
  const poses=Array.from({length:7},()=>[0,0,0,1]);
@@ -101,6 +102,26 @@ export function sampleSkinnedGltf(model,clip="idle",timeMs=0){
   const q=a.map((v,j)=>v+(b[j]-v)*blend),norm=Math.hypot(...q)||1;
   poses[channel.bone]=q.map(v=>v/norm);
  }
+ return poses;
+}
+export function blendJointPoses(a,b,alpha){
+ if(!Number.isFinite(alpha)||alpha<0||alpha>1)throw Error("Invalid animation blend factor");
+ if(a.length!==7||b.length!==7)throw Error("Invalid animation pose length");
+ return a.map((from,i)=>{
+  const to=b[i],dot=from.reduce((n,v,j)=>n+v*to[j],0);
+  const sign=dot<0?-1:1;
+  const mixed=from.map((v,j)=>v*(1-alpha)+to[j]*sign*alpha);
+  const norm=Math.hypot(...mixed)||1;
+  return mixed.map(v=>v/norm);
+ });
+}
+export function sampleSkinnedGltf(model,clip="idle",timeMs=0,
+ {transitionFrom=null,transitionAlpha=1}={}){
+ if(!Number.isFinite(timeMs))throw Error("Invalid glTF animation time");
+ const target=jointPoses(model,clip,timeMs);
+ const poses=transitionFrom&&transitionFrom!==clip?
+  blendJointPoses(jointPoses(model,transitionFrom,timeMs),target,transitionAlpha):
+  target;
  const result=new Float32Array(model.count*6);
  let min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
  for(let i=0;i<model.count;i++){
