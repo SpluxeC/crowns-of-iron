@@ -167,7 +167,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     if(selectedUnits.has(u.id))
       cube(verts,u.x+.5,u.y+.5,.76,base,base+.10,"#fce57d");
     cube(verts,u.x+.5,u.y+.5,style.width,bottom,bottom+style.height,
-     selectedUnits.has(u.id)?"#fce57d":i===0?"#c5eeff":"#f58a7c");
+     selectedUnits.has(u.id)?"#fce57d":p.id===match.viewerId?"#c5eeff":"#f58a7c");
    }
    const data=new Float32Array(verts);
    gl.viewport(0,0,canvas.width,canvas.height);

@@ -1,5 +1,6 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {createVersionDecoder} from "/streamProtocol.js";
+import {chooseAtTile,unitsInTileRectangle,updateSelection,selectByRole,recallGroup,makeFormationPayload} from "/unitSelection.js";
 import {chooseBuilder,queueSummary,formatCost,catalogBuildings,
  catalogTraining,catalogResearch,researchRequest,trainingRequest} from "/clientRules.js";
 const $=id=>document.getElementById(id);
@@ -8,7 +9,8 @@ const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
  water:"#204767",deposit:"#b69a47",unknown:"#122938"};
 let token=null,abort=null,pollTimer=null,state=null,room=null,catalog=null,playerId=null,nextSequence=1,version=0;
 let renderer=null,view3d=false,selected=new Set(),mode="select",pending=false,refreshing=false,refreshAgain=false;
-let drag=null,ignoreClick=false;
+let drag=null,boxDrag=null,ignoreClick=false;
+const controlGroups=new Map();
 function log(message){
  const div=document.createElement("div");
  div.textContent="["+new Date().toLocaleTimeString()+"] "+message;
@@ -47,11 +49,21 @@ function draw2d(){
   ctx.fillStyle=p.team===team||p.id===playerId?"#c5eeff":"#f58a7c";ctx.fill();
   if(selected.has(u.id)){ctx.strokeStyle="#ffdc78";ctx.lineWidth=2;ctx.stroke();}
  }
+ if(boxDrag?.moved){
+  const x=Math.min(boxDrag.startPx.x,boxDrag.currentPx.x),
+   y=Math.min(boxDrag.startPx.y,boxDrag.currentPx.y);
+  ctx.fillStyle="rgba(120,210,230,.16)";
+  ctx.fillRect(x,y,Math.abs(boxDrag.startPx.x-boxDrag.currentPx.x),
+   Math.abs(boxDrag.startPx.y-boxDrag.currentPx.y));
+  ctx.strokeStyle="#a2e5eb";ctx.lineWidth=2;
+  ctx.strokeRect(x,y,Math.abs(boxDrag.startPx.x-boxDrag.currentPx.x),
+   Math.abs(boxDrag.startPx.y-boxDrag.currentPx.y));
+ }
 }
 function draw(){
  canvas.hidden=view3d;canvas3d.hidden=!view3d;
  if(view3d&&renderer&&state?.battlefield)
-  renderer.draw(state.battlefield,{players:state.players},selected);
+  renderer.draw(state.battlefield,{players:state.players,viewerId:playerId},selected);
  else draw2d();
 }
 function info(){
@@ -77,6 +89,7 @@ function info(){
  setButton("connect",!token&&!pending);
  const playing=!!token&&!pending&&room?.started&&!state?.winner;
  for(const id of ["move","formation","attack"])setButton(id,playing&&selected.size>0);
+ setButton("workers",playing);setButton("military",playing);
  const choices=catalogTraining(catalog),buildings=catalogBuildings(catalog),
   availableResearch=catalogResearch(catalog,$("researchFilter").value);
  const trainValue=$("trainChoice").value,buildValue=$("buildChoice").value;
@@ -133,7 +146,10 @@ function info(){
  setButton("research",playing&&!!chosenTech?.available);
  const details=[...selected].map(id=>p?.units?.find(u=>u.id===id))
   .filter(Boolean).map(u=>u.archetype+" ["+u.hp+"/"+u.maxHp+" HP]");
- text("selection",details.length?details.join(", "):"No units selected");
+ text("selection",details.length?selected.size+" units: "+details.slice(0,6).join(", ")+
+  (details.length>6?" …":""):"No units selected");
+ text("groups",Array.from({length:4},(_,i)=>
+  (i+1)+": "+(controlGroups.get(String(i+1))?.length??0)).join(" · "));
  $("resources").replaceChildren();
  for(const [k,v] of Object.entries(p?.resources??{})){
   const div=document.createElement("div");div.textContent=k+": "+v;
@@ -220,7 +236,8 @@ function disconnect(){
  abort?.abort();abort=null;
  if(pollTimer!==null){clearInterval(pollTimer);pollTimer=null;}
  token=null;state=null;room=null;catalog=null;playerId=null;
- selected.clear();mode="select";view3d=false;pending=false;refreshing=false;
+ selected.clear();controlGroups.clear();mode="select";view3d=false;
+ pending=false;refreshing=false;
  draw();info();log("Disconnected. No session token saved.");
 }
 async function post(path,body,description){
