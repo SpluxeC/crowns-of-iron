@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Crowns of Iron — Local Multiplayer Prototype</title>
+<style>
+:root{color-scheme:dark;font:14px system-ui,-apple-system,Segoe UI,sans-serif;background:#091521;color:#e8f3f5}
+*{box-sizing:border-box}body{margin:0}header{background:#163244;border-bottom:1px solid #416477;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:22px;margin:0}small{color:#aac4cf}main{display:grid;grid-template-columns:minmax(320px,1fr) 320px;gap:15px;padding:15px;max-width:1400px;margin:auto}
+section,aside{background:#162c3e;border:1px solid #395468;border-radius:12px;padding:14px;min-width:0}
+h2{font-size:16px;margin:0 0 10px}h3{font-size:13px;margin:16px 0 7px;color:#c3e4dc}
+input,button{font:inherit;border-radius:8px;color:#e8f3f5;padding:10px;background:#254a5d;border:1px solid #5a7888}
+button{cursor:pointer}button:disabled{opacity:.38;cursor:default}
+button:hover:not(:disabled){background:#32667c}button:focus-visible,input:focus-visible{outline:3px solid #79cbb6}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+#token{width:100%;margin:4px 0 7px}label{font-size:12px;color:#b7d4de}
+canvas{display:block;width:100%;height:auto;border:1px solid #597d75;border-radius:7px;background:#203940;touch-action:manipulation}
+#map3d{touch-action:none}[hidden]{display:none!important}
+#resources{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+#resources div,#players div{padding:7px;background:#102434;border-radius:5px;font-size:13px}
+#status,#selection,#connection,#lobbyStatus{margin:8px 0;color:#b7d5df}
+#log{white-space:pre-wrap;background:#0b1c2c;padding:9px;border-radius:6px;height:160px;overflow-y:auto;font-size:12px}
+p{line-height:1.5} .hint{color:#abc2ce;font-size:12px} .pill{color:#f0d592;border:1px solid #726448;border-radius:20px;padding:5px 9px}
+@media(max-width:850px){main{grid-template-columns:1fr;padding:9px}}
+</style></head><body>
+<header><div><h1>Crowns of Iron</h1><small>Authoritative local network match — development client</small></div>
+<span class="pill">Loopback only · Not production multiplayer</span></header>
+<main>
+<section aria-label="Live battlefield">
+<div class="controls"><button id="view">View: Top-down</button><button id="select">Select</button>
+<button id="move" disabled>Move</button><button id="formation" disabled>Formation</button>
+<button id="attack" disabled>Attack</button></div>
+<canvas id="map" width="800" height="640" aria-label="Live fog-filtered battlefield map"></canvas>
+<canvas id="map3d" width="800" height="640" aria-label="GPU 3D battlefield. Drag to orbit, wheel to zoom" hidden></canvas>
+<p class="hint">Click owned units to select, Shift+click to add/remove, then choose a command and target tile. 3D view: drag to orbit, scroll to zoom. The server validates every command.</p>
+<div id="selection" aria-live="polite">No units selected</div>
+<div id="status" aria-live="polite">No active match</div>
+</section>
+<aside aria-label="Lobby and player information">
+<h2>Connection</h2>
+<label for="token">Development session token (from the server console)</label>
+<input id="token" type="password" autocomplete="off" spellcheck="false" placeholder="Paste token for one player"/>
+<div class="controls"><button id="connect">Connect</button><button id="disconnect" disabled>Disconnect</button></div>
+<div id="connection" aria-live="polite">Disconnected — tokens remain only in browser memory</div>
+<h3>Lobby</h3><div id="lobbyStatus">Connect to see lobby</div><div id="players"></div>
+<div class="controls"><button id="ready" disabled>Ready</button><button id="start" disabled>Launch match</button></div>
+<h3>Economy</h3><div id="resources"></div>
+<div class="controls"><button id="trainWorker" disabled>Train Worker</button></div>
+<h3>Network log</h3><div id="log" aria-live="polite"></div>
+</aside></main>
+<script type="module" src="/netplay.js"></script>
+</body></html>
