@@ -31,9 +31,15 @@ export function runArmyRehearsal({seed=609,ticks=3,squads=1}={}){
   }
   assert(ids.length===24*squads,"Not enough rehearsal spawn positions");
   for(let squad=0;squad<squads;squad++){
-   const offset=6+squad*7;
-   const target={x:home.x+Math.sign(map.width/2-home.x)*offset,
-    y:home.y+Math.sign(map.height/2-home.y)*offset};
+   // Keep two squad goals in separate sectors instead of converging
+   // all players' second squads on the same congested map center.
+   const radial={x:home.x-map.width/2,y:home.y-map.height/2};
+   const length=Math.hypot(radial.x,radial.y)||1;
+   const target=squad===0?
+    {x:home.x+Math.sign(map.width/2-home.x)*6,
+     y:home.y+Math.sign(map.height/2-home.y)*6}:
+    {x:home.x+Math.round(-radial.y/length*8),
+     y:home.y+Math.round(radial.x/length*8)};
    const result=host.submit({token:host.credentialsFor(p.id).token,
     sequence:squad+1,action:"formation",
     payload:{units:ids.slice(squad*24,squad*24+24),...target}});
