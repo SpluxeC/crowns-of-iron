@@ -397,7 +397,9 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     }
     // Only filtered visible entities may generate cosmetic bursts.
     if(vfxUnits<COMBAT_VFX_LIMIT){
-     const vfx=combatVfxDescriptor(u,{clip:vehicleClip,hit:effect.hit,death:effect.death,
+     const vfx=combatVfxDescriptor(u,{clip:vehicleClip,
+      hit:previewPose==="hit"?1:effect.hit,
+      death:previewPose==="death"?.72:effect.death,
       preview:previewPose==="attack"},now);
      if(vfx?.intensity>0){
       appendCombatVfx(verts,cx,bottom,cz,vfx);vfxUnits++;
