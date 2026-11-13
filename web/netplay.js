@@ -1,4 +1,6 @@
 import {createWebGLRenderer} from "/webgl3d.js";
+import {availableBuildings,chooseBuilder,nextMandatoryResearch,
+ eligibleTrainingSites,queueSummary} from "/clientRules.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map"),ctx=canvas.getContext("2d",{alpha:false}),canvas3d=$("map3d");
 const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
@@ -74,7 +76,34 @@ function info(){
  setButton("connect",!token&&!pending);
  const playing=!!token&&!pending&&room?.started&&!state?.winner;
  for(const id of ["move","formation","attack"])setButton(id,playing&&selected.size>0);
- setButton("trainWorker",playing);
+ const choices=eligibleTrainingSites(p),buildings=availableBuildings(p);
+ const trainValue=$("trainChoice").value,buildValue=$("buildChoice").value;
+ $("trainChoice").replaceChildren();
+ for(const choice of choices){
+  const item=document.createElement("option");item.value=choice.facility+"|"+choice.role;
+  item.textContent=choice.label;$("trainChoice").append(item);
+ }
+ if(choices.some(c=>c.facility+"|"+c.role===trainValue))$("trainChoice").value=trainValue;
+ $("buildChoice").replaceChildren();
+ for(const building of buildings){
+  const item=document.createElement("option");item.value=building.kind;
+  item.textContent=building.kind+" ("+building.cost+")";
+  $("buildChoice").append(item);
+ }
+ if(buildings.some(b=>b.kind===buildValue))$("buildChoice").value=buildValue;
+ const research=nextMandatoryResearch(p);
+ text("researchChoice",research?research.name+" · "+research.id:"No research available at this age");
+ const jobs=queueSummary(p);
+ $("queues").replaceChildren();
+ for(const job of jobs.slice(0,20)){
+  const item=document.createElement("div");
+  item.textContent=job.type+" · "+job.name+" · "+job.facility+" · "+Math.floor(job.progressMs/1000)+"s";
+  $("queues").append(item);
+ }
+ if(!jobs.length)text("queues","No queued jobs");
+ setButton("trainWorker",playing&&choices.length>0);
+ setButton("build",playing&&buildings.length>0&&!!chooseBuilder(p,[...selected]));
+ setButton("research",playing&&!!research);
  const details=[...selected].map(id=>p?.units?.find(u=>u.id===id))
   .filter(Boolean).map(u=>u.archetype+" ["+u.hp+"/"+u.maxHp+" HP]");
  text("selection",details.length?details.join(", "):"No units selected");
@@ -200,6 +229,11 @@ function click(ev){
    send("move",{unitId:[...selected][0],...tile},"Move order sent");
   }else if(commandMode==="formation"&&selected.size){
    send("formation",{units:[...selected].slice(0,24),...tile},"Formation order sent");
+  }else if(commandMode==="build"){
+   const builder=chooseBuilder(own(),[...selected]);
+   if(builder)send("build",{kind:$("buildChoice").value,...tile,
+     workers:[builder.id]},"Building construction started");
+   else log("Select a living, positioned Worker first.");
   }else if(commandMode==="attack"&&selected.size===1){
    const enemy=state.players.filter(p=>p.id!==playerId&&p.team!==own()?.team)
     .flatMap(p=>(p.units??[]).filter(u=>u.alive&&u.x===tile.x&&u.y===tile.y)
@@ -223,8 +257,19 @@ $("disconnect").addEventListener("click",disconnect);
 $("ready").addEventListener("click",()=>post("/lobby/ready",
  {ready:!room.players.find(p=>p.id===playerId).ready},"Ready state updated"));
 $("start").addEventListener("click",()=>post("/lobby/start",{},"Host launched match"));
-$("trainWorker").addEventListener("click",()=>send("train",
- {facility:"Town Center",role:"Worker"},"Worker queued"));
+$("trainWorker").addEventListener("click",()=>{
+ const [facility,role]=$("trainChoice").value.split("|");
+ if(facility&&role)send("train",{facility,role},role+" queued");
+});
+$("build").addEventListener("click",()=>{
+ if(!chooseBuilder(own(),[...selected])){log("Select a Worker to build.");return;}
+ mode="build";log("Click a valid site for "+$("buildChoice").value);
+});
+$("research").addEventListener("click",()=>{
+ const tech=nextMandatoryResearch(own());
+ if(tech)send("research",{facility:"Town Center",id:tech.id},
+  "Research queued: "+tech.name);
+});
 for(const id of ["move","formation","attack","select"]){
  $(id).addEventListener("click",()=>{
   mode=id;log(id==="select"?"Selection enabled":"Choose a target tile for "+id);

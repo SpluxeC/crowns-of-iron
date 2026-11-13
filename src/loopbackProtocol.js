@@ -6,7 +6,8 @@ import {assert} from "./util.js";
 const STATIC={
  "/client":["../web/netplay.html","text/html; charset=utf-8"],
  "/netplay.js":["../web/netplay.js","text/javascript; charset=utf-8"],
- "/webgl3d.js":["../web/webgl3d.js","text/javascript; charset=utf-8"]
+ "/webgl3d.js":["../web/webgl3d.js","text/javascript; charset=utf-8"],
+ "/clientRules.js":["../web/clientRules.js","text/javascript; charset=utf-8"]
 };
 const HEADERS={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff",
  "Referrer-Policy":"no-referrer",
