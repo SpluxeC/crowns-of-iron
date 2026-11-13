@@ -73,7 +73,10 @@ export function tickBattlefield(match,deltaMs){
   for(let i=0;i<match.players.length;i++){
     const p=match.players[i],start=map.starts[i];
     for(const unit of p.units.filter(u=>u.alive)){
-      if(!Number.isInteger(unit.x)){unit.x=start.x;unit.y=start.y;}
+      if(!Number.isInteger(unit.x)){
+        if(movementDomain(unit.archetype)!=="land")continue;
+        unit.x=start.x;unit.y=start.y;
+      }
       const order=match.orders?.[unit.id];
       if(!order)continue;
       if(order.kind==="attack"){
