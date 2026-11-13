@@ -15,6 +15,8 @@ import {visibleCombatUnits,applyCombatPose} from "./combatVisuals.js";
 import {applyDamageFinish} from "./damageFinish.js";
 import {factionCombatVfx} from "./factionCombatVfx.js";
 import {createArtFrameBudget,ART_BUDGETS} from "./artFrameBudget.js";
+import {appendFactionArchitecture} from "./buildingArchitecture.js";
+import {appendTerrainAccents} from "./terrainAtmosphere.js";
 import {combatVfxDescriptor,appendCombatVfx,COMBAT_VFX_LIMIT} from "./combatVfx.js";
 import {refineFactionTexture} from "./materialDetail.js";
 import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
@@ -169,7 +171,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   models=null,textures=null,textureFailure=null,
   modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
   skinnedLoader=null,vehicleLoader=null,
-  modelUnits=0,modelBuildings=0,fallbackUnits=0,lastArtStats=null;
+  modelUnits=0,modelBuildings=0,fallbackUnits=0,lastArtStats=null,
+  architecturePieces=0,environmentPieces=0;
  const animationStates=new Map(),vehicleStates=new Map(),combatStates=new Map();
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
@@ -279,7 +282,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     if(t.occupied&&!modeled.has(t.occupied))
      cube(verts,t.x+.5,t.y+.5,.84,base,base+2.4,"#c2baa7");
     }
-    modelBuildings=0;
+    environmentPieces=appendTerrainAccents(verts,world.tiles,cube);
+    modelBuildings=0;architecturePieces=0;
     for(const site of world.structures??[]){
      if(!Number.isInteger(site.x)||!Number.isInteger(site.y))continue;
      const width=Math.max(1,Math.min(8,Number(site.width)||2)),
@@ -289,6 +293,10 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      const style=assetForBuilding(site.kind),
       faction=match.players.find(p=>p.id===site.owner)?.faction,
       mesh=models?.[factionMeshKey(faction,style.family)]??models?.[style.family];
+     // Faction-specific accents are attached to actual visible structure sites.
+     if(faction)
+      architecturePieces+=appendFactionArchitecture(verts,
+       {...site,width,height},faction,base,cube);
      if(mesh){
       // OBJ model coordinates are Y-up, centered on the structure footprint.
       appendObjVertices(verts,mesh,{x,y:base,z,scale:Math.min(width,height)/1.8,
@@ -460,6 +468,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    gpuTexturedVertices:uvRenderer?.stats().texturedVertices??0,
    cosmeticVfxMax:ART_BUDGETS.combatBursts,
    artBudget:lastArtStats,
+   architecturePieces,environmentPieces,
    factionModels:models?Object.keys(models).filter(k=>k.includes("/")).length:0,
    factionTextures:textures?Object.keys(textures).length:0,
    textureFailure,
