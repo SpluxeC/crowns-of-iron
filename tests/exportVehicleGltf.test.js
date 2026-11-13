@@ -15,7 +15,12 @@ test("specialized vehicle glTF has real UV mesh and five valid transform animati
  assert.equal(doc.skins,undefined);
  assert.equal(doc.animations.length,5);
  assert.deepEqual(doc.animations.map(c=>c.name),["idle","walk","attack","hit","death"]);
- assert.ok(doc.animations.every(c=>c.channels.length===2));
+ assert.ok(doc.animations.every(c=>c.channels.length===3));
+ assert.equal(doc.meshes.length,2);
+ assert.equal(doc.nodes.length,2);
+ assert.deepEqual(doc.nodes[0].children,[1]);
+ assert.ok(doc.animations.every(c=>c.channels[2].target.node===1 &&
+  c.channels[2].target.path==="rotation"));
  assert.ok(doc.animations.every(c=>c.channels[0].target.path==="translation"));
  assert.ok(doc.animations.every(c=>c.channels[1].target.path==="rotation"));
  assert.equal(doc.meshes[0].primitives[0].mode,4);
