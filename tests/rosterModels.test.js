@@ -47,7 +47,7 @@ test("bounded roster mesh loader de-duplicates concurrent work and reuses cache"
   {faction:"Humans",role:"Archer"},{faction:"Ursa",role:"Bomber"}]);
  assert.equal(result.loaded,2);
  assert.equal(loader.stats().loaded,2);
- assert.throws(()=>loader.loadBatch(Array.from({length:13},()=>({
+ await assert.rejects(loader.loadBatch(Array.from({length:13},()=>({
   faction:"Humans",role:"Archer"}))),/too large/);
  await assert.rejects(loader.loadOne("Humans","../../secret"),/Invalid/);
 });
