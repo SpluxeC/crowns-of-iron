@@ -1,4 +1,5 @@
 import {factionSlug} from "./factionArt.js";
+import {skinnedGltfPath,skinnedRoleSlug} from "./skinnedRoster.js";
 /** Strict same-origin glTF 2.0 skin loader. This prototype CPU-skins positions;
  * embedded PBR textures are retained in glTF for external viewers, while the
  * current RTS renderer still uses baked UV vertex colors. */
@@ -46,7 +47,9 @@ export function validateSkinnedGltf(doc){
  if(colors.length!==count*4||uv.length!==count*2||bones.length!==count*4||
   weights.length!==count*4||inverse.length!==7*16)throw Error("Invalid glTF attribute lengths");
  for(let i=0;i<count;i++){
-  if(bones[i*4]>=7||Math.abs(weights.slice(i*4,i*4+4).reduce((a,b)=>a+b,0)-1)>1e-4)
+  if(bones.slice(i*4,i*4+4).some((j,k)=>j>=7&&weights[i*4+k]>0)||
+   weights.slice(i*4,i*4+4).some(v=>v<0||v>1)||
+   Math.abs(weights.slice(i*4,i*4+4).reduce((a,b)=>a+b,0)-1)>1e-4)
    throw Error("Invalid glTF skin vertex");
  }
  const clips={};
@@ -102,9 +105,14 @@ export function sampleSkinnedGltf(model,clip="idle",timeMs=0){
  let min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
  for(let i=0;i<model.count;i++){
   const original=model.positions.slice(i*3,i*3+3);
-  const joint=model.bones[i*4],pivot=model.pivots[joint],
-   v=original.map((p,j)=>p-pivot[j]),rotated=rotate(v,poses[joint]),
-   pos=rotated.map((p,j)=>p+pivot[j]);
+  const pos=[0,0,0];
+  for(let influence=0;influence<4;influence++){
+   const weight=model.weights[i*4+influence];
+   if(weight<=0)continue;
+   const joint=model.bones[i*4+influence],pivot=model.pivots[joint],
+    v=original.map((p,j)=>p-pivot[j]),rotated=rotate(v,poses[joint]);
+   for(let k=0;k<3;k++)pos[k]+=(rotated[k]+pivot[k])*weight;
+  }
   for(let k=0;k<3;k++){result[i*6+k]=pos[k];
    min[k]=Math.min(min[k],pos[k]);max[k]=Math.max(max[k],pos[k]);}
   result.set(model.colors.slice(i*4,i*4+3),i*6+3);
@@ -114,21 +122,23 @@ export function sampleSkinnedGltf(model,clip="idle",timeMs=0){
 }
 export function createSkinnedGltfLoader(fetcher=fetch){
  const cache=new Map(),pending=new Map();
- async function load(faction){
-  const slug=factionSlug(faction);
-  if(!slug)throw Error("Invalid glTF faction");
-  if(cache.has(slug))return cache.get(slug);
-  if(pending.has(slug))return pending.get(slug);
+ async function load(faction,role="Swordsman"){
+  const path=skinnedGltfPath(faction,role);
+  if(!path)throw Error("Invalid glTF faction or role");
+  if(cache.has(path))return cache.get(path);
+  if(pending.has(path))return pending.get(path);
   const task=(async()=>{
-   const response=await fetcher("/assets/gltf/"+slug+"/swordsman.gltf");
+   const response=await fetcher(path);
    if(!response.ok)throw Error("Skinned glTF unavailable");
    const text=await response.text();
    if(text.length>8_000_000)throw Error("Skinned glTF too large");
    const model=validateSkinnedGltf(JSON.parse(text));
-   cache.set(slug,model);return model;
-  })().finally(()=>pending.delete(slug));
-  pending.set(slug,task);return task;
+   cache.set(path,model);return model;
+  })().finally(()=>pending.delete(path));
+  pending.set(path,task);return task;
  }
- return {load,get(faction){return cache.get(factionSlug(faction))??null;},
+ return {load,get(faction,role="Swordsman"){
+   return cache.get(skinnedGltfPath(faction,role))??null;
+  },
   stats(){return {loaded:cache.size,pending:pending.size}}};
 }
