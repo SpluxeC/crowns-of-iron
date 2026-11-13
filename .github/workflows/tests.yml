@@ -51,3 +51,20 @@ jobs:
           path: assets/gltf/**/*.gltf
           if-no-files-found: error
           retention-days: 30
+
+      - run: npm run expanded-land-art-demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crowns-of-iron-96-land-gltf-skins
+          path: assets/gltf/**/*.gltf
+          if-no-files-found: error
+          retention-days: 30
+      - run: npm install --no-save playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - run: npm run browser-art-smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crowns-of-iron-chromium-visual-art-qa
+          path: artifacts/browser-qa/*.png
+          if-no-files-found: error
+          retention-days: 30
