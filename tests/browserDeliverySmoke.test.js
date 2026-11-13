@@ -4,7 +4,7 @@ import {runBrowserDeliverySmoke} from "../src/browserDeliverySmoke.js";
 test("all RTS controls, ES module imports, and authenticated stance commands deliver over HTTP",async()=>{
  const result=await runBrowserDeliverySmoke();
  assert.equal(result.htmlControls,20);
- assert.equal(result.servedModules,21);
+ assert.equal(result.servedModules,22);
  assert.equal(result.gltfSkins,12);
  assert.equal(result.authoredClips,3);
  assert.equal(result.rosterSmokeMeshes,36);

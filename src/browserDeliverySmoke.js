@@ -24,7 +24,8 @@ export async function runBrowserDeliverySmoke(){
   "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js",
   "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js",
   "/rosterArt.js","/rosterLoader.js","/animationClips.js",
-  "/skinnedGltf.js","/textureShader.js","/skinnedRoster.js","/materialDetail.js"];
+  "/skinnedGltf.js","/textureShader.js","/skinnedRoster.js","/materialDetail.js",
+  "/vehicleMotion.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");

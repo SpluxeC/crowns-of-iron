@@ -113,3 +113,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **9.2 Skinning and transitions:** dual-joint influences for many vertices, normalized four-slot runtime skinning, 160 ms quaternion clip crossfades, retained OBJ fallback.
 - **9.3 Faction materials:** reproducible 128×128 patterned surface textures, embedded PNG glTF materials, role-specific roughness/metallic metadata and GPU UV sampling for skinned units.
 - **9.4 Export and regression QA:** all 36 model exports and 12 localhost sample glTF endpoints validated, runtime blended animation verified. Remaining 180 roster units not skinned; no real-browser GPU pixel validation.
+
+- **9.5 Expanded humanoid glTF coverage:** 96 seven-joint skinned glTF assets (16 land roles × six factions), validated and exportable; non-humanoid roles remain unique OBJ models.
+- **9.6 Specialized vehicle motion:** per-domain naval rocking, aircraft banking/hovering and siege firing recoil, applied to OBJ mesh vertices without changing simulation.
+- **9.7 Actual browser screenshot smoke:** headless Chromium with SwiftShader checks model gallery, skinned meshes, vehicle fallback and start-screen client; screenshots uploaded to CI.
+- **9.8 Artifact pipeline QA:** export/validate and upload 96 skinned glTF models, preserve earlier art milestone tests and document hardware/browser limitations.

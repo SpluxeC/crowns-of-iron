@@ -139,3 +139,11 @@ The project now supports **36 real seven-joint skinned glTF 2.0 character assets
 Many vertices have blended joint weights, animation clips crossfade over 160 ms, and material refinement generates **128×128 faction PNGs** embedded in glTF exports and used by the GPU UV shader. PBR metadata is role-aware, but the in-game renderer is still a textured **diffuse** shader, not a full PBR lighting implementation.
 
 The other **180 roster units** retain their unique OBJ asset pipeline. These are procedurally detailed first-pass models, not hand-painted final assets or real-browser hardware validation. See [Milestones 9.1–9.4 art guide](docs/ART_STAGE_9_1_TO_9_4.md).
+
+### Expanded land animation and real browser art QA — Milestones 9.5–9.8
+
+**96 faction-specific skinned glTF humanoid models** are now available: sixteen land roles per faction, including Scout, Club Fighter, Stone Slinger, Stone Spearman, Raider, Heavy Infantry, Converter, Gunner, Anti-Air Infantry and Mechanized Infantry in addition to the previous six classes. The original 216 OBJ roster files remain available, including non-humanoid vehicles and fallback art. Run `npm run expanded-land-art-demo` to export and validate all 96 glTF files; GitHub Actions uploads a ZIP artifact.
+
+Ships, aircraft and siege vehicles now use **specialized procedural rocking, banking, hovering and recoil** instead of humanoid joint animations. These effects are client-side and do not alter unit positions or authoritative combat.
+
+A dedicated **real headless Chromium/SwiftShader screenshot smoke** now validates the WebGL gallery, multiple faction archetypes, skinned glTF loading, vehicle OBJ fallback and the main client start screen. CI uploads the screenshots; it is not yet pixel-diff baseline regression, hardware GPU performance certification or native iOS/console QA. See [Art Stage 9.5–9.8](docs/ART_STAGE_9_5_TO_9_8.md).

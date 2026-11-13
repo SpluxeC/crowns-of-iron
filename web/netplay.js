@@ -1,5 +1,5 @@
 import {createWebGLRenderer} from "/webgl3d.js";
-import {SKINNED_ROLES} from "/skinnedRoster.js";
+import {ALL_SKINNED_ROLES} from "/skinnedRoster.js";
 import {createVersionDecoder} from "/streamProtocol.js";
 import {attackOrders,stopOrders,selectedVisibleEnemy,attackMoveOrders,stanceOrders} from "/combatOrders.js";
 import {createPerformanceTelemetry,formatTiming} from "/perfTelemetry.js";
@@ -74,7 +74,7 @@ async function queueRosterArt(){
   seen.add(key);wanted.push({faction:p.faction,role:u.archetype});
  }
  const skins=[...new Map((state.players??[]).flatMap(p=>
-  (p.units??[]).filter(u=>u.alive&&SKINNED_ROLES.includes(u.archetype)&&
+  (p.units??[]).filter(u=>u.alive&&ALL_SKINNED_ROLES.includes(u.archetype)&&
     Number.isInteger(u.x)).map(u=>({faction:p.faction,role:u.archetype})))
   .map(x=>[x.faction+"/"+x.role,x])).values()];
  if(!wanted.length&&!skins.length)return;
