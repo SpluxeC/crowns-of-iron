@@ -1,5 +1,6 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {createVersionDecoder} from "/streamProtocol.js";
+import {attackOrders,stopOrders,selectedVisibleEnemy} from "/combatOrders.js";
 import {chooseAtTile,unitsInTileRectangle,updateSelection,selectByRole,recallGroup,makeFormationPayload} from "/unitSelection.js";
 import {chooseBuilder,queueSummary,formatCost,catalogBuildings,
  catalogTraining,catalogResearch,researchRequest,trainingRequest} from "/clientRules.js";
@@ -89,6 +90,7 @@ function info(){
  setButton("connect",!token&&!pending);
  const playing=!!token&&!pending&&room?.started&&!state?.winner;
  for(const id of ["move","formation","attack"])setButton(id,playing&&selected.size>0);
+ setButton("stop",playing&&selected.size>0);
  setButton("workers",playing);setButton("military",playing);
  const choices=catalogTraining(catalog),buildings=catalogBuildings(catalog),
   availableResearch=catalogResearch(catalog,$("researchFilter").value);
@@ -252,6 +254,11 @@ async function send(action,payload,description){
  const seq=nextSequence;
  await post("/command",{sequence:seq,action,payload},description);
 }
+async function sendBatch(orders,description){
+ if(!room?.started||!token||pending||!orders.length)return;
+ await post("/command-batch",{expectedVersion:version,orders},description+
+  " ("+orders.length+" units)");
+}
 function clickedTile(ev){
  if(!state?.battlefield||!room?.started)return;
  const target=view3d?canvas3d:canvas,rect=target.getBoundingClientRect(),
@@ -278,13 +285,14 @@ function click(ev){
     send("build",{kind:$("buildChoice").value,...tile,
      workers:[builder.id]},"Building construction started");
    else log("Select a living, positioned Worker first.");
-  }else if(commandMode==="attack"&&selected.size===1){
-   const enemy=state.players.filter(p=>p.id!==playerId&&p.team!==own()?.team)
-    .flatMap(p=>(p.units??[]).filter(u=>u.alive&&u.x===tile.x&&u.y===tile.y)
-      .map(u=>({unit:u,owner:p.id})))[0];
-   if(enemy)send("attack",{attacker:[...selected][0],
-     targetPlayer:enemy.owner,target:enemy.unit.id},"Attack order sent");
-   else log("No visible enemy unit at that tile.");
+  }else if(commandMode==="attack"&&selected.size){
+   const enemy=selectedVisibleEnemy(state,playerId,tile.x,tile.y);
+   if(enemy){
+    const orders=attackOrders(own(),selected,enemy.targetPlayer,enemy.targetId,nextSequence);
+    if(orders.length)sendBatch(orders,"Attack orders sent");
+    else log("No living, armed and positioned attackers selected.");
+    if(selected.size>16)log("Group combat batch is limited to 16 units; split larger squads.");
+   }else log("No visible enemy unit at that tile.");
   }else log("Select one unit for this command.");
  }else{
   const ownUnit=chooseAtTile(own(),tile);
@@ -316,6 +324,11 @@ $("research").addEventListener("click",()=>{
 });
 for(const id of ["trainChoice","buildChoice","researchChoice","researchFilter"])
  $(id).addEventListener("change",()=>info());
+$("stop").addEventListener("click",()=>{
+ const orders=stopOrders(own(),selected,nextSequence);
+ if(orders.length)sendBatch(orders,"Stopped current orders");
+ if(selected.size>16)log("Stop batch limited to 16 units; select the rest separately.");
+});
 $("workers").addEventListener("click",()=>{
  selected=new Set(selectByRole(own(),"workers"));mode="select";draw();info();
 });
