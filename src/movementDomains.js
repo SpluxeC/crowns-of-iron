@@ -47,24 +47,39 @@ export function pathForUnit(match,owner,role,from,to,{range=0,visible=()=>true,b
  }
  return null;
 }
-export function spawnUnitOnDomain(match,player,unit,facility){
+/** Pick a domain-legal materialization tile, including collision reservations
+ * when opted in. Recruit jobs remain ready rather than stacking in a full base. */
+export function findAvailableSpawnPosition(match,player,role,facility){
  const map=match.battlefield;
- if(!map)return;
- const domain=movementDomain(unit.archetype);
- const home=map.starts[match.players.indexOf(player)];
- if(domain==="land"){unit.x=home.x;unit.y=home.y;return;}
- const site=Object.values(match.constructions??{}).find(j=>j.completed&&j.facilityKey===facility);
- const area=map.structures.find(s=>s.id===site?.siteId);
- const anchors=[];
- if(area){
-  for(let y=area.y-1;y<=area.y+area.height;y++)for(let x=area.x-1;x<=area.x+area.width;x++){
-   if(at(map,x,y))anchors.push({x,y});
-  }
- }else anchors.push(home);
- const valid=anchors.filter(v=>tileTraversable(match,player.id,unit.archetype,v.x,v.y))
-  .sort((a,b)=>(Math.abs(a.x-home.x)+Math.abs(a.y-home.y))-
-    (Math.abs(b.x-home.x)+Math.abs(b.y-home.y))||a.y-b.y||a.x-b.x);
- const spawn=valid[0];
- if(spawn){unit.x=spawn.x;unit.y=spawn.y;}
- else {unit.x=null;unit.y=null;} // cannot materialize naval vessels on land
+ if(!map)return null;
+ const domain=movementDomain(role),home=map.starts[match.players.indexOf(player)];
+ let anchors;
+ if(domain==="land")anchors=match.unitCollision?map.tiles:[home];
+ else{
+  const site=Object.values(match.constructions??{}).find(j=>j.completed&&
+    j.owner===player.id&&j.facilityKey===facility);
+  const area=map.structures.find(s=>s.id===site?.siteId);
+  anchors=[];
+  if(area){
+   for(let y=area.y-1;y<=area.y+area.height;y++)
+    for(let x=area.x-1;x<=area.x+area.width;x++)
+     if(at(map,x,y))anchors.push({x,y});
+  }else anchors=[home];
+ }
+ const taken=new Set();
+ if(match.unitCollision&&domain!=="air")
+  for(const p of match.players)for(const u of p.units)
+   if(u.alive&&!u.embarkedAt&&!u.garrisonedAt&&Number.isInteger(u.x)&&
+     movementDomain(u.archetype)===domain)taken.add(key(u.x,u.y));
+ const valid=anchors.filter(v=>tileTraversable(match,player.id,role,v.x,v.y)&&
+  !taken.has(key(v.x,v.y))).sort((a,b)=>
+   (Math.abs(a.x-home.x)+Math.abs(a.y-home.y))-
+   (Math.abs(b.x-home.x)+Math.abs(b.y-home.y))||
+   a.y-b.y||a.x-b.x);
+ return valid[0]??null;
+}
+export function spawnUnitOnDomain(match,player,unit,facility){
+ if(!match.battlefield)return;
+ const spot=findAvailableSpawnPosition(match,player,unit.archetype,facility);
+ unit.x=spot?.x??null;unit.y=spot?.y??null;
 }
