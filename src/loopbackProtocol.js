@@ -1,6 +1,8 @@
 import {createServer} from "node:http";
 import {readFile} from "node:fs/promises";
 import {assert} from "./util.js";
+import {FACTION_SLUGS} from "../web/factionArt.js";
+import {MODEL_NAMES} from "../web/objLoader.js";
 
 // Same-origin loopback development transport. Never publicly bind this server.
 const STATIC={
@@ -28,6 +30,14 @@ const STATIC={
  "/perfTelemetry.js":["../web/perfTelemetry.js","text/javascript; charset=utf-8"],
  "/streamProtocol.js":["../web/streamProtocol.js","text/javascript; charset=utf-8"]
 };
+// Expose only explicitly enumerated original art assets; never accept a caller path.
+for(const slug of FACTION_SLUGS)for(const role of MODEL_NAMES){
+ const route="/assets/models/factions/"+slug+"/"+role+".obj";
+ STATIC[route]=["../assets/models/factions/"+slug+"/"+role+".obj",
+  "text/plain; charset=utf-8"];
+}
+STATIC["/factionArt.js"]=["../web/factionArt.js","text/javascript; charset=utf-8"];
+STATIC["/meshAnimation.js"]=["../web/meshAnimation.js","text/javascript; charset=utf-8"];
 const HEADERS={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff",
  "Referrer-Policy":"no-referrer",
  "Content-Security-Policy":"default-src 'none'; script-src 'self'; connect-src 'self'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'"};
