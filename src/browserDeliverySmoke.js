@@ -8,6 +8,8 @@ import {ROSTER_ROLES,rosterMeshPath} from "../web/rosterArt.js";
 import {parsePpm} from "../web/factionTextures.js";
 import {validateSkinnedGltf} from "../web/skinnedGltf.js";
 import {SKINNED_ROLES} from "../web/skinnedRoster.js";
+import {vehicleGltfPath} from "../web/vehicleArt.js";
+import {parseVehicleGltf} from "../web/vehicleGltf.js";
 
 /** Real localhost HTTP delivery/interaction contract, not a graphical browser runner. */
 export async function runBrowserDeliverySmoke(){
@@ -25,7 +27,7 @@ export async function runBrowserDeliverySmoke(){
   "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js",
   "/rosterArt.js","/rosterLoader.js","/animationClips.js",
   "/skinnedGltf.js","/textureShader.js","/skinnedRoster.js","/materialDetail.js",
-  "/vehicleMotion.js"];
+  "/vehicleMotion.js","/vehicleArt.js","/vehicleGltf.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
@@ -112,6 +114,18 @@ export async function runBrowserDeliverySmoke(){
    assert(mesh.count>100&&mesh.textureEmbedded,"Invalid streamed skinned glTF");
    gltfSkins++;
   }
+  let vehicleGltfSmoke=0;
+  for(const faction of ["humans","ursa"])for(const role of
+   ["Bomber","Heavy Warship","Battering Ram"]){
+   const response=await fetch(base+vehicleGltfPath(faction,role));
+   assert(response.status===200,"Vehicle glTF not served: "+faction+"/"+role);
+   assert(response.headers.get("content-type")?.includes("model/gltf+json"));
+   const model=parseVehicleGltf(await response.json());
+   assert(model.count>100&&model.embeddedPng,"Invalid vehicle glTF response");
+   vehicleGltfSmoke++;
+  }
+  const invalidVehicle=await fetch(base+"/assets/gltf-vehicles/humans/archer.gltf");
+  assert(invalidVehicle.status===404,"Unlisted vehicle glTF URL was accepted");
   const unlistedGltf=await fetch(base+"/assets/gltf/not-a-faction/swordsman.gltf");
   assert(unlistedGltf.status===404,"Unlisted glTF path accepted");
   const badRoster=await fetch(base+"/assets/models/roster/humans/not-a-unit.obj");
@@ -141,7 +155,7 @@ export async function runBrowserDeliverySmoke(){
   return {htmlControls:requiredIds.length,servedModules:requiredScripts.length,
    servedMeshes:MODEL_NAMES.length,assetTriangles,factionMeshes,factionTriangles,
    factionTextures,factionRigProfiles:6,rosterSmokeMeshes,authoredClips:3,
-   gltfSkins,
+   gltfSkins,vehicleGltfSmoke,
    contractsChecked:checked,anonymousRejected:true,authenticatedBatch:true,
    scope:"localhost HTTP delivery and server interaction; NOT real browser GPU/DOM automation"};
  }finally{
