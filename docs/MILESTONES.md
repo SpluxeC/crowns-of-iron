@@ -98,3 +98,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **8.0 Faction-aware WebGL integration:** faction-owned unit/building mesh selection, exact static localhost paths, generic fallback if loading fails and gallery preview dropdown.
 - **8.1 Surface patterns and animation:** six original RGB PPM maps projected onto mesh vertex colors; deterministic idle/walk/attack posing and capped visible-canvas animation refresh.
 - **8.2 Rig profiles and asset QA:** six seven-joint procedural body-region profiles, animator reference JSON, 60-file OBJ integration tests and extended localhost asset/authorization checks. Full skinned armatures, UV/PBR and browser visual QA remain.
+
+- **8.3 Individual launch roster art:** 216 new physically separate Wavefront OBJ model files (6 factions × 36 archetypes), each with additional role-specific 3D equipment and details.
+- **8.4 On-demand integration:** safe exact-path roster serving, browser-selected model-gallery previews and asynchronous limited-batch 3D client loading with previous family-model fallback.
+- **8.5 UV-authored geometry:** each new OBJ contains actual Wavefront `vt` coordinates and face texture indices, validated by the parser; original faction PPM patterns sampled by UV and baked into vertex RGB in the prototype.
+- **8.6 Animation clips and QA:** three reusable artist-editable seven-joint keyframe animation curves, model-rendering/pose tests, all-216 asset/UV integrity tests, 36 representative localhost HTTP checks. No skinned FBX/glTF or per-pixel PBR yet.
