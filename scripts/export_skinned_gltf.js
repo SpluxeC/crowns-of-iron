@@ -154,14 +154,16 @@ export function exportSkinnedGltf(mesh,rig,clips,texture,
  return doc;
 }
 /** Regenerate all skinned assets from exactly the six selected roles per faction. */
-export async function exportSkinnedRoster(){
+export async function exportSkinnedRoster(roles=SKINNED_ROLES){
+ if(!Array.isArray(roles)||roles.some(role=>!SKINNED_ROLES.includes(role)))
+  throw Error("Unrecognized skinned role export request");
  const palette=parseMtl(await readFile(
   new URL("../assets/models/crowns-palette.mtl",import.meta.url),"utf8"));
  const result=[];
  for(const faction of FACTION_SLUGS){
   const texture=refineFactionTexture(parsePpm(await readFile(new URL(
    "../assets/textures/factions/"+faction+".ppm",import.meta.url),"utf8")),faction);
-  for(const role of SKINNED_ROLES){
+  for(const role of roles){
    const slug=skinnedRoleSlug(role);
    const source=await readFile(new URL(
     "../assets/models/roster/"+faction+"/"+slug+".obj",import.meta.url),"utf8");
@@ -179,7 +181,7 @@ export async function exportSkinnedRoster(){
 }
 /** Backwards compatibility for the previous milestone's Swordsman-only helper. */
 export async function exportFactionInfantry(){
- return (await exportSkinnedRoster()).filter(entry=>entry.role==="Swordsman");
+ return exportSkinnedRoster(["Swordsman"]);
 }
 if(process.argv[1]&&import.meta.url===new URL("file://"+process.argv[1]).href)
  console.log(JSON.stringify(await exportSkinnedRoster()));
