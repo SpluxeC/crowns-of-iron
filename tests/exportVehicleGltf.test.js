@@ -5,7 +5,7 @@ import {parseObj,parseMtl} from "../web/objLoader.js";
 import {parsePpm} from "../web/factionTextures.js";
 import {refineFactionTexture} from "../web/materialDetail.js";
 import {exportVehicleGltf} from "../scripts/export_vehicle_gltf.js";
-test("specialized vehicle glTF has real UV mesh and three valid transform animations",async()=>{
+test("specialized vehicle glTF has real UV mesh and five valid transform animations",async()=>{
  const palette=parseMtl(await readFile(new URL("../assets/models/crowns-palette.mtl",import.meta.url),"utf8"));
  const mesh=parseObj(await readFile(new URL("../assets/models/roster/humans/bomber.obj",import.meta.url),"utf8"),palette);
  const texture=refineFactionTexture(parsePpm(await readFile(
@@ -13,7 +13,8 @@ test("specialized vehicle glTF has real UV mesh and three valid transform animat
  const doc=exportVehicleGltf(mesh,texture,{role:"Bomber"});
  assert.equal(doc.asset.version,"2.0");
  assert.equal(doc.skins,undefined);
- assert.equal(doc.animations.length,3);
+ assert.equal(doc.animations.length,5);
+ assert.deepEqual(doc.animations.map(c=>c.name),["idle","walk","attack","hit","death"]);
  assert.ok(doc.animations.every(c=>c.channels.length===2));
  assert.ok(doc.animations.every(c=>c.channels[0].target.path==="translation"));
  assert.ok(doc.animations.every(c=>c.channels[1].target.path==="rotation"));
