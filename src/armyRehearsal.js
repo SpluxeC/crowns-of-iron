@@ -40,8 +40,14 @@ export function runArmyRehearsal({seed=609,ticks=3,squads=1}={}){
    }
    assert(ids.length===24,"Not enough distinct squad spawn positions");
    const target={x:home.x+direction.x*10,y:home.y+direction.y*10};
-   const result=host.submit({token:host.credentialsFor(p.id).token,
-    sequence:squad+1,action:"formation",payload:{units:ids,...target}});
+   let result;
+   try{
+    result=host.submit({token:host.credentialsFor(p.id).token,
+     sequence:squad+1,action:"formation",payload:{units:ids,...target}});
+   }catch(error){
+    throw new Error("Formation p"+i+" squad "+squad+" at "+target.x+","+target.y+
+      " failed: "+error.message);
+   }
    assert(result.accepted&&result.result.length===24,"Formation rejected");
    formed++;
   }
