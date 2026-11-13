@@ -98,7 +98,7 @@ export function tickBattlefield(match,deltaMs){
         if(!path){delete match.orders[unit.id];continue;}
         order.path=path.slice(1);
       }
-      const speedMs=unit.archetype==="Scout"?400:650;
+      const speedMs=Math.round((unit.archetype==="Scout"?400:650)/(unit.speedScale??1));
       order.carryMs=Math.min(2000,(order.carryMs??0)+deltaMs);
       // Bounded movement: up to 3 tiles per simulation step.
       for(let n=0;n<3&&order.carryMs>=speedMs&&order.path?.length;n++){

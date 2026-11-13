@@ -1,6 +1,7 @@
 import {FACTIONS,STARTING,POP_CAP} from "./constants.js";
 import {assert,clone} from "./util.js";
 import {ARCHETYPES,displayName} from "./catalog.js";
+import {FACTION_STAT_MODIFIERS} from "./factionRoster.js";
 export function createPlayer(id,faction,team=id){
   assert(FACTIONS.includes(faction),"Unknown faction");
   const player={
@@ -16,9 +17,12 @@ export function createPlayer(id,faction,team=id){
   return player;
 }
 export function makeUnit(player,archetype,definition,id){
+  const modifiers=FACTION_STAT_MODIFIERS[player.faction];
+  const hp=Math.round(definition.hp*(archetype==="Hero"?1:modifiers.hp));
   return {id,owner:player.id,faction:player.faction,archetype,name:displayName(player.faction,archetype),
-    hp:definition.hp,maxHp:definition.hp,armor:definition.armor,pop:definition.pop,
-    attack:definition.attack??0,category:definition.category??"Standard",type:definition.type??"Slash",
+    hp,maxHp:hp,armor:definition.armor+modifiers.armor,pop:definition.pop,
+    attack:Math.round((definition.attack??0)*(archetype==="Hero"?1:modifiers.attack)*10)/10,
+    speedScale:modifiers.speed,category:definition.category??"Standard",type:definition.type??"Slash",
     cost:clone(definition.cost??{}),alive:true,status:[],nextAttackAtMs:0};
 }
 export function createMatch(participants,seed=1){

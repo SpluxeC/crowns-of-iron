@@ -1,4 +1,5 @@
 import {HERO,LEGENDARY_LAND,LEGENDARY_SHIP,SIEGE_TOWER,FACTIONS} from "./constants.js";
+import {canonicalName} from "./factionRoster.js";
 export const ARCHETYPES = Object.freeze({
   Worker:{age:"I",hp:65,attack:4,armor:0,pop:1,cost:{Food:50},ms:15000,category:"Light",type:"Slash"},
   Scout:{age:"I",hp:85,attack:6,armor:1,pop:1,cost:{Food:55},ms:18000,category:"Light",type:"Slash"},
@@ -25,6 +26,8 @@ export const ARCHETYPES = Object.freeze({
   "Legendary Warship":{age:"V",hp:2800,attack:165,armor:34,pop:12,cost:{Wood:300,Stone:400,Metal:850,Gold:700,Aether:220},ms:170000,category:"Mechanical",type:"Crush",unique:"legendary-ship"}
 });
 export function displayName(faction,archetype){
+  const reconciled=canonicalName(faction,archetype);
+  if(reconciled)return reconciled;
   if(archetype==="Hero")return HERO[faction];
   if(archetype==="Legendary Land")return LEGENDARY_LAND[faction];
   if(archetype==="Legendary Warship")return LEGENDARY_SHIP[faction];
