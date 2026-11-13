@@ -20,9 +20,9 @@ const AIRCRAFT=new Set(["Scout Aircraft","Interceptor","Gunship","Bomber",
 export function assetForUnit(unit){
  const role=unit?.archetype??"";
  const family=role==="Worker"?"worker":
-  (role==="Hero"||role.startsWith("Legendary"))?"hero":
-  RANGED.has(role)?"ranged":SIEGE.has(role)?"siege":
-  SHIPS.has(role)?"ship":AIRCRAFT.has(role)?"air":"infantry";
+  SHIPS.has(role)?"ship":AIRCRAFT.has(role)?"air":
+  SIEGE.has(role)?"siege":RANGED.has(role)?"ranged":
+  (role==="Hero"||role.startsWith("Legendary"))?"hero":"infantry";
  return UNIT_ASSETS[family];
 }
 export function assetForBuilding(kind){

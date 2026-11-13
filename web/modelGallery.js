@@ -1,5 +1,5 @@
 import {createWebGLRenderer} from "/webgl3d.js";
-import {MODEL_NAMES,loadObjAssetSet} from "/objLoader.js";
+import {MODEL_NAMES} from "/objLoader.js";
 const canvas=document.getElementById("preview"),select=document.getElementById("model");
 const details=document.getElementById("details");
 const renderer=createWebGLRenderer(canvas,{preview:true});
@@ -10,7 +10,7 @@ const width=12,height=12;
 const tiles=Array.from({length:width*height},(_,i)=>({x:i%width,y:Math.floor(i/width),
  terrain:"grass",occupied:null,resource:null}));
 const world={width,height,tiles,structures:[]};
-let meshes=null,drag=null;
+let drag=null;
 function draw(){
  const name=select.value;
  if(!MODEL_NAMES.includes(name))return;
@@ -22,16 +22,15 @@ function draw(){
  const unit={id:"sample",owner:"p0",archetype:archetypes[name],alive:true,
   hp:100,maxHp:100,x:5,y:5};
  renderer?.draw(world,{viewerId:"p0",players:[{id:"p0",units:building?[]:[unit]}]},new Set());
- const mesh=meshes?.[name];
+ const mesh=renderer?.meshInfo(name);
  details.textContent=mesh?name.toUpperCase()+" · "+mesh.triangles+
   " triangles · "+mesh.vertexCount+" rendered triangle vertices · editable .obj and .mtl":
   "Loading "+name+" — showing fallback until model is available";
 }
 if(!renderer){details.textContent="WebGL not available in this browser.";}
-else renderer.loadAssets({notify:draw}).then(async()=>{
- meshes=await loadObjAssetSet();
- draw();
-}).catch(e=>{details.textContent="OBJ load error: "+e.message;draw();});
+else renderer.loadAssets({notify:draw}).then(draw).catch(e=>{
+ details.textContent="OBJ load error: "+e.message;
+});
 select.addEventListener("change",draw);
 document.getElementById("orbitLeft").addEventListener("click",()=>{renderer?.orbit(-30,0);draw();});
 document.getElementById("orbitRight").addEventListener("click",()=>{renderer?.orbit(30,0);draw();});

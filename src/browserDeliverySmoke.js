@@ -2,6 +2,7 @@ import {readFile} from "node:fs/promises";
 import {MatchHost} from "./network.js";
 import {createLoopbackProtocolServer} from "./loopbackProtocol.js";
 import {assert} from "./util.js";
+import {MODEL_NAMES,parseMtl,parseObj} from "../web/objLoader.js";
 
 /** Real localhost HTTP delivery/interaction contract, not a graphical browser runner. */
 export async function runBrowserDeliverySmoke(){
@@ -15,7 +16,7 @@ export async function runBrowserDeliverySmoke(){
   "trainWorker","build","researchChoice","trainChoice","buildChoice"];
  const requiredScripts=["/netplay.js","/webgl3d.js","/assetManifest.js",
   "/clientRules.js","/unitSelection.js","/combatOrders.js",
-  "/perfTelemetry.js","/streamProtocol.js"];
+  "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
@@ -41,6 +42,24 @@ export async function runBrowserDeliverySmoke(){
    }
    checked++;
   }
+  const gallery=await fetch(base+"/model-gallery");
+  assert(gallery.status===200,"Model gallery page unavailable");
+  const galleryHtml=await gallery.text();
+  assert(galleryHtml.includes('src="/modelGallery.js"'),"Model gallery entrypoint missing");
+  for(const name of MODEL_NAMES)assert(galleryHtml.includes('value="'+name+'"'),
+   "Model gallery option missing: "+name);
+  const mtlResponse=await fetch(base+"/assets/models/crowns-palette.mtl");
+  assert(mtlResponse.status===200,"OBJ material palette not served");
+  const materials=parseMtl(await mtlResponse.text());
+  let assetTriangles=0;
+  for(const name of MODEL_NAMES){
+   const res=await fetch(base+"/assets/models/"+name+".obj");
+   assert(res.status===200,"OBJ mesh missing: "+name);
+   assert(res.headers.get("content-type")?.includes("text/plain"),"OBJ MIME incorrect");
+   assetTriangles+=parseObj(await res.text(),materials).triangles;
+  }
+  const illegal=await fetch(base+"/assets/models/unknown.obj");
+  assert(illegal.status===404,"Unlisted model path unexpectedly served");
   const absent=await fetch(base+"/state");
   assert(absent.status===401,"Anonymous snapshot unexpectedly accepted");
   const headers={"x-session-token":token};
@@ -60,6 +79,7 @@ export async function runBrowserDeliverySmoke(){
   assert(next.nextSequence===2,"Successful stance batch failed to advance sequence");
   assert(host.match.players[0].units.find(u=>u.id===unit.id).combatStance==="aggressive");
   return {htmlControls:requiredIds.length,servedModules:requiredScripts.length,
+   servedMeshes:MODEL_NAMES.length,assetTriangles,
    contractsChecked:checked,anonymousRejected:true,authenticatedBatch:true,
    scope:"localhost HTTP delivery and server interaction; NOT real browser GPU/DOM automation"};
  }finally{

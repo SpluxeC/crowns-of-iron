@@ -279,6 +279,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   orbit(dx,dy){yaw+=dx*.009;pitch=Math.max(.22,Math.min(1.37,pitch+dy*.008));},
   zoom(direction){radius=Math.max(preview?9:30,Math.min(preview?45:125,radius+direction*(preview?2:5)));},
   camera(){return {yaw,pitch,radius};},
+  meshInfo(name){const mesh=models?.[name];return mesh?
+   {triangles:mesh.triangles,vertexCount:mesh.vertexCount,bounds:mesh.bounds}:null;},
   stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount,
    modelUnits,modelBuildings,fallbackUnits,loadedModels:models?Object.keys(models).length:0,
    modelFailure};},
