@@ -3,6 +3,7 @@ import {at,canPlace} from "./map.js";
 import {getPlayer} from "./state.js";
 import {STRUCTURES,startConstruction,destroyStructure} from "./construction.js";
 import {constructionDefinition} from "./structureCatalog.js";
+import {researchMultiplier} from "./technologyEffects.js";
 
 // Ruins persist for five minutes. Only one outcome is permitted:
 // salvage or rebuild. New construction at the same location invalidates the ruin.
@@ -37,8 +38,10 @@ export function salvageRuin(match,owner,siteId){
   const def=constructionDefinition(match,getPlayer(match,owner),ruin.kind,STRUCTURES);assert(def,"Unknown original structure");
   const ratio=["Grand Factory","Foundry","Airship Hangar"].includes(ruin.kind)?.20:
     ["Shelter","Resource Depot","Training Camp"].includes(ruin.kind)?.10:.15;
-  const materials=Object.fromEntries(materialKeys.map(k=>[k,Math.floor((def.cost[k]??0)*ratio)]));
   const p=getPlayer(match,owner);
+  const bonus=["Grand Factory","Foundry","Airship Hangar","Material Recovery Plant","Aether Condenser"].includes(ruin.kind)
+    ?researchMultiplier(p,"salvage"):1;
+  const materials=Object.fromEntries(materialKeys.map(k=>[k,Math.floor((def.cost[k]??0)*ratio*bonus)]));
   refund(p.resources,materials,1);
   ruin.consumed=true;
   delete match.ruins[siteId];

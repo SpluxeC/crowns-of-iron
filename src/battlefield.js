@@ -125,7 +125,8 @@ export function botTactics(match,playerId){
     .map(u=>({player:x,unit:u})));
   if(!targets.length)return false;
   let issued=false;
-  for(const u of p.units.filter(x=>x.alive&&x.attack>0&&Number.isInteger(x.x))){
+  for(const u of p.units.filter(x=>x.alive&&x.attack>0&&Number.isInteger(x.x)&&
+    !(match.economyMode==="spatial"&&x.archetype==="Worker"))){
     if(match.orders?.[u.id]?.kind==="attack")continue;
     const candidates=targets.filter(t=>t.unit.category!=="Air"||["Anti-Air Infantry","Interceptor","Gunship","Aerial Battleship"].includes(u.archetype));
     candidates.sort((a,b)=>{

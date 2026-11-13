@@ -4,6 +4,7 @@ import {ATTACK_PROFILE} from "./battlefield.js";
 import {damage} from "./combat.js";
 import {destroyToRuin} from "./ruins.js";
 import {hasLineOfSight} from "./tacticalNavigation.js";
+import {researchMultiplier} from "./technologyEffects.js";
 
 const timber=new Set(["Shelter","Resource Depot","Training Camp","Farm","Archery Range"]);
 function distToSite(unit,placement){
@@ -57,7 +58,8 @@ export function tickStructureCombat(match){
         delete match.orders[unit.id];continue;}
       if((unit.nextAttackAtMs??0)>match.elapsedMs)continue;
       const buff=(unit.buffs??[]).filter(b=>b.expiresMs>match.elapsedMs);
-      const attack=buff.reduce((sum,b)=>sum*(b.attackMultiplier??1),unit.attack);
+      const attack=buff.reduce((sum,b)=>sum*(b.attackMultiplier??1),unit.attack)*
+        researchMultiplier(player,"structureAttack",{unit});
       const category=timber.has(site.kind)?"Timber":"Masonry";
       const hit=damage(attack,site.armor,unit.type,category);
       site.hp=Math.max(0,site.hp-hit);
@@ -81,7 +83,7 @@ export function repairBuilding(match,owner,siteId,workerIds,requestedAmount){
     assert((w.nextRepairAtMs??0)<=match.elapsedMs,"Repair action on cooldown");
   }
   const missing=(site.maxHp??site.hp)-site.hp;
-  const restored=Math.min(missing,requestedAmount,40*workers.length);
+  const restored=Math.min(missing,requestedAmount,Math.floor(40*workers.length*researchMultiplier(p,"repair")));
   if(restored===0)return {restored:0,cost:{}};
   const cost=Object.fromEntries(["Wood","Stone","Metal"].map(k=>
     [k,Math.ceil(.6*(site.cost[k]??0)*restored/(site.maxHp??site.hp))]));

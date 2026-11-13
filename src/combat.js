@@ -59,7 +59,7 @@ export function repair(player,workerIds,targetId,amount,nowMs=0){
     assert((worker.nextRepairAtMs??0)<=nowMs,"Worker repair action on cooldown");
   }
   assert(Number.isSafeInteger(amount)&&amount>0,"Invalid repair amount");
-  const restored=Math.min(amount,target.maxHp-target.hp);
+  const restored=Math.min(amount,target.maxHp-target.hp,Math.floor(40*workerIds.length*researchMultiplier(player,"repair")));
   const cost={};
   for(const k of ["Wood","Stone","Metal"]){
     const source=target.cost[k]??0;

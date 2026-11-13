@@ -3,6 +3,7 @@ import {createMatch,command,step,snapshot,checksum} from "./simulation.js";
 import {makeMap} from "./map.js";
 import {attachBattlefield} from "./battlefield.js";
 import {assert,clone} from "./util.js";
+import {researchMultiplier} from "./technologyEffects.js";
 
 // Local authoritative protocol prototype; no public deployment, matchmaking,
 // dedicated authorization backend or production fog-of-war guarantees.
@@ -66,7 +67,9 @@ export class MatchHost{
     if(!Number.isInteger(target.x)||!Number.isInteger(target.y))return false;
     const friendly=this.match.players.filter(p=>p.team===viewer.team);
     return friendly.some(p=>p.units.some(u=>u.alive&&Number.isInteger(u.x)&&
-      Math.abs(u.x-target.x)+Math.abs(u.y-target.y)<=(u.archetype==="Scout"?7:4)));
+      Math.abs(u.x-target.x)+Math.abs(u.y-target.y)<=
+        (u.archetype==="Scout Aircraft"?Math.ceil(7*researchMultiplier(p,"scoutSight")):
+          u.archetype==="Scout"?7:4)));
   }
   view(token){
     const session=this.sessions.get(token);
@@ -76,7 +79,9 @@ export class MatchHost{
     const friendly=this.match.players.filter(p=>p.team===team);
     const inVision=(x,y)=>Number.isInteger(x)&&Number.isInteger(y)&&
       friendly.some(p=>p.units.some(u=>u.alive&&Number.isInteger(u.x)&&
-        Math.abs(u.x-x)+Math.abs(u.y-y)<=(u.archetype==="Scout"?7:4)));
+        Math.abs(u.x-x)+Math.abs(u.y-y)<=
+          (u.archetype==="Scout Aircraft"?Math.ceil(7*researchMultiplier(p,"scoutSight")):
+            u.archetype==="Scout"?7:4)));
     state.players=state.players.map(p=>{
       if(p.id===viewer.id)return p;
       return {id:p.id,faction:p.faction,team:p.team,age:p.age,defeated:p.defeated,

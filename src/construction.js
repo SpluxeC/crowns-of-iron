@@ -6,6 +6,7 @@ import {destroyProductionFacility} from "./production.js";
 import {refundDestroyedBuildingUpgrades} from "./buildingUpgrades.js";
 import {constructionDefinition} from "./structureCatalog.js";
 import {addMonument,removeMonument} from "./modes.js";
+import {refreshStructureTechnology} from "./technologyEffects.js";
 
 export const STRUCTURES=Object.freeze({
   "Training Camp":{age:"I",cost:{Wood:100,Stone:40},ms:40000,footprint:[3,3],hp:800,armor:5},
@@ -71,6 +72,7 @@ export function tickConstruction(match,deltaMs){
     if(job.elapsedMs>=job.durationMs){
       job.elapsedMs=job.durationMs;job.completed=true;
       job.facilityKey=addFacility(p,job.kind);
+      refreshStructureTechnology(match,p);
       p.history.push("Built "+job.kind+" at "+siteId);
       if(job.housing)p.popCap=Math.min(300,p.popCap+job.housing);
       if(job.kind==="Great Monument"&&match.mode==="GreatMonument")addMonument(match,job.owner);

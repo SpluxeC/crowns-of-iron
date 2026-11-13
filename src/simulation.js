@@ -16,6 +16,7 @@ import {destroyToRuin,salvageRuin,rebuildRuin,tickRuins} from "./ruins.js";
 import {queueBuildingUpgrade,cancelBuildingUpgrade,tickBuildingUpgrades} from "./buildingUpgrades.js";
 import {orderStructureAttack,tickStructureCombat,repairBuilding} from "./structureCombat.js";
 import {setGateOpen} from "./gates.js";
+import {refreshStructureTechnology} from "./technologyEffects.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -76,7 +77,9 @@ function substep(match,ms,opts){
   tickBots(match,ms);
   for(const player of match.players.filter(x=>!x.defeated)){
     if(match.economyMode!=="spatial")gather(player,ms,opts.economy?.[player.id]??{});
+    const before=player.completed.length;
     tickResearch(player,ms,researchCatalog(match,player));
+    if(player.completed.length!==before)refreshStructureTechnology(match,player);
     tickProduction(match,player,ms);
     tickStatuses(player,ms);
   }
