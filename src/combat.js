@@ -29,24 +29,35 @@ export function strike(owner,targetOwner,attackerId,targetId,{nowMs=0}={}){
   if(target.hp===0)killUnit(targetOwner,target.id);
   return hit;
 }
-export function heal(player,healerIds,targetId){
+export function heal(player,healerIds,targetId,nowMs=0){
   const target=player.units.find(u=>u.id===targetId&&u.alive);
   assert(target,"Target must be alive");
   assert(!["Mechanical","Structure"].includes(target.category),"Mechanical units require repairs");
   assert(Array.isArray(healerIds)&&healerIds.length>=1,"Requires active healers");
   assert(new Set(healerIds).size===healerIds.length,"Duplicate healer");
-  for(const id of healerIds)assert(player.units.some(u=>u.id===id&&u.alive&&u.archetype==="Healer"),"Invalid healer");
+  for(const id of healerIds){
+    const healer=player.units.find(u=>u.id===id&&u.alive&&u.archetype==="Healer");
+    assert(healer,"Invalid healer");
+    assert((healer.nextHealAtMs??0)<=nowMs,"Healer action on cooldown");
+  }
   // Each individual action restores 12 base HP, diminishing after the second.
   const amount=healerIds.reduce((n,_,i)=>n+12*(i<2?1:i===2?.75:.5),0);
   const healed=Math.min(target.maxHp-target.hp,Math.floor(amount*researchMultiplier(player,"healing")));
-  target.hp+=healed;return healed;
+  target.hp+=healed;
+  if(healed>0)for(const id of healerIds)
+    player.units.find(u=>u.id===id).nextHealAtMs=nowMs+2000;
+  return healed;
 }
-export function repair(player,workerIds,targetId,amount){
+export function repair(player,workerIds,targetId,amount,nowMs=0){
   const target=player.units.find(u=>u.id===targetId&&u.alive);
   assert(target&&target.category==="Mechanical","Repairs require living machinery");
   assert(Array.isArray(workerIds)&&workerIds.length>0,"Needs repairers");
   assert(new Set(workerIds).size===workerIds.length,"Duplicate worker");
-  for(const id of workerIds)assert(player.units.some(u=>u.id===id&&u.alive&&u.archetype==="Worker"),"Invalid worker");
+  for(const id of workerIds){
+    const worker=player.units.find(u=>u.id===id&&u.alive&&u.archetype==="Worker");
+    assert(worker,"Invalid worker");
+    assert((worker.nextRepairAtMs??0)<=nowMs,"Worker repair action on cooldown");
+  }
   assert(Number.isSafeInteger(amount)&&amount>0,"Invalid repair amount");
   const restored=Math.min(amount,target.maxHp-target.hp);
   const cost={};
@@ -55,7 +66,10 @@ export function repair(player,workerIds,targetId,amount){
     if(source)cost[k]=Math.ceil(.5*source*restored/target.maxHp);
   }
   if(restored>0)spend(player.resources,cost);
-  target.hp+=restored;return {restored,cost};
+  target.hp+=restored;
+  if(restored>0)for(const id of workerIds)
+    player.units.find(u=>u.id===id).nextRepairAtMs=nowMs+2000;
+  return {restored,cost};
 }
 export function applyStatus(unit,name,durationMs,dps){
   assert(unit.alive&&["Burning","Corruption"].includes(name),"Unsupported status");

@@ -41,3 +41,23 @@ test("Burning refreshes rather than stacking unlimited copies",()=>{
  applyStatus(u,"Burning",5000,3);applyStatus(u,"Burning",5000,3);
  assert.equal(u.status.length,1);tickStatuses(p,2000);assert.equal(u.hp,59);
 });
+
+test("healer actions cannot be spammed before a two-second cooldown",()=>{
+ const m=createMatch([{id:"a",faction:"Humans"},{id:"b",faction:"Orcs"}]),p=m.players[0];
+ const target=p.units[0];target.hp=10;
+ const healer=makeUnit(p,"Healer",ARCHETYPES.Healer,"cooldown-h");
+ p.units.push(healer);
+ assert.equal(heal(p,["cooldown-h"],target.id,0),12);
+ assert.throws(()=>heal(p,["cooldown-h"],target.id,1999),/cooldown/);
+ assert.equal(heal(p,["cooldown-h"],target.id,2000),12);
+});
+test("mechanical repairs require a new engineer action after cooldown",()=>{
+ const m=createMatch([{id:"a",faction:"Humans"},{id:"b",faction:"Orcs"}]),p=m.players[0];
+ p.resources.Metal=1000;
+ const machine=makeUnit(p,"Siege Tower",ARCHETYPES["Siege Tower"],"repair-test");
+ machine.hp=400;p.units.push(machine);
+ const id=p.units[0].id;
+ assert.equal(repair(p,[id],machine.id,30,0).restored,30);
+ assert.throws(()=>repair(p,[id],machine.id,30,1000),/cooldown/);
+ assert.equal(repair(p,[id],machine.id,30,2000).restored,30);
+});

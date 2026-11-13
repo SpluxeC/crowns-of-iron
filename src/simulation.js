@@ -45,8 +45,8 @@ export function command(match,input,{allowDebug=false}={}){
     case "attackStructure":result=orderStructureAttack(match,id,input.unitId,input.siteId);break;
     case "repairBuilding":result=repairBuilding(match,id,input.siteId,input.workers,input.amount);break;
     case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
-    case "heal":result=heal(player,input.healers,input.target);break;
-    case "repair":result=repair(player,input.workers,input.target,input.amount);break;
+    case "heal":result=heal(player,input.healers,input.target,match.elapsedMs);break;
+    case "repair":result=repair(player,input.workers,input.target,input.amount,match.elapsedMs);break;
     default:throw new Error("Unknown action: "+action);
   }
   match.commands.push(clone(input));return result;
