@@ -28,3 +28,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **2.4 Local building upgrades:** 60/126 records have executable training speed, HP or housing logic; 66 upgrades remain descriptive only.
 - **2.5 Spatial economy:** optional finite Worker harvesting, cargo capacity, walking and depot delivery, without passive income duplication. Default remains abstract economy.
 - **2.6 Combat navigation:** wall/hill line-of-sight blockers and reachable ranged firing positions; projectile arcs and unit collision remain pending.
+
+- **2.7 Research effect expansion:** 52/78 optional effects per civilization executable; 26 still pending per civilization. Structures receive additive HP modifiers without regeneration.
+- **2.8 Gates and walls:** explicit owner-only open/close gate commands, allied land passage and blocking walls; advanced siege interactions remain pending.
+- **2.9 Domain navigation:** separate terrain eligibility for land/sea/air and water-only naval spawns; water-map generation, docking and altitude remain pending.
+- **3.0 AI spatial harvesting:** opt-in spatial economy bots find finite deposits and haul to delivery; strategic AI/build orders and spatial multiplayer incomplete.
