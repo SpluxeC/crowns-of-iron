@@ -103,3 +103,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **8.4 On-demand integration:** safe exact-path roster serving, browser-selected model-gallery previews and asynchronous limited-batch 3D client loading with previous family-model fallback.
 - **8.5 UV-authored geometry:** each new OBJ contains actual Wavefront `vt` coordinates and face texture indices, validated by the parser; original faction PPM patterns sampled by UV and baked into vertex RGB in the prototype.
 - **8.6 Animation clips and QA:** three reusable artist-editable seven-joint keyframe animation curves, model-rendering/pose tests, all-216 asset/UV integrity tests, 36 representative localhost HTTP checks. No skinned FBX/glTF or per-pixel PBR yet.
+
+- **8.7 Exportable skinned glTF:** real glTF 2.0 export pipeline for six faction Swordsman exemplars, with seven skin joints, JOINTS_0/WEIGHTS_0, inverse bind matrices, three quaternion animation clips, embedded original PNG and PBR material metadata.
+- **8.8 glTF skinning integrated:** client-side glTF parser and CPU skeletal skinning with live RTS/gallery loading, exact localhost endpoints and OBJ fallback.
+- **8.9 GPU UV texture sampling:** separate WebGL diffuse shader samples faction PPM textures per-fragment, GPU-texture caching and RGB fallback for legacy meshes; no full physically-based lighting.
+- **9.0 QA and downloadable assets:** validates export and dynamic skinning of all six glTF exemplar models, fake GPU shader drawing, real localhost delivery, complete old milestone suite and GitHub Actions artifact of six generated files. Remaining 210 roster units still OBJ.

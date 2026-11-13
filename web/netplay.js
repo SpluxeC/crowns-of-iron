@@ -72,9 +72,17 @@ async function queueRosterArt(){
   if(seen.has(key)||renderer.rosterMeshInfo(p.faction,u.archetype))continue;
   seen.add(key);wanted.push({faction:p.faction,role:u.archetype});
  }
- if(!wanted.length)return;
+ const skins=[...new Set((state.players??[]).flatMap(p=>
+  (p.units??[]).some(u=>u.alive&&u.archetype==="Swordsman"&&
+    Number.isInteger(u.x))?[p.faction]:[]))];
+ if(!wanted.length&&!skins.length)return;
  loadingRoster=true;
  try{
+  if(skins.length){
+   const skinResult=await renderer.loadSkinnedAssets({factions:skins,
+    notify:()=>{if(view3d)draw();}});
+   if(skinResult.failed)log("Some glTF skins unavailable; using OBJ fallbacks.");
+  }
   for(let i=0;i<wanted.length&&view3d;i+=12){
    const chunk=wanted.slice(i,i+12);
    const result=await renderer.loadRosterAssets({requests:chunk,
@@ -184,6 +192,7 @@ function info(){
   (renderer?" · Mesh models: "+renderer.stats().loadedModels+
    " · Faction meshes: "+renderer.stats().factionModels+
    " · Roster meshes: "+renderer.stats().rosterModels+
+   " · glTF skins: "+renderer.stats().skinnedGltf+
    " · Mesh units: "+renderer.stats().modelUnits+
    " · Fallback units: "+renderer.stats().fallbackUnits+
    " · Terrain GPU rebuilds: "+renderer.stats().terrainRebuilds:""));

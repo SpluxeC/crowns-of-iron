@@ -1,11 +1,13 @@
 /** WebGL 3D prototype: GPU-shaded block geometry with a mouse-orbit camera. */
 import {assetForUnit,assetForBuilding} from "./assetManifest.js";
 import {loadObjAssetSet,loadFactionObjSet,appendObjVertices} from "./objLoader.js";
-import {factionMeshKey} from "./factionArt.js";
+import {factionMeshKey,factionSlug} from "./factionArt.js";
 import {poseAt,animationModeForUnit} from "./meshAnimation.js";
 import {loadFactionTextures,textureForFaction} from "./factionTextures.js";
 import {rigForFaction} from "./rigProfiles.js";
 import {createRosterMeshLoader} from "./rosterLoader.js";
+import {createSkinnedGltfLoader,sampleSkinnedGltf} from "./skinnedGltf.js";
+import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
@@ -151,10 +153,12 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   .map(k=>[k,gl.getUniformLocation(program,k)]));
  const staticBuffer=gl.createBuffer(),dynamicBuffer=gl.createBuffer();
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
+ const uvRenderer=createUvTextureRenderer(gl);
  let yaw=.82,pitch=.72,radius=preview?18:68,worldForPick=null,camForPick=null,
   terrainKey=null,terrainVertexCount=0,rebuilds=0,
   models=null,textures=null,textureFailure=null,
   modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
+  skinnedLoader=null,
   modelUnits=0,modelBuildings=0,fallbackUnits=0;
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
@@ -203,6 +207,20 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    const result=await rosterLoader.loadBatch(requests);
    if(result.loaded>0&&typeof notify==="function")notify();
    return result;
+  },
+  async loadSkinnedAssets({factions=[],fetcher,notify}={}){
+   if(!skinnedLoader)skinnedLoader=createSkinnedGltfLoader(fetcher);
+   const unique=[...new Set(factions)].slice(0,6);
+   const results=await Promise.allSettled(unique.map(x=>skinnedLoader.load(x)));
+   const result={loaded:results.filter(x=>x.status==="fulfilled").length,
+    failed:results.filter(x=>x.status==="rejected").length};
+   if(result.loaded&&typeof notify==="function")notify();
+   return result;
+  },
+  skinnedMeshInfo(faction){
+   const mesh=skinnedLoader?.get(faction);
+   return mesh?{vertexCount:mesh.count,triangles:mesh.count/3,skinned:true,
+    pbrTexture:mesh.textureEmbedded}:null;
   },
   rosterMeshInfo(faction,role){
    const mesh=rosterLoader?.get(faction,role);
@@ -256,7 +274,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
     terrainVertexCount=data.length/6;terrainKey=key;rebuilds++;
    }
-   const verts=[];modelUnits=0;fallbackUnits=0;
+   const verts=[],uvBatches=new Map();modelUnits=0;fallbackUnits=0;
    for(const [i,p] of match.players.entries())for(const u of p.units.filter(
       u=>u.alive&&Number.isInteger(u.x)&&!u.embarkedAt&&!u.garrisonedAt)){
     const terrain=world.tiles[u.y*world.width+u.x],base=heightFor(terrain);
@@ -267,18 +285,30 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      p.id===match.viewerId?"#c5eeff":"#f58a7c";
     const detail=unitRoleVisual(u),cx=u.x+.5,cz=u.y+.5,top=bottom+style.height;
     const role=detail.role,
-     mesh=modelUnits<160?(rosterLoader?.get(p.faction,u.archetype)??
+     skin=modelUnits<160&&u.archetype==="Swordsman"?
+       skinnedLoader?.get(p.faction):null,
+     mesh=skin?sampleSkinnedGltf(skin,
+       previewPose??animationModeForUnit(u,match.orders?.[u.id]),
+       match.elapsedMs??0):
+       modelUnits<160?(rosterLoader?.get(p.faction,u.archetype)??
        models?.[factionMeshKey(p.faction,role)]??models?.[role]):null;
     if(mesh){
      const scale=detail.role==="air"?.53:detail.role==="ship"?.69:
       detail.role==="hero"?.73:detail.role==="siege"?.63:.75;
-     appendObjVertices(verts,mesh,{x:cx,y:bottom,z:cz,scale,
+     const slug=factionSlug(p.faction);
+     const gpuUv=!!(skin&&uvRenderer&&textures?.[slug]);
+     if(gpuUv){
+      if(!uvBatches.has(slug))uvBatches.set(slug,[]);
+      appendUvMesh(uvBatches.get(slug),mesh,{x:cx,y:bottom,z:cz,scale,
+       tint:selectedUnits.has(u.id)?[1,1,.77]:
+        p.id===match.viewerId?[.82,1,1]:[1,.79,.79]});
+     }else appendObjVertices(verts,mesh,{x:cx,y:bottom,z:cz,scale,
       tint:selectedUnits.has(u.id)?[1,1,.77]:
        p.id===match.viewerId?[.82,1,1]:[1,.79,.79],
-      pose:poseAt(previewPose??animationModeForUnit(u,match.orders?.[u.id]),
+      pose:skin?null:poseAt(previewPose??animationModeForUnit(u,match.orders?.[u.id]),
        match.elapsedMs??0,(u.id?.length??0)*.07),
       texture:textureForFaction(textures,p.faction),
-      rig:["worker","infantry","ranged","hero"].includes(role)?
+      rig:skin?null:["worker","infantry","ranged","hero"].includes(role)?
        rigForFaction(p.faction):null});
      modelUnits++;
     }else{
@@ -323,6 +353,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    gl.uniform1f(uniforms.u_aspect,canvas.width/canvas.height);
    drawBuffer(staticBuffer,terrainVertexCount);
    drawBuffer(dynamicBuffer,data.length/6);
+   if(uvRenderer)uvRenderer.draw(uvBatches,textures,cam,canvas);
   },
   pick(px,py){return camForPick&&worldForPick
     ?raycastTerrain(camForPick,px,py,canvas.width,canvas.height,worldForPick):null},
@@ -336,11 +367,15 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount,
    modelUnits,modelBuildings,fallbackUnits,loadedModels:models?Object.keys(models).length:0,
    rosterModels:rosterLoader?.stats().loaded??0,
+   skinnedGltf:skinnedLoader?.stats().loaded??0,
+   gpuTextures:uvRenderer?.stats().textures??0,
+   gpuTexturedVertices:uvRenderer?.stats().texturedVertices??0,
    factionModels:models?Object.keys(models).filter(k=>k.includes("/")).length:0,
    factionTextures:textures?Object.keys(textures).length:0,
    textureFailure,
    modelFailure};},
   dispose(){
+   uvRenderer?.dispose();
    gl.deleteBuffer(staticBuffer);gl.deleteBuffer(dynamicBuffer);
    gl.deleteProgram(program);gl.deleteShader(vert);gl.deleteShader(frag);
   }

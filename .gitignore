@@ -6,3 +6,6 @@ dist/
 *.log
 
 .local/
+
+# Generated self-contained glTF export outputs; CI uploads these as downloadable artifacts.
+/assets/gltf/
