@@ -26,3 +26,4 @@ jobs:
       - run: npm run batch-4.3-demo
       - run: npm run multiplayer-stress-demo
       - run: npm run batch-4.7-demo
+      - run: npm run batch-5.1-demo
