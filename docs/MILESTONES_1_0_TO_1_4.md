@@ -20,7 +20,7 @@ These are **prototype implementation milestones**, not a finished RTS or public 
 - Reconciled v0.2 faction stat multipliers applied to shared archetypes.
 - Six named hero active abilities with cooldowns, direct damage or finite buffs; no passive HP regeneration.
 - Faction-specific passives are identified but not all fully implemented in gameplay logic.
-- Detailed complete 540-research numeric data remains in the workbook; imported data may be loaded through the supplied importer but is not yet the default simulation catalog.
+- The complete 540-research numeric dataset is exported separately as JSON and may be loaded through the existing adapter. It is not yet the default match simulation catalog.
 
 ## 1.3: Local multiplayer protocol boundary
 - In-memory match host with per-player random session tokens, monotonic command sequence, ownership enforced by the server and denial of debug commands.
