@@ -8,15 +8,15 @@ import {ARCHETYPES} from "../src/catalog.js";
 import {applyTechnologyCompletion,refreshUnitTechnology,researchMultiplier,technologyEffectStatus,executableCoverage} from "../src/technologyEffects.js";
 const data=JSON.parse(readFileSync("data/balance-v0.2.json","utf8"));
 const participants=[{id:"a",faction:"Humans"},{id:"b",faction:"Ursa"}];
-test("typed technology coverage reports pending effects, not fictional completion",()=>{
+test("typed technology coverage reports all 78 optional prototype effects",()=>{
  const ids=data.research.rows.filter(r=>r[0]==="Humans").map(r=>r[1]);
  const coverage=executableCoverage(ids);
  assert.equal(coverage.total,90);
  assert.equal(coverage.ageProgression,12);
  assert.ok(coverage.implemented>=30);
- assert.ok(coverage.pending>0);
+ assert.equal(coverage.pending,0);
  assert.equal(technologyEffectStatus("MIL-01"),"implemented");
- assert.equal(technologyEffectStatus("SPC-02"),"pending");
+ assert.equal(technologyEffectStatus("SPC-02"),"implemented");
 });
 test("researched physical attack tech updates existing and subsequently trained soldiers",()=>{
  const m=createMatch(participants),p=m.players[0];installFullCatalog(m,data);
