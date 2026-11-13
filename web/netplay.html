@@ -8,7 +8,7 @@
 h1{font-size:22px;margin:0}small{color:#aac4cf}main{display:grid;grid-template-columns:minmax(320px,1fr) 320px;gap:15px;padding:15px;max-width:1400px;margin:auto}
 section,aside{background:#162c3e;border:1px solid #395468;border-radius:12px;padding:14px;min-width:0}
 h2{font-size:16px;margin:0 0 10px}h3{font-size:13px;margin:16px 0 7px;color:#c3e4dc}
-input,button{font:inherit;border-radius:8px;color:#e8f3f5;padding:10px;background:#254a5d;border:1px solid #5a7888}
+input,select,button{font:inherit;border-radius:8px;color:#e8f3f5;padding:10px;background:#254a5d;border:1px solid #5a7888}
 button{cursor:pointer}button:disabled{opacity:.38;cursor:default}
 button:hover:not(:disabled){background:#32667c}button:focus-visible,input:focus-visible{outline:3px solid #79cbb6}
 .controls{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
@@ -31,7 +31,7 @@ p{line-height:1.5} .hint{color:#abc2ce;font-size:12px} .pill{color:#f0d592;borde
 <button id="attack" disabled>Attack</button></div>
 <canvas id="map" width="800" height="640" aria-label="Live fog-filtered battlefield map"></canvas>
 <canvas id="map3d" width="800" height="640" aria-label="GPU 3D battlefield. Drag to orbit, wheel to zoom" hidden></canvas>
-<p class="hint">Click owned units to select, Shift+click to add/remove, then choose a command and target tile. 3D view: drag to orbit, scroll to zoom. The server validates every command.</p>
+<p class="hint">Select a Worker, choose a structure, then click a free construction tile. Click owned units to select, Shift+click to add/remove, then choose a command and target tile. 3D view: drag to orbit, scroll to zoom. The server validates every command.</p>
 <div id="selection" aria-live="polite">No units selected</div>
 <div id="status" aria-live="polite">No active match</div>
 </section>
@@ -44,7 +44,15 @@ p{line-height:1.5} .hint{color:#abc2ce;font-size:12px} .pill{color:#f0d592;borde
 <h3>Lobby</h3><div id="lobbyStatus">Connect to see lobby</div><div id="players"></div>
 <div class="controls"><button id="ready" disabled>Ready</button><button id="start" disabled>Launch match</button></div>
 <h3>Economy</h3><div id="resources"></div>
-<div class="controls"><button id="trainWorker" disabled>Train Worker</button></div>
+<h3>Production</h3><label for="trainChoice">Recruit from active facilities</label>
+<select id="trainChoice" aria-label="Production option"></select>
+<div class="controls"><button id="trainWorker" disabled>Queue selected unit</button></div>
+<h3>Construction</h3><label for="buildChoice">Building</label>
+<select id="buildChoice" aria-label="Structure to construct"></select>
+<div class="controls"><button id="build" disabled>Place with selected Worker</button></div>
+<h3>Research</h3><div id="researchChoice" class="hint">No next mandatory research</div>
+<div class="controls"><button id="research" disabled>Research next discovery</button></div>
+<h3>Production queues</h3><div id="queues" class="hint">No queued jobs</div>
 <h3>Network log</h3><div id="log" aria-live="polite"></div>
 </aside></main>
 <script type="module" src="/netplay.js"></script>

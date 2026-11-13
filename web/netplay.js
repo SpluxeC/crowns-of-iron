@@ -1,9 +1,12 @@
 import {createWebGLRenderer} from "/webgl3d.js";
+import {createVersionDecoder} from "/streamProtocol.js";
+import {availableBuildings,chooseBuilder,nextMandatoryResearch,
+ eligibleTrainingSites,queueSummary} from "/clientRules.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map"),ctx=canvas.getContext("2d",{alpha:false}),canvas3d=$("map3d");
 const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
  water:"#204767",deposit:"#b69a47",unknown:"#122938"};
-let token=null,abort=null,state=null,room=null,playerId=null,nextSequence=1,version=0;
+let token=null,abort=null,pollTimer=null,state=null,room=null,playerId=null,nextSequence=1,version=0;
 let renderer=null,view3d=false,selected=new Set(),mode="select",pending=false,refreshing=false,refreshAgain=false;
 let drag=null,ignoreClick=false;
 function log(message){
@@ -74,7 +77,34 @@ function info(){
  setButton("connect",!token&&!pending);
  const playing=!!token&&!pending&&room?.started&&!state?.winner;
  for(const id of ["move","formation","attack"])setButton(id,playing&&selected.size>0);
- setButton("trainWorker",playing);
+ const choices=eligibleTrainingSites(p),buildings=availableBuildings(p);
+ const trainValue=$("trainChoice").value,buildValue=$("buildChoice").value;
+ $("trainChoice").replaceChildren();
+ for(const choice of choices){
+  const item=document.createElement("option");item.value=choice.facility+"|"+choice.role;
+  item.textContent=choice.label;$("trainChoice").append(item);
+ }
+ if(choices.some(c=>c.facility+"|"+c.role===trainValue))$("trainChoice").value=trainValue;
+ $("buildChoice").replaceChildren();
+ for(const building of buildings){
+  const item=document.createElement("option");item.value=building.kind;
+  item.textContent=building.kind+" ("+building.cost+")";
+  $("buildChoice").append(item);
+ }
+ if(buildings.some(b=>b.kind===buildValue))$("buildChoice").value=buildValue;
+ const research=nextMandatoryResearch(p);
+ text("researchChoice",research?research.name+" · "+research.id:"No research available at this age");
+ const jobs=queueSummary(p);
+ $("queues").replaceChildren();
+ for(const job of jobs.slice(0,20)){
+  const item=document.createElement("div");
+  item.textContent=job.type+" · "+job.name+" · "+job.facility+" · "+Math.floor(job.progressMs/1000)+"s";
+  $("queues").append(item);
+ }
+ if(!jobs.length)text("queues","No queued jobs");
+ setButton("trainWorker",playing&&choices.length>0);
+ setButton("build",playing&&buildings.length>0&&!!chooseBuilder(p,[...selected]));
+ setButton("research",playing&&!!research);
  const details=[...selected].map(id=>p?.units?.find(u=>u.id===id))
   .filter(Boolean).map(u=>u.archetype+" ["+u.hp+"/"+u.maxHp+" HP]");
  text("selection",details.length?details.join(", "):"No units selected");
@@ -104,6 +134,8 @@ async function refresh(){
    const [snapshot,lobby]=await Promise.all([api("/state"),api("/lobby")]);
    if(token!==currentToken)return;
    state=snapshot.state;room=lobby;playerId=snapshot.playerId;
+   // Older racing snapshots cannot roll back authoritative client state.
+   if(snapshot.version<version&&snapshot.playerId===playerId)continue;
    version=snapshot.version;nextSequence=snapshot.nextSequence;
    const ids=new Set(own()?.units?.filter(u=>u.alive).map(u=>u.id)??[]);
    selected=new Set([...selected].filter(id=>ids.has(id)));
@@ -119,24 +151,15 @@ async function stream(controller,identity){
    const response=await fetch("/events",{headers:{"x-session-token":identity},
     signal:controller.signal});
    if(!response.ok)throw Error("Event stream HTTP "+response.status);
-   const reader=response.body.getReader(),decoder=new TextDecoder();
-   let buffer="";
+   // Recover the authoritative state immediately after every transport reconnect.
+   await refresh();
+   const reader=response.body.getReader(),decoder=new TextDecoder(),
+     eventDecoder=createVersionDecoder();
    while(token===identity&&!controller.signal.aborted){
     const {value,done}=await reader.read();if(done)break;
-    buffer+=decoder.decode(value,{stream:true});
-    let end;
-    while((end=buffer.indexOf("\n\n"))>=0){
-     const frame=buffer.slice(0,end);buffer=buffer.slice(end+2);
-     if(frame.includes("event: version")){
-      const dataLine=frame.split("\n").find(line=>line.startsWith("data: "));
-      if(dataLine){
-       try{
-        const event=JSON.parse(dataLine.slice(6));
-        if(Number.isSafeInteger(event.version)&&event.version>=version)
-         refresh().catch(e=>log("Resync: "+e.message));
-       }catch{log("Ignored malformed version notification");}
-      }
-     }
+    for(const serverVersion of eventDecoder.push(decoder.decode(value,{stream:true}))){
+     if(serverVersion>=version)
+      refresh().catch(e=>log("Resync: "+e.message));
     }
    }
   }catch(e){
@@ -158,6 +181,10 @@ async function connect(){
   pending=false;info();
   abort=new AbortController();
   stream(abort,provided).catch(e=>log("Stream: "+e.message));
+  // Polling fallback also detects missed final frames and state changes while SSE is down.
+  pollTimer=setInterval(()=>{
+   if(token&&!pending)refresh().catch(e=>log("Polling resync: "+e.message));
+  },5000);
   log("Connected to authoritative match. No local simulation runs here.");
  }catch(e){
   log("Connection rejected: "+e.message);
@@ -165,7 +192,9 @@ async function connect(){
  }
 }
 function disconnect(){
- abort?.abort();abort=null;token=null;state=null;room=null;playerId=null;
+ abort?.abort();abort=null;
+ if(pollTimer!==null){clearInterval(pollTimer);pollTimer=null;}
+ token=null;state=null;room=null;playerId=null;
  selected.clear();mode="select";view3d=false;pending=false;refreshing=false;
  draw();info();log("Disconnected. No session token saved.");
 }
@@ -200,6 +229,11 @@ function click(ev){
    send("move",{unitId:[...selected][0],...tile},"Move order sent");
   }else if(commandMode==="formation"&&selected.size){
    send("formation",{units:[...selected].slice(0,24),...tile},"Formation order sent");
+  }else if(commandMode==="build"){
+   const builder=chooseBuilder(own(),[...selected]);
+   if(builder)send("build",{kind:$("buildChoice").value,...tile,
+     workers:[builder.id]},"Building construction started");
+   else log("Select a living, positioned Worker first.");
   }else if(commandMode==="attack"&&selected.size===1){
    const enemy=state.players.filter(p=>p.id!==playerId&&p.team!==own()?.team)
     .flatMap(p=>(p.units??[]).filter(u=>u.alive&&u.x===tile.x&&u.y===tile.y)
@@ -223,8 +257,19 @@ $("disconnect").addEventListener("click",disconnect);
 $("ready").addEventListener("click",()=>post("/lobby/ready",
  {ready:!room.players.find(p=>p.id===playerId).ready},"Ready state updated"));
 $("start").addEventListener("click",()=>post("/lobby/start",{},"Host launched match"));
-$("trainWorker").addEventListener("click",()=>send("train",
- {facility:"Town Center",role:"Worker"},"Worker queued"));
+$("trainWorker").addEventListener("click",()=>{
+ const [facility,role]=$("trainChoice").value.split("|");
+ if(facility&&role)send("train",{facility,role},role+" queued");
+});
+$("build").addEventListener("click",()=>{
+ if(!chooseBuilder(own(),[...selected])){log("Select a Worker to build.");return;}
+ mode="build";log("Click a valid site for "+$("buildChoice").value);
+});
+$("research").addEventListener("click",()=>{
+ const tech=nextMandatoryResearch(own());
+ if(tech)send("research",{facility:"Town Center",id:tech.id},
+  "Research queued: "+tech.name);
+});
 for(const id of ["move","formation","attack","select"]){
  $(id).addEventListener("click",()=>{
   mode=id;log(id==="select"?"Selection enabled":"Choose a target tile for "+id);
