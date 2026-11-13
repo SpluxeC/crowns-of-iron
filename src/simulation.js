@@ -6,6 +6,9 @@ import {strike,heal,repair,tickStatuses} from "./combat.js";
 import {assert,clone,hash} from "./util.js";
 import {tickBots} from "./ai.js";
 import {tickMode} from "./modes.js";
+import {issueMove,issueAttack,tickBattlefield} from "./battlefield.js";
+import {startConstruction,cancelConstruction,tickConstruction} from "./construction.js";
+import {useHeroAbility} from "./abilities.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -23,7 +26,13 @@ export function command(match,input,{allowDebug=false}={}){
     case "cancelResearch":result=cancelResearch(player,input.facility,input.id);break;
     case "train":result=queueUnit(player,input.facility,input.role);break;
     case "cancelTrain":result=cancelUnit(player,input.facility,input.index);break;
-    case "attack":result=strike(player,getPlayer(match,input.targetPlayer),input.attacker,input.target,{nowMs:match.elapsedMs});break;
+    case "attack":result=match.battlefield
+      ? issueAttack(match,id,input.attacker,input.targetPlayer,input.target)
+      : strike(player,getPlayer(match,input.targetPlayer),input.attacker,input.target,{nowMs:match.elapsedMs});break;
+    case "move":result=issueMove(match,id,input.unitId,input.x,input.y);break;
+    case "build":result=startConstruction(match,id,input.kind,input.x,input.y,input.workers);break;
+    case "cancelBuild":result=cancelConstruction(match,id,input.siteId);break;
+    case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
     case "heal":result=heal(player,input.healers,input.target);break;
     case "repair":result=repair(player,input.workers,input.target,input.amount);break;
     default:throw new Error("Unknown action: "+action);
@@ -55,6 +64,8 @@ export function step(match,deltaMs,opts={}){
     tickProduction(match,p,deltaMs);
     tickStatuses(p,deltaMs);
   }
+  tickConstruction(match,deltaMs);
+  tickBattlefield(match,deltaMs);
   checkElimination(match,deltaMs);
   tickMode(match,deltaMs);
   match.elapsedMs+=deltaMs;match.tick++;

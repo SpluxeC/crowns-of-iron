@@ -18,7 +18,11 @@ export function strike(owner,targetOwner,attackerId,targetId,{nowMs=0}={}){
   if(target.category==="Air")assert(antiAir.includes(attacker.archetype),"Air target ineligible");
   assert((attacker.nextAttackAtMs??0)<=nowMs,"Attack on cooldown");
   const specialist=target.category==="Air"&&["Anti-Air Infantry","Interceptor"].includes(attacker.archetype)?1.5:0;
-  const hit=damage(attacker.attack,target.armor,attacker.type,target.category,specialist);
+  const attackerBuffs=(attacker.buffs??[]).filter(b=>b.expiresMs>nowMs);
+  const targetBuffs=(target.buffs??[]).filter(b=>b.expiresMs>nowMs);
+  const attack=attackerBuffs.reduce((a,b)=>a*(b.attackMultiplier??1),attacker.attack);
+  const armor=targetBuffs.reduce((a,b)=>a+(b.armorBonus??0),target.armor);
+  const hit=damage(attack,armor,attacker.type,target.category,specialist);
   attacker.nextAttackAtMs=nowMs+2000;
   target.hp=Math.max(0,target.hp-hit);
   if(target.hp===0)killUnit(targetOwner,target.id);

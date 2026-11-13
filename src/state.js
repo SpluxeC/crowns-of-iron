@@ -19,7 +19,7 @@ export function makeUnit(player,archetype,definition,id){
   return {id,owner:player.id,faction:player.faction,archetype,name:displayName(player.faction,archetype),
     hp:definition.hp,maxHp:definition.hp,armor:definition.armor,pop:definition.pop,
     attack:definition.attack??0,category:definition.category??"Standard",type:definition.type??"Slash",
-    cost:clone(definition.cost??{}),alive:true,status:[]};
+    cost:clone(definition.cost??{}),alive:true,status:[],nextAttackAtMs:0};
 }
 export function createMatch(participants,seed=1){
   assert(Array.isArray(participants)&&participants.length>=2&&participants.length<=8,"Requires 2–8 players");
