@@ -8,6 +8,7 @@ const STATIC={
  "/netplay.js":["../web/netplay.js","text/javascript; charset=utf-8"],
  "/webgl3d.js":["../web/webgl3d.js","text/javascript; charset=utf-8"],
  "/clientRules.js":["../web/clientRules.js","text/javascript; charset=utf-8"],
+ "/unitSelection.js":["../web/unitSelection.js","text/javascript; charset=utf-8"],
  "/streamProtocol.js":["../web/streamProtocol.js","text/javascript; charset=utf-8"]
 };
 const HEADERS={"Cache-Control":"no-store","X-Content-Type-Options":"nosniff",

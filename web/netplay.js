@@ -1,5 +1,6 @@
 import {createWebGLRenderer} from "/webgl3d.js";
 import {createVersionDecoder} from "/streamProtocol.js";
+import {chooseAtTile,unitsInTileRectangle,updateSelection,selectByRole,recallGroup,makeFormationPayload} from "/unitSelection.js";
 import {chooseBuilder,queueSummary,formatCost,catalogBuildings,
  catalogTraining,catalogResearch,researchRequest,trainingRequest} from "/clientRules.js";
 const $=id=>document.getElementById(id);
@@ -8,7 +9,8 @@ const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
  water:"#204767",deposit:"#b69a47",unknown:"#122938"};
 let token=null,abort=null,pollTimer=null,state=null,room=null,catalog=null,playerId=null,nextSequence=1,version=0;
 let renderer=null,view3d=false,selected=new Set(),mode="select",pending=false,refreshing=false,refreshAgain=false;
-let drag=null,ignoreClick=false;
+let drag=null,boxDrag=null,ignoreClick=false;
+const controlGroups=new Map();
 function log(message){
  const div=document.createElement("div");
  div.textContent="["+new Date().toLocaleTimeString()+"] "+message;
@@ -47,11 +49,21 @@ function draw2d(){
   ctx.fillStyle=p.team===team||p.id===playerId?"#c5eeff":"#f58a7c";ctx.fill();
   if(selected.has(u.id)){ctx.strokeStyle="#ffdc78";ctx.lineWidth=2;ctx.stroke();}
  }
+ if(boxDrag?.moved){
+  const x=Math.min(boxDrag.startPx.x,boxDrag.currentPx.x),
+   y=Math.min(boxDrag.startPx.y,boxDrag.currentPx.y);
+  ctx.fillStyle="rgba(120,210,230,.16)";
+  ctx.fillRect(x,y,Math.abs(boxDrag.startPx.x-boxDrag.currentPx.x),
+   Math.abs(boxDrag.startPx.y-boxDrag.currentPx.y));
+  ctx.strokeStyle="#a2e5eb";ctx.lineWidth=2;
+  ctx.strokeRect(x,y,Math.abs(boxDrag.startPx.x-boxDrag.currentPx.x),
+   Math.abs(boxDrag.startPx.y-boxDrag.currentPx.y));
+ }
 }
 function draw(){
  canvas.hidden=view3d;canvas3d.hidden=!view3d;
  if(view3d&&renderer&&state?.battlefield)
-  renderer.draw(state.battlefield,{players:state.players},selected);
+  renderer.draw(state.battlefield,{players:state.players,viewerId:playerId},selected);
  else draw2d();
 }
 function info(){
@@ -77,6 +89,7 @@ function info(){
  setButton("connect",!token&&!pending);
  const playing=!!token&&!pending&&room?.started&&!state?.winner;
  for(const id of ["move","formation","attack"])setButton(id,playing&&selected.size>0);
+ setButton("workers",playing);setButton("military",playing);
  const choices=catalogTraining(catalog),buildings=catalogBuildings(catalog),
   availableResearch=catalogResearch(catalog,$("researchFilter").value);
  const trainValue=$("trainChoice").value,buildValue=$("buildChoice").value;
@@ -133,7 +146,10 @@ function info(){
  setButton("research",playing&&!!chosenTech?.available);
  const details=[...selected].map(id=>p?.units?.find(u=>u.id===id))
   .filter(Boolean).map(u=>u.archetype+" ["+u.hp+"/"+u.maxHp+" HP]");
- text("selection",details.length?details.join(", "):"No units selected");
+ text("selection",details.length?selected.size+" units: "+details.slice(0,6).join(", ")+
+  (details.length>6?" …":""):"No units selected");
+ text("groups",Array.from({length:4},(_,i)=>
+  (i+1)+": "+(controlGroups.get(String(i+1))?.length??0)).join(" · "));
  $("resources").replaceChildren();
  for(const [k,v] of Object.entries(p?.resources??{})){
   const div=document.createElement("div");div.textContent=k+": "+v;
@@ -220,7 +236,8 @@ function disconnect(){
  abort?.abort();abort=null;
  if(pollTimer!==null){clearInterval(pollTimer);pollTimer=null;}
  token=null;state=null;room=null;catalog=null;playerId=null;
- selected.clear();mode="select";view3d=false;pending=false;refreshing=false;
+ selected.clear();controlGroups.clear();mode="select";view3d=false;
+ pending=false;refreshing=false;
  draw();info();log("Disconnected. No session token saved.");
 }
 async function post(path,body,description){
@@ -252,8 +269,9 @@ function click(ev){
   const commandMode=mode;mode="select";
   if(commandMode==="move"&&selected.size===1){
    send("move",{unitId:[...selected][0],...tile},"Move order sent");
-  }else if(commandMode==="formation"&&selected.size){
-   send("formation",{units:[...selected].slice(0,24),...tile},"Formation order sent");
+  }else if((commandMode==="formation"||commandMode==="move")&&selected.size){
+   const payload=makeFormationPayload(selected,tile.x,tile.y);
+   if(payload)send("formation",payload,"Group move order sent");
   }else if(commandMode==="build"){
    const builder=chooseBuilder(own(),[...selected]);
    if(builder&&catalogBuildings(catalog).some(b=>b.kind===$("buildChoice").value&&b.affordable))
@@ -269,12 +287,10 @@ function click(ev){
    else log("No visible enemy unit at that tile.");
   }else log("Select one unit for this command.");
  }else{
-  const ownUnit=own()?.units?.find(u=>u.alive&&u.x===tile.x&&u.y===tile.y);
-  if(ownUnit){
-   if(!ev.shiftKey)selected=new Set([ownUnit.id]);
-   else if(selected.has(ownUnit.id))selected.delete(ownUnit.id);
-   else if(selected.size<24)selected.add(ownUnit.id);
-  }
+  const ownUnit=chooseAtTile(own(),tile);
+  if(ownUnit)selected=updateSelection(selected,[ownUnit.id],{
+   add:ev.shiftKey,toggle:ev.shiftKey});
+  else if(!ev.shiftKey)selected.clear();
  }
  draw();info();
 }
@@ -300,6 +316,12 @@ $("research").addEventListener("click",()=>{
 });
 for(const id of ["trainChoice","buildChoice","researchChoice","researchFilter"])
  $(id).addEventListener("change",()=>info());
+$("workers").addEventListener("click",()=>{
+ selected=new Set(selectByRole(own(),"workers"));mode="select";draw();info();
+});
+$("military").addEventListener("click",()=>{
+ selected=new Set(selectByRole(own(),"military"));mode="select";draw();info();
+});
 for(const id of ["move","formation","attack","select"]){
  $(id).addEventListener("click",()=>{
   mode=id;log(id==="select"?"Selection enabled":"Choose a target tile for "+id);
@@ -313,7 +335,66 @@ $("view").addEventListener("click",()=>{
  else log("WebGL unavailable; continuing in 2D.");
  text("view",view3d?"View: WebGL 3D":"View: Top-down");draw();
 });
-canvas.addEventListener("click",click);
+function canvasCoords(ev){
+ const rect=canvas.getBoundingClientRect();
+ return {x:(ev.clientX-rect.left)*canvas.width/rect.width,
+  y:(ev.clientY-rect.top)*canvas.height/rect.height};
+}
+function tileAtPixels(point){
+ if(!state?.battlefield)return null;
+ const d=mapDims(),x=Math.floor((point.x-d.x)/d.step),
+  y=Math.floor((point.y-d.y)/d.step);
+ return {x:Math.max(0,Math.min(state.battlefield.width-1,x)),
+  y:Math.max(0,Math.min(state.battlefield.height-1,y))};
+}
+canvas.addEventListener("pointerdown",e=>{
+ if(e.button!==0||mode!=="select"||!room?.started)return;
+ const point=canvasCoords(e);
+ boxDrag={startPx:point,currentPx:point,moved:false,shift:e.shiftKey};
+ canvas.setPointerCapture(e.pointerId);
+});
+canvas.addEventListener("pointermove",e=>{
+ if(!boxDrag)return;
+ boxDrag.currentPx=canvasCoords(e);
+ if(Math.hypot(boxDrag.currentPx.x-boxDrag.startPx.x,
+  boxDrag.currentPx.y-boxDrag.startPx.y)>6)boxDrag.moved=true;
+ if(boxDrag.moved)draw();
+});
+canvas.addEventListener("pointerup",e=>{
+ if(!boxDrag)return;
+ if(boxDrag.moved){
+  const ids=unitsInTileRectangle(own(),tileAtPixels(boxDrag.startPx),
+   tileAtPixels(canvasCoords(e)));
+  selected=updateSelection(selected,ids,{add:boxDrag.shift});
+  ignoreClick=true;
+ }
+ boxDrag=null;draw();info();
+});
+canvas.addEventListener("pointercancel",()=>{boxDrag=null;draw();});
+canvas.addEventListener("click",e=>{
+ if(ignoreClick){ignoreClick=false;return;}
+ click(e);
+});
+window.addEventListener("keydown",e=>{
+ if(!token||!room?.started||e.altKey||e.metaKey)return;
+ if(["INPUT","SELECT","TEXTAREA","BUTTON"].includes(document.activeElement?.tagName))return;
+ const key=e.key.toLowerCase();
+ if(key==="escape"){selected.clear();mode="select";draw();info();return;}
+ if(key==="a"||key==="w"){
+  selected=new Set(selectByRole(own(),key==="a"?"military":"workers"));
+  mode="select";draw();info();return;
+ }
+ if(["1","2","3","4"].includes(key)){
+  if(e.ctrlKey){
+   controlGroups.set(key,[...selected]);
+   log("Saved group "+key+" ("+selected.size+" units)");
+  }else{
+   selected=new Set(recallGroup(own(),controlGroups.get(key)??[]));
+   mode="select";
+  }
+  e.preventDefault();draw();info();
+ }
+});
 canvas3d.addEventListener("pointerdown",e=>{
  drag={x:e.clientX,y:e.clientY,moved:false};canvas3d.setPointerCapture(e.pointerId);
 });

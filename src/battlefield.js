@@ -6,7 +6,7 @@ import {hasLineOfSight} from "./tacticalNavigation.js";
 import {pathForUnit,tileTraversable,movementDomain} from "./movementDomains.js";
 import {canEngage} from "./engagementRules.js";
 import {refreshSiegePath} from "./formationOrders.js";
-import {isOccupiedByUnit} from "./unitCollision.js";
+import {occupiedCells,occupancyDomain as collisionDomain} from "./unitCollision.js";
 
 export const ATTACK_PROFILE=Object.freeze({
   Worker:[1,2000],Scout:[1,1600],"Club Fighter":[1,1800],"Stone Slinger":[5,2200],
@@ -66,15 +66,39 @@ export function issueAttack(match,pid,unitId,targetPlayer,targetId){
 function neighborsInRange(a,b,range){
   return Math.abs(a.x-b.x)+Math.abs(a.y-b.y)<=range;
 }
-function walkOne(match,owner,u,order){
-  if(!order.path?.length)return false;
-  const next=order.path[0];
-  if(!tileTraversable(match,owner,u.archetype,next.x,next.y)||isOccupiedByUnit(match,u,next.x,next.y))return false;
-  u.x=next.x;u.y=next.y;order.path.shift();return true;
+const positionKey=(x,y)=>x+","+y;
+/** Per-tick occupancy map updated on each step. Avoids scanning all live units
+ * inside every movement collision query in an active large-army simulation. */
+function occupiedByOther(occupancy,u,x,y){
+ if(!occupancy)return false;
+ const domain=collisionDomain(u);
+ if(domain==="air")return false;
+ return (occupancy[domain]?.get(positionKey(x,y))??[]).some(id=>id!==u.id);
+}
+function transferOccupancy(occupancy,u,oldX,oldY){
+ if(!occupancy)return;
+ const domain=collisionDomain(u);
+ if(domain==="air")return;
+ const cells=occupancy[domain];if(!cells)return;
+ const oldKey=positionKey(oldX,oldY),newKey=positionKey(u.x,u.y);
+ const prev=(cells.get(oldKey)??[]).filter(id=>id!==u.id);
+ if(prev.length)cells.set(oldKey,prev);else cells.delete(oldKey);
+ const next=cells.get(newKey)??[];next.push(u.id);cells.set(newKey,next);
+}
+function walkOne(match,owner,u,order,occupancy){
+ if(!order.path?.length)return false;
+ const next=order.path[0];
+ if(!tileTraversable(match,owner,u.archetype,next.x,next.y)||
+   occupiedByOther(occupancy,u,next.x,next.y))return false;
+ const oldX=u.x,oldY=u.y;
+ u.x=next.x;u.y=next.y;order.path.shift();
+ transferOccupancy(occupancy,u,oldX,oldY);
+ return true;
 }
 export function tickBattlefield(match,deltaMs){
   if(!match.battlefield)return [];
-  const map=match.battlefield,events=[];
+  const map=match.battlefield,events=[],
+    occupancy=match.unitCollision?occupiedCells(match):null;
   for(let i=0;i<match.players.length;i++){
     const p=match.players[i],start=map.starts[i];
     for(const unit of p.units.filter(u=>u.alive&&!u.garrisonedAt&&!u.embarkedAt)){
@@ -121,7 +145,7 @@ export function tickBattlefield(match,deltaMs){
       order.carryMs=Math.min(2000,(order.carryMs??0)+deltaMs);
       // Bounded movement: up to 3 tiles per simulation step.
       for(let n=0;n<3&&order.carryMs>=speedMs&&order.path?.length;n++){
-        if(!walkOne(match,p.id,unit,order)){
+        if(!walkOne(match,p.id,unit,order,occupancy)){
           // 4.7: deterministic, bounded reroute around moving congestion.
           // An occupied final destination is left pending until it becomes free.
           if(match.unitCollision&&order.kind==="move"&&order.destination){
@@ -129,7 +153,7 @@ export function tickBattlefield(match,deltaMs){
             if(order.blockedSteps%2===1){
               const route=pathForUnit(match,p.id,unit.archetype,
                 {x:unit.x,y:unit.y},order.destination,
-                {blocked:(x,y)=>isOccupiedByUnit(match,unit,x,y)});
+                {blocked:(x,y)=>occupiedByOther(occupancy,unit,x,y)});
               if(route?.length>1)order.path=route.slice(1);
             }
           }

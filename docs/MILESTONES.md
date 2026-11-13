@@ -73,3 +73,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **6.0 Broader local RTS UI:** server-catalog-based building, unit and technology menus with availability/cost hints, age/queue research filters, and server-side queue cancellation and refunds. Not a complete RTS UX.
 - **6.1 Shared terrain cache for formations:** one static passability index per unit archetype per formation instead of repeated per-unit map traversal checks; still bounded tile BFS rather than navmesh/pathfinding crowds.
 - **6.2 Eight-player army rehearsal:** collision-enabled 192-unit formation orders and 224 living units across eight factions/player slots with deterministic host state and fog assertions; not real network load or GPU testing.
+
+- **6.3 Army interaction:** drag and Shift-select up to 24 owned live units, W/A unit selection, Ctrl+1–4 local control groups, group Move routes through formation orders. 2D marquee only.
+- **6.4 WebGL rendering correctness and caching:** homogeneous perspective projection fix, static terrain GPU buffer reuse across moving-unit/camera frames, player-relative team coloring; still block models without real GPU visual QA.
+- **6.5 Incremental collision occupancy:** build one per-tick occupancy index and update on movement instead of rescanning the entire army at each unit step. No full crowd deadlock solution.
+- **6.6 Active army rehearsal:** eight players, 16 distinct squads and 384 formation-controlled soldiers (416 total live units), deterministic feasible destination search, collision and privacy assertions. Headless Node rehearsal only.

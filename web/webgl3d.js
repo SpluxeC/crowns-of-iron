@@ -29,6 +29,18 @@ export function pickNearestTile(points,x,y,maxDistance=24){
 }
 const TERRAIN={grass:"#4b795e",forest:"#24533e",hill:"#657279",
   water:"#204767",deposit:"#b69a47",unknown:"#192c39"};
+/** Stable structural terrain signature; temporary unit movement does not rebuild GPU tiles. */
+export function terrainSignature(world){
+ let hash=2166136261;
+ const mix=value=>{hash=Math.imul(hash^(value&255),16777619)>>>0;};
+ const terrain={grass:1,forest:2,hill:3,water:4,deposit:5,unknown:6};
+ for(const t of world.tiles){
+  mix(terrain[t.terrain]??0);
+  mix(t.occupied?1:0);mix(t.resource?1:0);
+ }
+ mix(world.width);mix(world.height);
+ return (hash>>>0).toString(16);
+}
 export const heightFor=t=>t?.terrain==="hill"?2.2:t?.terrain==="forest"?.75:
  t?.terrain==="water"?-.4:t?.terrain==="unknown"?.02:.12;
 /** Intersect the camera ray with each visible grid-column top instead of snapping
@@ -96,8 +108,13 @@ varying vec3 v_color;
 void main(){
  vec3 d=a_position-u_eye;
  float depth=max(dot(d,u_forward),.1);
- gl_Position=vec4(dot(d,u_right)/(depth*u_tan*u_aspect),
-  dot(d,u_up)/(depth*u_tan),clamp(depth/150.0-1.0,-1.0,1.0),1.0);
+ float nearPlane=0.1;
+ float farPlane=350.0;
+ float clipZ=depth*(farPlane+nearPlane)/(farPlane-nearPlane)-
+  (2.0*farPlane*nearPlane)/(farPlane-nearPlane);
+ // Homogeneous perspective division happens after vertex shading.
+ gl_Position=vec4(dot(d,u_right)/(u_tan*u_aspect),
+  dot(d,u_up)/u_tan,clipZ,depth);
  v_color=a_color;
 }`);
  const frag=shader(gl,gl.FRAGMENT_SHADER,`
@@ -111,13 +128,24 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
  const position=gl.getAttribLocation(program,"a_position"),color=gl.getAttribLocation(program,"a_color");
  const uniforms=Object.fromEntries(["u_eye","u_right","u_up","u_forward","u_tan","u_aspect"]
   .map(k=>[k,gl.getUniformLocation(program,k)]));
- const buffer=gl.createBuffer();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
- let yaw=.82,pitch=.72,radius=68,worldForPick=null,camForPick=null;
+ const staticBuffer=gl.createBuffer(),dynamicBuffer=gl.createBuffer();
+ gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
+ let yaw=.82,pitch=.72,radius=68,worldForPick=null,camForPick=null,
+  terrainKey=null,terrainVertexCount=0,rebuilds=0;
+ function drawBuffer(buffer,count){
+  gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+  gl.enableVertexAttribArray(position);gl.vertexAttribPointer(position,3,gl.FLOAT,false,24,0);
+  gl.enableVertexAttribArray(color);gl.vertexAttribPointer(color,3,gl.FLOAT,false,24,12);
+  gl.drawArrays(gl.TRIANGLES,0,count);
+ }
  return {
   draw(world,match,selectedUnits){
-   const cam=cameraForMap(world.width,world.height,{yaw,pitch,radius}),verts=[];
+   const cam=cameraForMap(world.width,world.height,{yaw,pitch,radius});
    worldForPick=world;camForPick=cam;
-   for(const t of world.tiles){
+   const key=terrainSignature(world);
+   if(key!==terrainKey){
+    const verts=[];
+    for(const t of world.tiles){
     const base=heightFor(t);
     cube(verts,t.x+.5,t.y+.5,1,-.65,base,TERRAIN[t.terrain]??"#4b795e");
     if(t.resource&&t.terrain==="deposit")
@@ -125,7 +153,13 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     if(t.terrain==="forest")
      cube(verts,t.x+.5,t.y+.5,.30,base,base+1.6,"#9d8156");
     if(t.occupied)cube(verts,t.x+.5,t.y+.5,.84,base,base+2.4,"#c2baa7");
+    }
+    const data=new Float32Array(verts);
+    gl.bindBuffer(gl.ARRAY_BUFFER,staticBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);
+    terrainVertexCount=data.length/6;terrainKey=key;rebuilds++;
    }
+   const verts=[];
    for(const [i,p] of match.players.entries())for(const u of p.units.filter(
       u=>u.alive&&Number.isInteger(u.x)&&!u.embarkedAt&&!u.garrisonedAt)){
     const terrain=world.tiles[u.y*world.width+u.x],base=heightFor(terrain);
@@ -133,26 +167,31 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     if(selectedUnits.has(u.id))
       cube(verts,u.x+.5,u.y+.5,.76,base,base+.10,"#fce57d");
     cube(verts,u.x+.5,u.y+.5,style.width,bottom,bottom+style.height,
-     selectedUnits.has(u.id)?"#fce57d":i===0?"#c5eeff":"#f58a7c");
+     selectedUnits.has(u.id)?"#fce57d":p.id===match.viewerId?"#c5eeff":"#f58a7c");
    }
    const data=new Float32Array(verts);
    gl.viewport(0,0,canvas.width,canvas.height);
    gl.clearColor(.06,.12,.19,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
-   gl.useProgram(program);gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
+   gl.useProgram(program);
+   gl.bindBuffer(gl.ARRAY_BUFFER,dynamicBuffer);
    gl.bufferData(gl.ARRAY_BUFFER,data,gl.DYNAMIC_DRAW);
-   gl.enableVertexAttribArray(position);gl.vertexAttribPointer(position,3,gl.FLOAT,false,24,0);
-   gl.enableVertexAttribArray(color);gl.vertexAttribPointer(color,3,gl.FLOAT,false,24,12);
    for(const k of ["eye","right","up","forward"]){
     const p=cam[k];gl.uniform3f(uniforms["u_"+k],p.x,p.y,p.z);
    }
    gl.uniform1f(uniforms.u_tan,cam.tanHalfFov);
    gl.uniform1f(uniforms.u_aspect,canvas.width/canvas.height);
-   gl.drawArrays(gl.TRIANGLES,0,data.length/6);
+   drawBuffer(staticBuffer,terrainVertexCount);
+   drawBuffer(dynamicBuffer,data.length/6);
   },
   pick(px,py){return camForPick&&worldForPick
     ?raycastTerrain(camForPick,px,py,canvas.width,canvas.height,worldForPick):null},
   orbit(dx,dy){yaw+=dx*.009;pitch=Math.max(.22,Math.min(1.37,pitch+dy*.008));},
   zoom(direction){radius=Math.max(30,Math.min(125,radius+direction*5));},
-  camera(){return {yaw,pitch,radius};}
+  camera(){return {yaw,pitch,radius};},
+  stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount};},
+  dispose(){
+   gl.deleteBuffer(staticBuffer);gl.deleteBuffer(dynamicBuffer);
+   gl.deleteProgram(program);gl.deleteShader(vert);gl.deleteShader(frag);
+  }
  };
 }

@@ -28,10 +28,13 @@ p{line-height:1.5} .hint{color:#abc2ce;font-size:12px} .pill{color:#f0d592;borde
 <section aria-label="Live battlefield">
 <div class="controls"><button id="view">View: Top-down</button><button id="select">Select</button>
 <button id="move" disabled>Move</button><button id="formation" disabled>Formation</button>
-<button id="attack" disabled>Attack</button></div>
+<button id="attack" disabled>Attack</button>
+<button id="workers" disabled>Select Workers (W)</button>
+<button id="military" disabled>Select Military (A)</button></div>
 <canvas id="map" width="800" height="640" aria-label="Live fog-filtered battlefield map"></canvas>
 <canvas id="map3d" width="800" height="640" aria-label="GPU 3D battlefield. Drag to orbit, wheel to zoom" hidden></canvas>
-<p class="hint">Select a Worker, choose a structure, then click a free construction tile. Click owned units to select, Shift+click to add/remove, then choose a command and target tile. 3D view: drag to orbit, scroll to zoom. The server validates every command.</p>
+<p class="hint">2D: drag a box to select up to 24 units; Shift+drag adds; Shift+click toggles. W selects workers, A selects military, Ctrl+1–4 saves a group, 1–4 recalls, Escape clears. Multi-unit Move uses formation routing. 3D: click to select, drag to orbit, wheel to zoom. Select a Worker before placing a building. Server validates all commands.</p>
+<div id="groups" class="hint" aria-live="polite">1: 0 · 2: 0 · 3: 0 · 4: 0</div>
 <div id="selection" aria-live="polite">No units selected</div>
 <div id="status" aria-live="polite">No active match</div>
 </section>
