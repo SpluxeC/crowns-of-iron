@@ -28,9 +28,39 @@ export function pickNearestTile(points,x,y,maxDistance=24){
  return best;
 }
 const TERRAIN={grass:"#4b795e",forest:"#24533e",hill:"#657279",
-  water:"#204767",deposit:"#b69a47"};
-const heightFor=t=>t?.terrain==="hill"?2.2:t?.terrain==="forest"?.75:
- t?.terrain==="water"?-.4:.12;
+  water:"#204767",deposit:"#b69a47",unknown:"#192c39"};
+export const heightFor=t=>t?.terrain==="hill"?2.2:t?.terrain==="forest"?.75:
+ t?.terrain==="water"?-.4:t?.terrain==="unknown"?.02:.12;
+/** Intersect the camera ray with each visible grid-column top instead of snapping
+ * to projected tile centers; handles raised hills and small zoom levels. */
+export function raycastTerrain(cam,px,py,width,height,world){
+ const nx=(2*px/width-1)*cam.tanHalfFov*(width/height);
+ const ny=(1-2*py/height)*cam.tanHalfFov;
+ const dir=norm({x:cam.forward.x+cam.right.x*nx+cam.up.x*ny,
+  y:cam.forward.y+cam.right.y*nx+cam.up.y*ny,
+  z:cam.forward.z+cam.right.z*nx+cam.up.z*ny});
+ if(dir.y>=-.000001)return null;
+ let closest=Infinity,best=null;
+ for(const t of world.tiles){
+  const depth=(heightFor(t)-cam.eye.y)/dir.y;
+  if(depth<=0||depth>=closest)continue;
+  const x=cam.eye.x+dir.x*depth,z=cam.eye.z+dir.z*depth;
+  if(x>=t.x&&x<t.x+1&&z>=t.y&&z<t.y+1){
+   closest=depth;best={x:t.x,y:t.y};
+  }
+ }
+ return best;
+}
+export function unitVisual(unit){
+ const air=new Set(["Scout Aircraft","Interceptor","Gunship","Bomber","Air Transport","Aerial Battleship"]);
+ const water=new Set(["Raft","Fishing Vessel","Trade Ship","Transport Ship",
+  "Light Warship","Heavy Warship","Naval Siege Ship","Legendary Warship"]);
+ if(air.has(unit.archetype))return {width:.72,height:.65,offset:1.8};
+ if(water.has(unit.archetype))return {width:.84,height:.55,offset:.12};
+ if(unit.archetype==="Hero"||unit.category==="Legendary")return {width:.62,height:2,offset:0};
+ if(unit.archetype==="Worker")return {width:.32,height:.93,offset:0};
+ return {width:.46,height:1.35,offset:0};
+}
 function rgb(hex){const n=parseInt(hex.slice(1),16);return [(n>>16&255)/255,(n>>8&255)/255,(n&255)/255];}
 function cube(out,x,z,width,bottom,top,color){
  const x0=x-width/2,x1=x+width/2,z0=z-width/2,z1=z+width/2,c=rgb(color);
@@ -82,21 +112,27 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
  const uniforms=Object.fromEntries(["u_eye","u_right","u_up","u_forward","u_tan","u_aspect"]
   .map(k=>[k,gl.getUniformLocation(program,k)]));
  const buffer=gl.createBuffer();gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
- let yaw=.82,pitch=.72,radius=68,points=[];
+ let yaw=.82,pitch=.72,radius=68,worldForPick=null,camForPick=null;
  return {
   draw(world,match,selectedUnits){
    const cam=cameraForMap(world.width,world.height,{yaw,pitch,radius}),verts=[];
+   worldForPick=world;camForPick=cam;
    for(const t of world.tiles){
     const base=heightFor(t);
     cube(verts,t.x+.5,t.y+.5,1,-.65,base,TERRAIN[t.terrain]??"#4b795e");
     if(t.resource&&t.terrain==="deposit")
      cube(verts,t.x+.5,t.y+.5,.47,base,base+.3,"#dec57a");
+    if(t.terrain==="forest")
+     cube(verts,t.x+.5,t.y+.5,.30,base,base+1.6,"#9d8156");
     if(t.occupied)cube(verts,t.x+.5,t.y+.5,.84,base,base+2.4,"#c2baa7");
    }
    for(const [i,p] of match.players.entries())for(const u of p.units.filter(
       u=>u.alive&&Number.isInteger(u.x)&&!u.embarkedAt&&!u.garrisonedAt)){
     const terrain=world.tiles[u.y*world.width+u.x],base=heightFor(terrain);
-    cube(verts,u.x+.5,u.y+.5,.4,base,base+(selectedUnits.has(u.id)?1.8:1.25),
+    const style=unitVisual(u),bottom=base+style.offset;
+    if(selectedUnits.has(u.id))
+      cube(verts,u.x+.5,u.y+.5,.76,base,base+.10,"#fce57d");
+    cube(verts,u.x+.5,u.y+.5,style.width,bottom,bottom+style.height,
      selectedUnits.has(u.id)?"#fce57d":i===0?"#c5eeff":"#f58a7c");
    }
    const data=new Float32Array(verts);
@@ -112,13 +148,9 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    gl.uniform1f(uniforms.u_tan,cam.tanHalfFov);
    gl.uniform1f(uniforms.u_aspect,canvas.width/canvas.height);
    gl.drawArrays(gl.TRIANGLES,0,data.length/6);
-   points=world.tiles.map(t=>{
-    const p=projectWorld({x:t.x+.5,y:heightFor(t)+.03,z:t.y+.5},
-      canvas.width,canvas.height,cam);
-    return p&&{...p,tileX:t.x,tileY:t.y};
-   });
   },
-  pick(px,py){return pickNearestTile(points,px,py);},
+  pick(px,py){return camForPick&&worldForPick
+    ?raycastTerrain(camForPick,px,py,canvas.width,canvas.height,worldForPick):null},
   orbit(dx,dy){yaw+=dx*.009;pitch=Math.max(.22,Math.min(1.37,pitch+dy*.008));},
   zoom(direction){radius=Math.max(30,Math.min(125,radius+direction*5));},
   camera(){return {yaw,pitch,radius};}

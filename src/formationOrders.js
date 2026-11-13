@@ -1,16 +1,12 @@
 import {assert} from "./util.js";
 import {getPlayer} from "./state.js";
 import {pathForUnit,movementDomain} from "./movementDomains.js";
-import {issueMove} from "./battlefield.js";
 import {ATTACK_PROFILE} from "./battlefield.js";
 import {hasLineOfSight} from "./tacticalNavigation.js";
 import {mayAttackStructure} from "./engagementRules.js";
-import {isOccupiedByUnit} from "./unitCollision.js";
+import {planFormation} from "./groupNavigation.js";
 
-const OFFSETS=[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1],
- [2,0],[-2,0],[0,2],[0,-2],[2,1],[-2,-1],[2,-1],[-2,1],
- [1,2],[-1,-2],[1,-2],[-1,2],[2,2],[-2,-2],[2,-2],[-2,2]];
-/** Atomic bounded group move: routes validated for all units before issuing orders. */
+/** Assign all formation slots before mutating any order. */
 export function orderFormation(match,owner,ids,x,y){
  assert(match.battlefield,"Battlefield required");
  assert(Number.isInteger(x)&&Number.isInteger(y),"Invalid formation destination");
@@ -18,25 +14,12 @@ export function orderFormation(match,owner,ids,x,y){
   "Formation size or duplicate unit IDs invalid");
  const p=getPlayer(match,owner);
  const units=ids.map(id=>p.units.find(u=>u.id===id&&u.alive&&
-   !u.garrisonedAt&&Number.isInteger(u.x)&&Number.isInteger(u.y)));
+  !u.garrisonedAt&&!u.embarkedAt&&Number.isInteger(u.x)&&Number.isInteger(u.y)));
  assert(units.every(Boolean),"Only owned, positioned units may join formation");
- const reserved=new Set(),plans=[];
- for(const unit of units){
-  let chosen=null;
-  for(const [dx,dy] of OFFSETS){
-   const goal={x:x+dx,y:y+dy},key=goal.x+","+goal.y;
-   if(reserved.has(key)||isOccupiedByUnit(match,unit,goal.x,goal.y)&&!ids.some(id=>p.units.find(u=>u.id===id&&u.x===goal.x&&u.y===goal.y)))continue;
-   const path=pathForUnit(match,owner,unit.archetype,
-     {x:unit.x,y:unit.y},goal);
-   if(path&&path.at(-1).x===goal.x&&path.at(-1).y===goal.y){
-    chosen={goal,path};reserved.add(key);break;
-   }
-  }
-  assert(chosen,"Formation lacks reachable positions");
-  plans.push({unitId:unit.id,...chosen});
- }
- for(const plan of plans)issueMove(match,owner,plan.unitId,plan.goal.x,plan.goal.y);
- return plans.map(p=>({unitId:p.unitId,destination:p.goal}));
+ const plans=planFormation(match,owner,units,x,y);
+ for(const plan of plans)match.orders[plan.unitId]={kind:"move",path:plan.path.slice(1),
+  carryMs:0,destination:plan.destination,formation:true};
+ return plans.map(({unitId,destination})=>({unitId,destination}));
 }
 const aim=(u,loc)=>({x:Math.min(loc.x+loc.width-1,Math.max(loc.x,u.x)),
  y:Math.min(loc.y+loc.height-1,Math.max(loc.y,u.y))});

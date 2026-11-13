@@ -58,3 +58,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **4.8 WebGL 3D terrain preview:** orbit/zoom camera and GPU block geometry for terrain, elevation, sites and units; no final art, animation or physically accurate picking.
 - **4.9 Pre-match readiness:** opt-in authenticated local lobby, all-ready check and host-only launch before commands/advancement.
 - **5.0 Host checkpoints:** checked match, sequence/version and readiness restoration with newly generated session tokens; not secure signed saves or persistent hosted service.
+
+- **5.1 Route-cost formations:** deterministic shortest-path routing and minimum-cost slot assignment for groups up to 24, avoiding fixed non-group unit blockers when collision enabled, with atomic order assignment. Intra-group motion still requires improvements for chokepoints.
+- **5.2 More informative WebGL geometry:** direct camera-to-terrain ray picking (including hills), forest shapes and role-distinct worker/hero/naval/aircraft proxy proportions. Not final meshes, lighting or animation.
+- **5.3 Live loopback server transport:** header-authenticated same-origin Server-Sent Events **version-only** stream plus server-owned HTTP commands/state, capacity limits and static game client. No public network deployment or WebSockets.
+- **5.4 Network gameplay browser:** private token connect, ready/start lobby, fog-filtered authoritative snapshots, 2D/WebGL camera and selection, move/group/attack/train commands and SSE reconnect. Local prototype only, no independent local simulation.

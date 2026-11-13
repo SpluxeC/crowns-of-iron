@@ -69,3 +69,9 @@ All **126 local faction building-upgrade records** now have executable prototype
 ### Latest development batch (4.7–5.0)
 
 See [milestones 4.7–5.0](docs/MILESTONES_4_7_TO_5_0.md). Collision-enabled movement detours around occupied cells, the browser cycles through top-down/isometric/WebGL 3D block geometry with an orbit/zoom camera, and the local host supports optional lobby readiness plus integrity-checked checkpoint restoration. Development prototypes only, not production multiplayer or finished 3D gameplay. Run `npm run batch-4.7-demo`, `npm test`, and `npm run inspect` (manual browser QA required).
+
+### Milestones 5.1–5.4: live browser playtest
+
+See [the 5.1–5.4 milestone notes](docs/MILESTONES_5_1_TO_5_4.md). A **local same-origin network-connected multiplayer browser client** now exists. Start the loopback test server with `npm run protocol-server`, open **http://127.0.0.1:5190/client**, and enter one developer session token printed in the terminal. Each browser/tab needs its own player token. The server drives simulation time, enables collision-aware unit spacing, validates commands, filters enemy visibility, and streams event notifications; browsers fetch authoritative snapshots.
+
+For an opt-in ready/start lobby, run with `REQUIRE_READY=1` (PowerShell: `$env:REQUIRE_READY=1; npm run protocol-server`). The game view has a top-down fallback and a rudimentary WebGL 3D camera. This is **not** secure public multiplayer, production matchmaking, animated 3D gameplay, or a balanced release build.
