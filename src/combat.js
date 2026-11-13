@@ -85,7 +85,8 @@ export function tickStatuses(player,deltaMs){
   for(const unit of player.units.filter(u=>u.alive)){
     for(const s of unit.status){
       const activeMs=Math.min(deltaMs,s.remainingMs);
-      const sum=s.remainder+s.dps*activeMs/1000;
+      const mitigation=s.name==="Corruption"?Math.max(0,2-researchMultiplier(player,"corruptionMitigation")):1;
+      const sum=s.remainder+s.dps*activeMs/1000*mitigation;
       const hit=Math.floor(sum+1e-10);
       s.remainder=sum-hit;s.remainingMs-=activeMs;
       unit.hp=Math.max(0,unit.hp-hit);

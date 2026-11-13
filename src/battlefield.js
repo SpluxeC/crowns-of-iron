@@ -44,7 +44,7 @@ export function issueMove(match,pid,unitId,x,y){
   assert(Number.isInteger(x)&&Number.isInteger(y),"Invalid tile coordinates");
   const u=ownsUnit(match,pid,unitId);
   assert(tileTraversable(match,pid,u.archetype,x,y),"Destination not walkable or traversable");
-  assert(Number.isInteger(u.x)&&Number.isInteger(u.y),"Unit lacks a position");
+  assert(!u.garrisonedAt&&Number.isInteger(u.x)&&Number.isInteger(u.y),"Unit lacks a position or is garrisoned");
   const path=pathForUnit(match,pid,u.archetype,{x:u.x,y:u.y},{x,y});
   assert(path,"No route to destination");
   match.orders[unitId]={kind:"move",path:path.slice(1),carryMs:0,destination:{x,y}};
@@ -55,7 +55,7 @@ export function issueAttack(match,pid,unitId,targetPlayer,targetId){
   const p=getPlayer(match,pid),other=getPlayer(match,targetPlayer);
   assert(p.team!==other.team,"Cannot attack an allied team");
   assert(unit.attack>0,"Unit has no direct weapon");
-  assert(Number.isInteger(unit.x)&&Number.isInteger(enemy.x),"Units lack positions");
+  assert(!unit.garrisonedAt&&!enemy.garrisonedAt&&Number.isInteger(unit.x)&&Number.isInteger(enemy.x),"Units lack positions or are garrisoned");
   match.orders[unitId]={kind:"attack",targetPlayer,targetId,carryMs:0};
 }
 function neighborsInRange(a,b,range){
@@ -72,7 +72,7 @@ export function tickBattlefield(match,deltaMs){
   const map=match.battlefield,events=[];
   for(let i=0;i<match.players.length;i++){
     const p=match.players[i],start=map.starts[i];
-    for(const unit of p.units.filter(u=>u.alive)){
+    for(const unit of p.units.filter(u=>u.alive&&!u.garrisonedAt)){
       if(!Number.isInteger(unit.x)){
         if(movementDomain(unit.archetype)!=="land")continue;
         unit.x=start.x;unit.y=start.y;
