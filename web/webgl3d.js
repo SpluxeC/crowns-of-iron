@@ -5,6 +5,7 @@ import {factionMeshKey} from "./factionArt.js";
 import {poseAt,animationModeForUnit} from "./meshAnimation.js";
 import {loadFactionTextures,textureForFaction} from "./factionTextures.js";
 import {rigForFaction} from "./rigProfiles.js";
+import {createRosterMeshLoader} from "./rosterLoader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
@@ -153,7 +154,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
  let yaw=.82,pitch=.72,radius=preview?18:68,worldForPick=null,camForPick=null,
   terrainKey=null,terrainVertexCount=0,rebuilds=0,
   models=null,textures=null,textureFailure=null,
-  modelPromise=null,factionPromise=null,modelFailure=null,
+  modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
   modelUnits=0,modelBuildings=0,fallbackUnits=0;
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
@@ -196,6 +197,18 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    });
    return factionPromise;
   },
+  /** On-demand model loading: only roles actually visible or previewed. */
+  async loadRosterAssets({requests=[],fetcher,notify}={}){
+   if(!rosterLoader)rosterLoader=createRosterMeshLoader(fetcher);
+   const result=await rosterLoader.loadBatch(requests);
+   if(result.loaded>0&&typeof notify==="function")notify();
+   return result;
+  },
+  rosterMeshInfo(faction,role){
+   const mesh=rosterLoader?.get(faction,role);
+   return mesh?{triangles:mesh.triangles,vertexCount:mesh.vertexCount}:null;
+  },
+  rosterLoadStatus(){return rosterLoader?.stats()??{loaded:0,pending:0,errors:0};},
   draw(world,match,selectedUnits,{previewPose=null}={}){
    const cam=cameraForMap(world.width,world.height,{yaw,pitch,radius});
    worldForPick=world;camForPick=cam;
@@ -254,8 +267,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      p.id===match.viewerId?"#c5eeff":"#f58a7c";
     const detail=unitRoleVisual(u),cx=u.x+.5,cz=u.y+.5,top=bottom+style.height;
     const role=detail.role,
-     mesh=modelUnits<160?(models?.[factionMeshKey(p.faction,role)]??
-       models?.[role]):null;
+     mesh=modelUnits<160?(rosterLoader?.get(p.faction,u.archetype)??
+       models?.[factionMeshKey(p.faction,role)]??models?.[role]):null;
     if(mesh){
      const scale=detail.role==="air"?.53:detail.role==="ship"?.69:
       detail.role==="hero"?.73:detail.role==="siege"?.63:.75;
@@ -321,6 +334,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    {triangles:mesh.triangles,vertexCount:mesh.vertexCount,bounds:mesh.bounds}:null;},
   stats(){return {terrainRebuilds:rebuilds,terrainVertices:terrainVertexCount,
    modelUnits,modelBuildings,fallbackUnits,loadedModels:models?Object.keys(models).length:0,
+   rosterModels:rosterLoader?.stats().loaded??0,
    factionModels:models?Object.keys(models).filter(k=>k.includes("/")).length:0,
    factionTextures:textures?Object.keys(textures).length:0,
    textureFailure,
