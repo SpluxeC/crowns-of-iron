@@ -69,7 +69,7 @@ export function createLoopbackProtocolServer(host){
       else if(res.writableLength>32768){client.close();res.destroy();}
       else res.write(": heartbeat\n\n");
     },15000);
-    req.on("close",client.close);
+    res.on("close",client.close);
     return;
    }
    if(path==="/state"&&req.method==="GET")return send(res,200,host.view(token));
