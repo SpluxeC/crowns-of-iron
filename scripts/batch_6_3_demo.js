@@ -19,5 +19,5 @@ const selected=unitsInTileRectangle({units:[
  {id:"b",x:2,y:2,alive:true,archetype:"Worker"}]},
  {x:0,y:0},{x:3,y:3});
 assert(makeFormationPayload(selected,5,5).units.length===2);
-console.log(JSON.stringify({milestones:"6.3–6.6",report,elapsedWallMs,
+console.log(JSON.stringify({milestones:"6.3–6.6",report,elapsedWallMs:elapsedMs,
  caveat:"In-process Node simulation, fake-GPU tests and pure browser helpers only; actual browser visuals, Internet latency and full-population active navigation untested"},null,2));
