@@ -4,6 +4,8 @@ import {queueResearch,tickResearch,cancelResearch} from "./research.js";
 import {queueUnit,tickProduction,cancelUnit} from "./production.js";
 import {strike,heal,repair,tickStatuses} from "./combat.js";
 import {assert,clone,hash} from "./util.js";
+import {tickBots} from "./ai.js";
+import {tickMode} from "./modes.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -41,11 +43,12 @@ export function checkElimination(match,deltaMs){
     if(p.lastStandMs<=0){p.alive=false;p.defeated=true;p.lastStandMs=0;}
   }
   const teams=new Set(match.players.filter(p=>!p.defeated).map(p=>p.team));
-  if(teams.size===1)match.winner=[...teams][0];
+  if(match.mode==="Conquest"&&teams.size===1)match.winner=[...teams][0];
 }
 export function step(match,deltaMs,opts={}){
   assert(Number.isSafeInteger(deltaMs)&&deltaMs>0&&deltaMs<=60000,"Tick must be 1–60000 ms");
   if(match.winner!==null)return match;
+  tickBots(match,deltaMs);
   for(const p of match.players.filter(x=>!x.defeated)){
     gather(p,deltaMs,opts.economy?.[p.id]??{});
     tickResearch(p,deltaMs);
@@ -53,6 +56,7 @@ export function step(match,deltaMs,opts={}){
     tickStatuses(p,deltaMs);
   }
   checkElimination(match,deltaMs);
+  tickMode(match,deltaMs);
   match.elapsedMs+=deltaMs;match.tick++;
   return match;
 }
