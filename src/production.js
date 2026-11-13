@@ -2,6 +2,7 @@ import {ALL_ARCHETYPES} from "./extendedCatalog.js";
 import {makeUnit,nextId} from "./state.js";
 import {assert,ageIndex,spend,refund} from "./util.js";
 import {refreshUnitTechnology} from "./technologyEffects.js";
+import {spawnUnitOnDomain} from "./movementDomains.js";
 const PRODUCTION_LOCATIONS={
 "Worker":["Town Center"],"Scout":["Town Center","Training Camp"],
 "Club Fighter":["Training Camp"],"Stone Slinger":["Training Camp"],"Stone Spearman":["Training Camp"],
@@ -53,6 +54,7 @@ export function tickProduction(match,player,deltaMs){
       jobs.shift();
       const unit=makeUnit(player,j.role,def,nextId(match));
       refreshUnitTechnology(player,unit);
+      spawnUnitOnDomain(match,player,unit,facility);
       player.units.push(unit);player.popUsed+=def.pop;
       player.history.push("Recruited "+unit.name);
       if(remaining===0)break;

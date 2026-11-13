@@ -15,6 +15,7 @@ import {assignHarvestJob,cancelHarvestJob,deliverCargo,tickSpatialHarvest} from 
 import {destroyToRuin,salvageRuin,rebuildRuin,tickRuins} from "./ruins.js";
 import {queueBuildingUpgrade,cancelBuildingUpgrade,tickBuildingUpgrades} from "./buildingUpgrades.js";
 import {orderStructureAttack,tickStructureCombat,repairBuilding} from "./structureCombat.js";
+import {setGateOpen} from "./gates.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -48,6 +49,7 @@ export function command(match,input,{allowDebug=false}={}){
     case "cancelUpgrade":result=cancelBuildingUpgrade(match,id,input.siteId,input.name);break;
     case "attackStructure":result=orderStructureAttack(match,id,input.unitId,input.siteId);break;
     case "repairBuilding":result=repairBuilding(match,id,input.siteId,input.workers,input.amount);break;
+    case "gate":result=setGateOpen(match,id,input.siteId,input.open);break;
     case "ability":result=useHeroAbility(match,id,input.heroId,input.point);break;
     case "heal":result=heal(player,input.healers,input.target,match.elapsedMs);break;
     case "repair":result=repair(player,input.workers,input.target,input.amount,match.elapsedMs);break;
