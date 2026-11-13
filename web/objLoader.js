@@ -110,7 +110,7 @@ export function appendObjVertices(out,mesh,{x=0,y=0,z=0,scale=1,tint=null,
   out.push(x+local[0]*scale,y+local[1]*scale,z+local[2]*scale,
    Math.min(1,src[i+3]*(tint?.[0]??1)*pattern[0]),
    Math.min(1,src[i+4]*(tint?.[1]??1)*pattern[1]),
-   Math.min(1,src[i+5]*(tint?.[2]??1)*pattern[2]);
+   Math.min(1,src[i+5]*(tint?.[2]??1)*pattern[2]));
  }
  return src.length/6;
 }
