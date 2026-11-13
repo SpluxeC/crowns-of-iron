@@ -39,18 +39,24 @@ export function runArmyRehearsal({seed=609,ticks=3,squads=1}={}){
      }
    }
    assert(ids.length===24,"Not enough distinct squad spawn positions");
-   // The 25-slot formation includes a two-tile radius; keep every goal on map.
+   // Choose a reachable formation center. Congested peripheral spawn sites
+   // can have fewer than 24 open slots at the requested outward destination.
    const clamp=(n,max)=>Math.max(3,Math.min(max-4,n));
-   const target={x:clamp(home.x+direction.x*10,map.width),
-    y:clamp(home.y+direction.y*10,map.height)};
-   let result;
-   try{
-    result=host.submit({token:host.credentialsFor(p.id).token,
-     sequence:squad+1,action:"formation",payload:{units:ids,...target}});
-   }catch(error){
-    throw new Error("Formation p"+i+" squad "+squad+" at "+target.x+","+target.y+
-      " failed: "+error.message);
+   let result=null,lastError=null;
+   for(const distance of [10,8,6,4]){
+    const target={x:clamp(home.x+direction.x*distance,map.width),
+     y:clamp(home.y+direction.y*distance,map.height)};
+    try{
+     result=host.submit({token:host.credentialsFor(p.id).token,
+      sequence:squad+1,action:"formation",payload:{units:ids,...target}});
+     break;
+    }catch(error){
+     if(!/Formation lacks reachable positions/.test(error.message))throw error;
+     lastError=error;
+    }
    }
+   if(!result)throw new Error("Formation p"+i+" squad "+squad+
+    " could not find 24 reachable slots: "+lastError?.message);
    assert(result.accepted&&result.result.length===24,"Formation rejected");
    formed++;
   }
