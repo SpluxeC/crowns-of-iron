@@ -11,6 +11,7 @@ import {ALL_SKINNED_ROLES} from "./skinnedRoster.js";
 import {vehicleMotion} from "./vehicleMotion.js";
 import {createVehicleGltfLoader,sampleVehicleGltf} from "./vehicleGltf.js";
 import {VEHICLE_ROLES} from "./vehicleArt.js";
+import {visibleCombatUnits,applyCombatPose} from "./combatVisuals.js";
 import {refineFactionTexture} from "./materialDetail.js";
 import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
@@ -165,7 +166,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
   skinnedLoader=null,vehicleLoader=null,
   modelUnits=0,modelBuildings=0,fallbackUnits=0;
- const animationStates=new Map();
+ const animationStates=new Map(),combatStates=new Map();
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
   gl.enableVertexAttribArray(position);gl.vertexAttribPointer(position,3,gl.FLOAT,false,24,0);
@@ -303,8 +304,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    }
    const verts=[],uvBatches=new Map(),visibleAnimKeys=new Set();
    modelUnits=0;fallbackUnits=0;
-   for(const [i,p] of match.players.entries())for(const u of p.units.filter(
-      u=>u.alive&&Number.isInteger(u.x)&&!u.embarkedAt&&!u.garrisonedAt)){
+   const clock=Number.isFinite(match.elapsedMs)?match.elapsedMs:0;
+   for(const {player:p,unit:u,effect} of visibleCombatUnits(match.players,combatStates,clock)){
     const terrain=world.tiles[u.y*world.width+u.x],base=heightFor(terrain);
     const style=unitVisual(u),bottom=base+style.offset;
     if(selectedUnits.has(u.id))
@@ -313,7 +314,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      p.id===match.viewerId?"#c5eeff":"#f58a7c";
     const detail=unitRoleVisual(u),cx=u.x+.5,cz=u.y+.5,top=bottom+style.height;
     const role=detail.role,
-     clip=previewPose??animationModeForUnit(u,match.orders?.[u.id]),
+     clip=previewPose==="hit"?"attack":previewPose==="death"?"idle":
+      previewPose??animationModeForUnit(u,match.orders?.[u.id]),
      animKey=p.id+"/"+u.id,
      now=Number.isFinite(match.elapsedMs)?match.elapsedMs:0,
      previous=animationStates.get(animKey);
@@ -326,11 +328,13 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
        skinnedLoader?.get(p.faction,u.archetype):null,
      veh=modelUnits<160&&VEHICLE_ROLES.includes(u.archetype)?
        vehicleLoader?.get(p.faction,u.archetype):null,
-     mesh=skin?sampleSkinnedGltf(skin,clip,now,
+     rawMesh=skin?sampleSkinnedGltf(skin,clip,now,
        {transitionFrom:transition.from,transitionAlpha:blend}):
        veh?sampleVehicleGltf(veh,clip,now):
        modelUnits<160?(rosterLoader?.get(p.faction,u.archetype)??
-       models?.[factionMeshKey(p.faction,role)]??models?.[role]):null;
+       models?.[factionMeshKey(p.faction,role)]??models?.[role]):null,
+     mesh=rawMesh?applyCombatPose(rawMesh,previewPose==="hit"?{hit:1}:
+       previewPose==="death"?{death:.72}:effect):null;
     if(mesh){
      const scale=detail.role==="air"?.53:detail.role==="ship"?.69:
       detail.role==="hero"?.73:detail.role==="siege"?.63:.75;
