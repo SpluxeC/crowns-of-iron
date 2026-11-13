@@ -11,7 +11,7 @@ const COLORS={grass:"#4b795e",forest:"#24533e",hill:"#657279",
  water:"#204767",deposit:"#b69a47",unknown:"#122938"};
 let token=null,abort=null,pollTimer=null,state=null,room=null,catalog=null,playerId=null,nextSequence=1,version=0;
 let renderer=null,view3d=false,selected=new Set(),mode="select",pending=false,refreshing=false,refreshAgain=false;
-let drag=null,boxDrag=null,ignoreClick=false;
+let drag=null,boxDrag=null,ignoreClick=false,loadingRoster=false;
 const controlGroups=new Map(),telemetry=createPerformanceTelemetry({limit:120});
 function log(message){
  const div=document.createElement("div");
@@ -61,6 +61,28 @@ function draw2d(){
   ctx.strokeRect(x,y,Math.abs(boxDrag.startPx.x-boxDrag.currentPx.x),
    Math.abs(boxDrag.startPx.y-boxDrag.currentPx.y));
  }
+}
+async function queueRosterArt(){
+ if(!view3d||!renderer||!state?.players||loadingRoster)return;
+ const wanted=[],seen=new Set(),status=renderer.rosterLoadStatus();
+ // Bounded live requests; all inputs originate in the fog-filtered snapshot.
+ for(const p of state.players)for(const u of p.units??[]){
+  if(!u.alive||!Number.isInteger(u.x)||u.embarkedAt||u.garrisonedAt)continue;
+  const key=p.faction+"|"+u.archetype;
+  if(seen.has(key)||renderer.rosterMeshInfo(p.faction,u.archetype))continue;
+  seen.add(key);wanted.push({faction:p.faction,role:u.archetype});
+ }
+ if(!wanted.length)return;
+ loadingRoster=true;
+ try{
+  for(let i=0;i<wanted.length&&view3d;i+=12){
+   const chunk=wanted.slice(i,i+12);
+   const result=await renderer.loadRosterAssets({requests:chunk,
+    notify:()=>{if(view3d)draw();}});
+   if(result.failed)log("Some roster models unavailable; using fallback art.");
+  }
+ }catch(error){log("Roster art: "+error.message);}
+ finally{loadingRoster=false;}
 }
 function draw(){
  const start=performance.now();
@@ -161,6 +183,7 @@ function info(){
   " · HTTP requests: "+formatTiming(telemetry.summary("http"))+
   (renderer?" · Mesh models: "+renderer.stats().loadedModels+
    " · Faction meshes: "+renderer.stats().factionModels+
+   " · Roster meshes: "+renderer.stats().rosterModels+
    " · Mesh units: "+renderer.stats().modelUnits+
    " · Fallback units: "+renderer.stats().fallbackUnits+
    " · Terrain GPU rebuilds: "+renderer.stats().terrainRebuilds:""));
@@ -199,6 +222,7 @@ async function refresh(){
    const ids=new Set(own()?.units?.filter(u=>u.alive).map(u=>u.id)??[]);
    selected=new Set([...selected].filter(id=>ids.has(id)));
    draw();info();
+   if(view3d)void queueRosterArt();
   }while(refreshAgain&&token);
  }finally{refreshing=false;}
 }
@@ -376,13 +400,17 @@ $("view").addEventListener("click",()=>{
     info=>{
      log("Loaded "+info.models+" base OBJ mesh models.");
      return renderer.loadFactionAssets({notify:()=>{if(view3d)draw();}}).then(
-      variants=>log("Loaded "+variants.factionModels+" faction OBJ models."),
+      variants=>{
+       log("Loaded "+variants.factionModels+" faction OBJ models.");
+       if(view3d)void queueRosterArt();
+      },
       e=>log("Faction model loading failed; base models remain: "+e.message));
     },
     e=>log("OBJ loading failed; showing fallback proxies: "+e.message));
   }catch(e){log("WebGL: "+e.message);}
  }
  if(renderer)view3d=!view3d;
+ if(view3d)void queueRosterArt();
  else log("WebGL unavailable; continuing in 2D.");
  text("view",view3d?"View: WebGL 3D":"View: Top-down");draw();
 });

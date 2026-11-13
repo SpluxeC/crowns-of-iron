@@ -115,3 +115,11 @@ These are reusable first-pass class-family models. They **do not** yet constitut
 All assets live in `assets/models/factions/`, `assets/textures/factions/` and `assets/rigs/`. Run `npm run faction-art-demo` to validate. The generator scripts `npm run generate-faction-art`, `npm run generate-faction-textures` and `npm run generate-faction-rigs` reproduce original art sources.
 
 See [the art stage details](docs/FACTION_ART_7_9_TO_8_2.md) for Blender editing, local preview and limitations. These are stylized original first-pass **family** assets; they are not yet 216 unique catalog models, UV/PBR textures, a skinned skeleton/FBX pipeline, professional animations or real-hardware visual testing.
+
+### Full launch-roster 3D art — Milestones 8.3–8.6
+
+The complete six-faction, 36-archetype roster now has **216 individual, original low-poly Wavefront OBJ models** in [assets/models/roster](assets/models/roster), with archetype-specific accessories and silhouettes for all 22 land, 8 naval and 6 air roles per faction. The browser selectively loads only the visible archetypes instead of downloading the whole library, while retaining earlier faction/base art fallback models.
+
+Each new roster OBJ now contains **standard `vt` and face UV coordinates**, which the renderer uses to sample existing original faction patterns and bake them into mesh vertex colors. This is **not yet per-pixel GPU/PBR texturing**. A reusable seven-joint **keyframe animation library** at [assets/animations/rig-clips.json](assets/animations/rig-clips.json) drives idle/walk/attack poses; it is **not an exported glTF/FBX skinned armature**.
+
+The local model gallery at `http://127.0.0.1:5190/model-gallery` now has an individual unit-role picker. Run `npm run art-stage-demo` to validate every model and the real localhost model delivery. For full usage and remaining work, see [Art Stage 8.3–8.6](docs/ART_STAGE_8_3_TO_8_6.md).

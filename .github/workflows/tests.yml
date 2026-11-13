@@ -34,3 +34,4 @@ jobs:
       - run: npm run batch-7.1-demo
       - run: npm run model-assets-demo
       - run: npm run faction-art-demo
+      - run: npm run art-stage-demo

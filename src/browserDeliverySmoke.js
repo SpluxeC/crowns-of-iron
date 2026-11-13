@@ -4,6 +4,7 @@ import {createLoopbackProtocolServer} from "./loopbackProtocol.js";
 import {assert} from "./util.js";
 import {MODEL_NAMES,parseMtl,parseObj} from "../web/objLoader.js";
 import {FACTION_SLUGS,factionMeshPath} from "../web/factionArt.js";
+import {ROSTER_ROLES,rosterMeshPath} from "../web/rosterArt.js";
 import {parsePpm} from "../web/factionTextures.js";
 
 /** Real localhost HTTP delivery/interaction contract, not a graphical browser runner. */
@@ -19,7 +20,8 @@ export async function runBrowserDeliverySmoke(){
  const requiredScripts=["/netplay.js","/webgl3d.js","/assetManifest.js",
   "/clientRules.js","/unitSelection.js","/combatOrders.js",
   "/perfTelemetry.js","/streamProtocol.js","/objLoader.js","/modelGallery.js",
-  "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js"];
+  "/factionArt.js","/meshAnimation.js","/factionTextures.js","/rigProfiles.js",
+  "/rosterArt.js","/rosterLoader.js","/animationClips.js"];
  let checked=0;
  try{
   const client=await fetch(base+"/client");
@@ -77,11 +79,26 @@ export async function runBrowserDeliverySmoke(){
    assert(image.width===32&&image.height===32,"Faction pattern size changed");
    factionTextures++;
   }
+  const animationResponse=await fetch(base+"/assets/animations/rig-clips.json");
+  assert(animationResponse.status===200,"Authored animation clips not served");
+  const animations=await animationResponse.json();
+  assert(animations.bones?.length===7&&Object.keys(animations.clips??{}).length===3,
+   "Incomplete authored animation clips");
   const rigResponse=await fetch(base+"/assets/rigs/faction-rigs.json");
   assert(rigResponse.status===200,"Rig metadata unavailable");
   const rigs=await rigResponse.json();
   assert(rigs.bones?.length===7&&Object.keys(rigs.factions??{}).length===6,
    "Incomplete faction rigs");
+  let rosterSmokeMeshes=0;
+  for(const faction of FACTION_SLUGS)for(const role of [
+   "Worker","Archer","Heavy War Machine","Legendary Warship","Bomber","Aerial Battleship"]){
+   const response=await fetch(base+rosterMeshPath(faction,role));
+   assert(response.status===200,"Roster mesh unavailable "+faction+"/"+role);
+   assert(parseObj(await response.text(),materials).triangles>120);
+   rosterSmokeMeshes++;
+  }
+  const badRoster=await fetch(base+"/assets/models/roster/humans/not-a-unit.obj");
+  assert(badRoster.status===404,"Unknown roster asset path unexpectedly served");
   const forbidden=await fetch(base+"/assets/models/factions/not-a-faction/worker.obj");
   assert(forbidden.status===404,"Unknown faction asset path accepted");
   const illegal=await fetch(base+"/assets/models/unknown.obj");
@@ -106,7 +123,7 @@ export async function runBrowserDeliverySmoke(){
   assert(host.match.players[0].units.find(u=>u.id===unit.id).combatStance==="aggressive");
   return {htmlControls:requiredIds.length,servedModules:requiredScripts.length,
    servedMeshes:MODEL_NAMES.length,assetTriangles,factionMeshes,factionTriangles,
-   factionTextures,factionRigProfiles:6,
+   factionTextures,factionRigProfiles:6,rosterSmokeMeshes,authoredClips:3,
    contractsChecked:checked,anonymousRejected:true,authenticatedBatch:true,
    scope:"localhost HTTP delivery and server interaction; NOT real browser GPU/DOM automation"};
  }finally{

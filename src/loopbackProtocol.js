@@ -3,6 +3,7 @@ import {readFile} from "node:fs/promises";
 import {assert} from "./util.js";
 import {FACTION_SLUGS} from "../web/factionArt.js";
 import {MODEL_NAMES} from "../web/objLoader.js";
+import {ROSTER_ROLES,ROLE_SLUGS} from "../web/rosterArt.js";
 
 // Same-origin loopback development transport. Never publicly bind this server.
 const STATIC={
@@ -36,8 +37,18 @@ for(const slug of FACTION_SLUGS)for(const role of MODEL_NAMES){
  STATIC[route]=["../assets/models/factions/"+slug+"/"+role+".obj",
   "text/plain; charset=utf-8"];
 }
+for(const slug of FACTION_SLUGS)for(const role of ROSTER_ROLES){
+ const name=ROLE_SLUGS[role];
+ STATIC["/assets/models/roster/"+slug+"/"+name+".obj"]=[
+  "../assets/models/roster/"+slug+"/"+name+".obj","text/plain; charset=utf-8"];
+}
+STATIC["/rosterArt.js"]=["../web/rosterArt.js","text/javascript; charset=utf-8"];
+STATIC["/rosterLoader.js"]=["../web/rosterLoader.js","text/javascript; charset=utf-8"];
 STATIC["/factionArt.js"]=["../web/factionArt.js","text/javascript; charset=utf-8"];
 STATIC["/meshAnimation.js"]=["../web/meshAnimation.js","text/javascript; charset=utf-8"];
+STATIC["/animationClips.js"]=["../web/animationClips.js","text/javascript; charset=utf-8"];
+STATIC["/assets/animations/rig-clips.json"]=[
+ "../assets/animations/rig-clips.json","application/json; charset=utf-8"];
 STATIC["/factionTextures.js"]=["../web/factionTextures.js","text/javascript; charset=utf-8"];
 STATIC["/rigProfiles.js"]=["../web/rigProfiles.js","text/javascript; charset=utf-8"];
 STATIC["/assets/rigs/faction-rigs.json"]=["../assets/rigs/faction-rigs.json",
