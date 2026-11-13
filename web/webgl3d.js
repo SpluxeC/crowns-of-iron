@@ -12,6 +12,8 @@ import {vehicleMotion} from "./vehicleMotion.js";
 import {createVehicleGltfLoader,sampleVehicleGltf} from "./vehicleGltf.js";
 import {VEHICLE_ROLES} from "./vehicleArt.js";
 import {visibleCombatUnits,applyCombatPose} from "./combatVisuals.js";
+import {applyBattleWear} from "./battleWear.js";
+import {combatVfxDescriptor,appendCombatVfx,COMBAT_VFX_LIMIT} from "./combatVfx.js";
 import {refineFactionTexture} from "./materialDetail.js";
 import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
 const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
@@ -304,6 +306,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    }
    const verts=[],uvBatches=new Map(),visibleAnimKeys=new Set();
    modelUnits=0;fallbackUnits=0;
+   let vfxUnits=0;
    const clock=Number.isFinite(match.elapsedMs)?match.elapsedMs:0;
    for(const {player:p,unit:u,effect} of visibleCombatUnits(match.players,combatStates,clock)){
     const terrain=world.tiles[u.y*world.width+u.x],base=heightFor(terrain);
@@ -347,7 +350,9 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
        models?.[factionMeshKey(p.faction,role)]??models?.[role]):null,
      overlay=previewPose==="hit"?{hit:1}:previewPose==="death"?{death:.72}:effect,
      // Vehicles use their own death transform clip, avoiding a second fall rotation.
-     mesh=rawMesh?applyCombatPose(rawMesh,veh?{hit:overlay.hit??0}:overlay):null;
+     damaged=rawMesh&&Number.isFinite(u.hp)&&Number.isFinite(u.maxHp)?
+      applyBattleWear(rawMesh,u.hp,u.maxHp,{seed:String(u.id).length}):rawMesh,
+     mesh=damaged?applyCombatPose(damaged,veh?{hit:overlay.hit??0}:overlay):null;
     if(veh)vehicleStates.set(animKey,vehicleTransition);
     if(mesh){
      const scale=detail.role==="air"?.53:detail.role==="ship"?.69:
@@ -389,6 +394,16 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     if(!mesh&&detail.accessory==="wings"){
      cube(verts,cx-.40,cz,.33,bottom+.15,top-.12,"#859fac");
      cube(verts,cx+.40,cz,.33,bottom+.15,top-.12,"#859fac");
+    }
+    // Only filtered visible entities may generate cosmetic bursts.
+    if(vfxUnits<COMBAT_VFX_LIMIT){
+     const vfx=combatVfxDescriptor(u,{clip:vehicleClip,
+      hit:previewPose==="hit"?1:effect.hit,
+      death:previewPose==="death"?.72:effect.death,
+      preview:previewPose==="attack"},now);
+     if(vfx?.intensity>0){
+      appendCombatVfx(verts,cx,bottom,cz,vfx);vfxUnits++;
+     }
     }
     if(u.hp<u.maxHp||selectedUnits.has(u.id)){
      const segments=healthSegments(u);

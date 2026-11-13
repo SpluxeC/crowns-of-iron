@@ -11,7 +11,7 @@ for(const role of ROSTER_ROLES){
  roleChoice.append(option);
 }
 const factionChoice=document.getElementById("faction"),
- clipChoice=document.getElementById("clip");
+ clipChoice=document.getElementById("clip"),wearChoice=document.getElementById("wear");
 const renderer=createWebGLRenderer(canvas,{preview:true});
 const archetypes={worker:"Worker",infantry:"Swordsman",ranged:"Archer",hero:"Hero",
  siege:"Battering Ram",ship:"Heavy Warship",air:"Interceptor"};
@@ -52,7 +52,7 @@ function draw(){
  for(const tile of world.tiles)tile.occupied=building&&
   tile.x>=5&&tile.x<7&&tile.y>=5&&tile.y<7?"sample":null;
  const unit={id:"sample",owner:"p0",archetype:specificRole||archetypes[name],alive:true,
-  hp:100,maxHp:100,x:5,y:5};
+  hp:Number(wearChoice.value),maxHp:100,x:5,y:5};
  renderer?.draw(world,{viewerId:"p0",elapsedMs:performance.now(),
   players:[{id:"p0",faction,units:building?[]:[unit]}]},new Set(),
   {previewPose:clipChoice.value});
@@ -65,7 +65,7 @@ function draw(){
   renderer?.meshInfo(name,faction);
  details.textContent=mesh?((faction??"Generic")+" "+(specificRole||name)+
   " · "+mesh.triangles+" triangles · "+mesh.vertexCount+
-  " vertices · "+clipChoice.value+" pose · "+
+  " vertices · "+clipChoice.value+" pose · HP "+wearChoice.value+"/100 · "+
   (roster?"Roster-specific UV-mapped OBJ":"Family model")+" · "+loadMessage):
   "Loading "+name+" — showing fallback until model is available";
 }
@@ -84,6 +84,7 @@ select.addEventListener("change",draw);
 roleChoice.addEventListener("change",()=>{draw();void loadSelectedRoster();});
 factionChoice.addEventListener("change",()=>{draw();void loadSelectedRoster();});
 clipChoice.addEventListener("change",draw);
+wearChoice.addEventListener("change",draw);
 document.getElementById("orbitLeft").addEventListener("click",()=>{renderer?.orbit(-30,0);draw();});
 document.getElementById("orbitRight").addEventListener("click",()=>{renderer?.orbit(30,0);draw();});
 document.getElementById("zoomIn").addEventListener("click",()=>{renderer?.zoom(-1);draw();});

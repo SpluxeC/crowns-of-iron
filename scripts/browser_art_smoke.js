@@ -58,6 +58,21 @@ try{
  await inspect("Orcs","Bomber","idle","orcs-bomber-idle","Animated vehicle glTF");
  await inspect("Humans","Heavy Warship","walk","humans-warship-sailing","Animated vehicle glTF");
  await inspect("Ursa","Heavy Artillery","attack","ursa-artillery-firing","Animated vehicle glTF");
+ // Deterministic screenshot coverage for combat art damage and flash previews.
+ await page.selectOption("#faction","Orcs");
+ await page.selectOption("#unitRole","Bomber");
+ await page.selectOption("#clip","attack");
+ await page.selectOption("#wear","30");
+ await page.waitForFunction(()=>document.querySelector("#details")?.textContent
+  ?.includes("HP 30/100"));
+ await page.waitForTimeout(350);
+ const battlePath=fileURLToPath(new URL("orcs-bomber-damaged-attack.png",dir));
+ await page.screenshot({path:battlePath,animations:"disabled"});
+ const battleBytes=await readFile(battlePath);
+ if(battleBytes.length<10000)throw Error("Combat damage preview screenshot too small");
+ summary.cases.push({label:"orcs-bomber-damaged-attack",faction:"Orcs",
+  role:"Bomber",clip:"attack",hp:30,bytes:battleBytes.length,
+  sha256:createHash("sha256").update(battleBytes).digest("hex").slice(0,20)});
  await page.goto(base+"/client",{waitUntil:"domcontentloaded"});
  await page.waitForSelector("#map");
  await page.screenshot({path:fileURLToPath(new URL("client-start-screen.png",dir))});
