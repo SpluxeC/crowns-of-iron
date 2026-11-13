@@ -11,11 +11,12 @@ function readBuffer(uri){
 }
 export function parseVehicleGltf(doc){
  if(doc?.asset?.version!=="2.0"||doc.buffers?.length!==1||
-  doc.meshes?.length!==2||doc.nodes?.length!==2||doc.skins!==undefined||
-  doc.nodes[0].mesh!==0||doc.nodes[1].mesh!==1||
-  JSON.stringify(doc.nodes[0].children)!=="[1]"||
-  !Array.isArray(doc.nodes[1].translation)||doc.nodes[1].translation.length!==3||
-  doc.nodes[1].translation.some(x=>!Number.isFinite(x))||
+  doc.meshes?.length!==4||doc.nodes?.length!==4||doc.skins!==undefined||
+  doc.nodes[0].mesh!==0||
+  JSON.stringify(doc.nodes[0].children)!=="[1,2,3]"||
+  [1,2,3].some(i=>doc.nodes[i]?.mesh!==i||
+   !Array.isArray(doc.nodes[i].translation)||doc.nodes[i].translation.length!==3||
+   doc.nodes[i].translation.some(x=>!Number.isFinite(x)))||
   doc.animations?.length!==5)throw Error("Invalid specialized vehicle glTF");
  const bytes=readBuffer(doc.buffers[0].uri);
  if(bytes.length!==doc.buffers[0].byteLength)throw Error("Vehicle buffer size mismatch");
@@ -44,21 +45,29 @@ export function parseVehicleGltf(doc){
    positions.some(v=>!Number.isFinite(v)))throw Error("Invalid vehicle vertex count");
   return {positions,uvs,colors,count};
  }
- const hull=geometry(doc.meshes[0]),component=geometry(doc.meshes[1]);
- const count=hull.count+component.count;
+ const geometries=doc.meshes.map(geometry),
+  count=geometries.reduce((total,g)=>total+g.count,0);
  if(count>20000)throw Error("Vehicle combined geometry exceeds budget");
- const positions=[...hull.positions,...component.positions],
-  uvs=[...hull.uvs,...component.uvs],colors=[...hull.colors,...component.colors];
+ const positions=geometries.flatMap(g=>g.positions),
+  uvs=geometries.flatMap(g=>g.uvs),
+  colors=geometries.flatMap(g=>g.colors);
+ let offset=0;
+ const regions=geometries.map((g,node)=>{
+  const region={start:offset,end:offset+g.count,node,
+   anchor:node===0?[0,0,0]:doc.nodes[node].translation};
+  offset+=g.count;return region;
+ });
  const animations={};
  for(const clip of doc.animations){
   if(!["idle","walk","attack","hit","death"].includes(clip.name)||animations[clip.name]||
-   clip.channels?.length!==3)throw Error("Invalid vehicle clip");
+   clip.channels?.length!==5)throw Error("Invalid vehicle clip");
   const curves={};
   for(const channel of clip.channels){
    const sampler=clip.samplers?.[channel.sampler],target=channel.target.path,
     node=channel.target.node,
-    key=node===1?"componentRotation":target;
-   if((node!==0&&node!==1)||node===1&&target!=="rotation"||
+    key=node===0?target:"rotation"+node;
+   if(!Number.isInteger(node)||node<0||node>3||
+    node>0&&target!=="rotation"||
     sampler?.interpolation!=="LINEAR"||
     !["translation","rotation"].includes(target)||curves[key])
     throw Error("Invalid vehicle track");
@@ -69,13 +78,16 @@ export function parseVehicleGltf(doc){
     throw Error("Invalid vehicle keyframe order");
    curves[key]={times,values,dimension};
   }
-  if(!curves.rotation||!curves.translation||!curves.componentRotation)
+  if(!curves.rotation||!curves.translation||![1,2,3].every(i=>curves["rotation"+i]))
    throw Error("Missing vehicle animation track");
   animations[clip.name]=curves;
  }
  if(Object.keys(animations).length!==5)throw Error("Missing vehicle animation");
- return {count,baseCount:hull.count,componentCount:component.count,
-  componentAnchor:doc.nodes[1].translation,positions,uvs,colors,animations,textured:true,
+ return {count,baseCount:geometries[0].count,
+  componentCount:geometries[1].count,
+  attachmentCount:3,regions,
+  componentAnchor:doc.nodes[1].translation,
+  positions,uvs,colors,animations,textured:true,
   embeddedPng:doc.images?.[0]?.uri?.startsWith("data:image/png;base64,")===true};
 }
 function evaluate(track,clockMs,loop=true){
@@ -103,13 +115,14 @@ export function sampleVehicleGltf(model,mode="idle",timeMs=0){
  const loop=mode!=="hit"&&mode!=="death",
   translation=evaluate(curves.translation,timeMs,loop),
   quat=evaluate(curves.rotation,timeMs,loop),
-  partQuat=evaluate(curves.componentRotation,timeMs,loop),
+  partQuats=[1,2,3].map(i=>evaluate(curves["rotation"+i],timeMs,loop)),
   vertices=new Float32Array(model.count*6);
  const min=[Infinity,Infinity,Infinity],max=[-Infinity,-Infinity,-Infinity];
  for(let i=0;i<model.count;i++){
   const src=model.positions.slice(i*3,i*3+3);
-  const local=i<model.baseCount?src:
-   rotate(src,partQuat).map((v,k)=>v+model.componentAnchor[k]);
+  const region=model.regions.find(r=>i>=r.start&&i<r.end);
+  const local=region.node===0?src:
+   rotate(src,partQuats[region.node-1]).map((v,k)=>v+region.anchor[k]);
   const r=rotate(local,quat);
   for(let k=0;k<3;k++){const v=r[k]+translation[k];
    vertices[i*6+k]=v;min[k]=Math.min(min[k],v);max[k]=Math.max(max[k],v);}
