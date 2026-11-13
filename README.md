@@ -75,3 +75,9 @@ See [milestones 4.7–5.0](docs/MILESTONES_4_7_TO_5_0.md). Collision-enabled mov
 See [the 5.1–5.4 milestone notes](docs/MILESTONES_5_1_TO_5_4.md). A **local same-origin network-connected multiplayer browser client** now exists. Start the loopback test server with `npm run protocol-server`, open **http://127.0.0.1:5190/client**, and enter one developer session token printed in the terminal. Each browser/tab needs its own player token. The server drives simulation time, enables collision-aware unit spacing, validates commands, filters enemy visibility, and streams event notifications; browsers fetch authoritative snapshots.
 
 For an opt-in ready/start lobby, run with `REQUIRE_READY=1` (PowerShell: `$env:REQUIRE_READY=1; npm run protocol-server`). The game view has a top-down fallback and a rudimentary WebGL 3D camera. This is **not** secure public multiplayer, production matchmaking, animated 3D gameplay, or a balanced release build.
+
+### Phase 5.5–5.8 — Connected RTS economy, recovery, and stream resilience
+
+See [the 5.5–5.8 milestone notes](docs/MILESTONES_5_5_TO_5_8.md). The local multiplayer browser now supports early building placement with a selected Worker, choosing recruitment facilities, mandatory Age I–IV discoveries, and readable queues. The development server writes a local checkpoint to `.local/crowns-host-checkpoint.json` approximately every 5 seconds and at normal SIGINT/SIGTERM shutdown.
+
+**Existing saves are protected.** Restart with `RESTORE_CHECKPOINT=1` to explicitly resume, or `RESET_CHECKPOINT=1` to explicitly discard an old local checkpoint. On restoration all dev session tokens change; use the newly printed credentials in your browser tabs. Neither mode should be used against untrusted checkpoint files. Browser updates use authenticated SSE and a polling safety net. This remains a developer-only loopback prototype.

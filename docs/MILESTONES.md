@@ -63,3 +63,8 @@ The code uses simplified shared archetype data to exercise gameplay rules. Do no
 - **5.2 More informative WebGL geometry:** direct camera-to-terrain ray picking (including hills), forest shapes and role-distinct worker/hero/naval/aircraft proxy proportions. Not final meshes, lighting or animation.
 - **5.3 Live loopback server transport:** header-authenticated same-origin Server-Sent Events **version-only** stream plus server-owned HTTP commands/state, capacity limits and static game client. No public network deployment or WebSockets.
 - **5.4 Network gameplay browser:** private token connect, ready/start lobby, fog-filtered authoritative snapshots, 2D/WebGL camera and selection, move/group/attack/train commands and SSE reconnect. Local prototype only, no independent local simulation.
+
+- **5.5 Local multiplayer construction UI:** selected Worker placement and early building costs/age choices in connected browser; server still owns and validates placement and spending.
+- **5.6 Research and production inspector:** mandatory discovery selection with dependency/queue checks, active facility recruitment and friendly research/production queues; not a full technology tree or polished shop UI.
+- **5.7 Disk-backed local host recovery:** atomic same-directory restricted-file snapshots, five-second periodic write and shutdown save, explicit restore/reset guard, newly issued session tokens. Still not replicated, crash-proof hosted persistence.
+- **5.8 Stream robustness:** bounded version-only SSE frame decoder, reconnect-state refresh and five-second polling fallback; still local HTTP, not secure public Internet matchmaking or transport.
