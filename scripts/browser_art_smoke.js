@@ -36,11 +36,12 @@ try{
   return !!ctx&&ctx.getParameter(ctx.VERSION).includes("WebGL");
  });
  if(!gl)throw Error("Real Chromium WebGL context was unavailable");
- async function inspect(faction,role,clip,label,expected){
+ async function inspect(faction,role,clip,label,expected,hp=100){
   await page.selectOption("#faction","base");
   await page.selectOption("#unitRole",role);
   await page.selectOption("#faction",faction);
   await page.selectOption("#clip",clip);
+  await page.selectOption("#wear",String(hp));
   await page.waitForFunction(({role,expected})=>{
    const text=document.querySelector("#details")?.textContent??"";
    return text.includes(role)&&text.includes(expected);
@@ -73,6 +74,13 @@ try{
  summary.cases.push({label:"orcs-bomber-damaged-attack",faction:"Orcs",
   role:"Bomber",clip:"attack",hp:30,bytes:battleBytes.length,
   sha256:createHash("sha256").update(battleBytes).digest("hex").slice(0,20)});
+ // 11.2: same-unit/fixed-health cross-faction and hit/death screenshot coverage.
+ await inspect("Tree Elves","Heavy Warship","hit",
+  "tree-elves-heavy-warship-damaged-hit","Animated vehicle glTF",30);
+ await inspect("Corrupt Elves","Heavy Warship","hit",
+  "corrupt-elves-heavy-warship-damaged-hit","Animated vehicle glTF",30);
+ await inspect("Dwarfs","Heavy Artillery","death",
+  "dwarfs-artillery-critical-death","Animated vehicle glTF",5);
  await page.goto(base+"/client",{waitUntil:"domcontentloaded"});
  await page.waitForSelector("#map");
  await page.screenshot({path:fileURLToPath(new URL("client-start-screen.png",dir))});

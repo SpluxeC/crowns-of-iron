@@ -10,9 +10,11 @@ import {createSkinnedGltfLoader,sampleSkinnedGltf} from "./skinnedGltf.js";
 import {ALL_SKINNED_ROLES} from "./skinnedRoster.js";
 import {vehicleMotion} from "./vehicleMotion.js";
 import {createVehicleGltfLoader,sampleVehicleGltf} from "./vehicleGltf.js";
-import {VEHICLE_ROLES} from "./vehicleArt.js";
+import {VEHICLE_ROLES,vehicleDomain} from "./vehicleArt.js";
 import {visibleCombatUnits,applyCombatPose} from "./combatVisuals.js";
-import {applyBattleWear} from "./battleWear.js";
+import {applyDamageFinish} from "./damageFinish.js";
+import {factionCombatVfx} from "./factionCombatVfx.js";
+import {createArtFrameBudget,ART_BUDGETS} from "./artFrameBudget.js";
 import {combatVfxDescriptor,appendCombatVfx,COMBAT_VFX_LIMIT} from "./combatVfx.js";
 import {refineFactionTexture} from "./materialDetail.js";
 import {createUvTextureRenderer,appendUvMesh} from "./textureShader.js";
@@ -167,7 +169,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   models=null,textures=null,textureFailure=null,
   modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
   skinnedLoader=null,vehicleLoader=null,
-  modelUnits=0,modelBuildings=0,fallbackUnits=0;
+  modelUnits=0,modelBuildings=0,fallbackUnits=0,lastArtStats=null;
  const animationStates=new Map(),vehicleStates=new Map(),combatStates=new Map();
  function drawBuffer(buffer,count){
   gl.bindBuffer(gl.ARRAY_BUFFER,buffer);
@@ -306,6 +308,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    }
    const verts=[],uvBatches=new Map(),visibleAnimKeys=new Set();
    modelUnits=0;fallbackUnits=0;
+   const frameBudget=createArtFrameBudget();
    let vfxUnits=0;
    const clock=Number.isFinite(match.elapsedMs)?match.elapsedMs:0;
    for(const {player:p,unit:u,effect} of visibleCombatUnits(match.players,combatStates,clock)){
@@ -350,8 +353,12 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
        models?.[factionMeshKey(p.faction,role)]??models?.[role]):null,
      overlay=previewPose==="hit"?{hit:1}:previewPose==="death"?{death:.72}:effect,
      // Vehicles use their own death transform clip, avoiding a second fall rotation.
-     damaged=rawMesh&&Number.isFinite(u.hp)&&Number.isFinite(u.maxHp)?
-      applyBattleWear(rawMesh,u.hp,u.maxHp,{seed:String(u.id).length}):rawMesh,
+     damaged=rawMesh&&factionSlug(p.faction)&&
+      Number.isFinite(u.hp)&&Number.isFinite(u.maxHp)&&u.maxHp>0&&u.hp<u.maxHp&&
+      frameBudget.claim("damageFinishes")?
+      applyDamageFinish(rawMesh,u.hp,u.maxHp,{
+       domain:veh?vehicleDomain(u.archetype):"humanoid",
+       faction:p.faction,seed:String(u.id).length}):rawMesh,
      mesh=damaged?applyCombatPose(damaged,veh?{hit:overlay.hit??0}:overlay):null;
     if(veh)vehicleStates.set(animKey,vehicleTransition);
     if(mesh){
@@ -396,13 +403,15 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
      cube(verts,cx+.40,cz,.33,bottom+.15,top-.12,"#859fac");
     }
     // Only filtered visible entities may generate cosmetic bursts.
-    if(vfxUnits<COMBAT_VFX_LIMIT){
+    if(vfxUnits<COMBAT_VFX_LIMIT&&vfxUnits<ART_BUDGETS.combatBursts){
      const vfx=combatVfxDescriptor(u,{clip:vehicleClip,
       hit:previewPose==="hit"?1:effect.hit,
       death:previewPose==="death"?.72:effect.death,
       preview:previewPose==="attack"},now);
-     if(vfx?.intensity>0){
-      appendCombatVfx(verts,cx,bottom,cz,vfx);vfxUnits++;
+     if(vfx?.intensity>0&&frameBudget.claim("combatBursts")){
+      const styled=factionSlug(p.faction)?
+       factionCombatVfx(vfx,p.faction,u.archetype):vfx;
+      appendCombatVfx(verts,cx,bottom,cz,styled);vfxUnits++;
      }
     }
     if(u.hp<u.maxHp||selectedUnits.has(u.id)){
@@ -417,6 +426,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
     animationStates.delete(key);
    for(const key of vehicleStates.keys())if(!visibleAnimKeys.has(key))
     vehicleStates.delete(key);
+   lastArtStats=frameBudget.stats();
    const data=new Float32Array(verts);
    gl.viewport(0,0,canvas.width,canvas.height);
    gl.clearColor(.06,.12,.19,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -448,6 +458,8 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
    animatedVehicleGltf:vehicleLoader?.stats().loaded??0,
    gpuTextures:uvRenderer?.stats().textures??0,
    gpuTexturedVertices:uvRenderer?.stats().texturedVertices??0,
+   cosmeticVfxMax:ART_BUDGETS.combatBursts,
+   artBudget:lastArtStats,
    factionModels:models?Object.keys(models).filter(k=>k.includes("/")).length:0,
    factionTextures:textures?Object.keys(textures).length:0,
    textureFailure,
