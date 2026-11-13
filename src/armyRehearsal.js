@@ -6,7 +6,9 @@ import {enableUnitCollision,validateCollisionState} from "./unitCollision.js";
 import {checksum} from "./simulation.js";
 const FACTIONS=["Humans","Orcs","Dwarfs","Tree Elves","Corrupt Elves","Ursa","Humans","Orcs"];
 /** Eight-player, server-side army-order rehearsal: not real client latency or GPU load. */
-export function runArmyRehearsal({seed=609,ticks=3}={}){
+export function runArmyRehearsal({seed=609,ticks=3,squads=1}={}){
+ assert(Number.isSafeInteger(squads)&&squads>=1&&squads<=2,
+  "Invalid rehearsal squad count");
  assert(Number.isSafeInteger(ticks)&&ticks>=1&&ticks<=12,"Invalid rehearsal ticks");
  const people=FACTIONS.map((f,i)=>({id:"p"+i,faction:f})),host=new MatchHost(people,seed);
  const map=host.match.battlefield;
@@ -17,9 +19,9 @@ export function runArmyRehearsal({seed=609,ticks=3}={}){
  for(const [i,p] of host.match.players.entries()){
   p.popCap=300;
   const home=map.starts[i],ids=[];
-  for(let radius=1;ids.length<24&&radius<11;radius++){
-   for(let dy=-radius;dy<=radius&&ids.length<24;dy++)
-    for(let dx=-radius;dx<=radius&&ids.length<24;dx++){
+  for(let radius=1;ids.length<24*squads&&radius<17;radius++){
+   for(let dy=-radius;dy<=radius&&ids.length<24*squads;dy++)
+    for(let dx=-radius;dx<=radius&&ids.length<24*squads;dx++){
      if(Math.abs(dx)+Math.abs(dy)!==radius)continue;
      const x=home.x+dx,y=home.y+dy,k=x+","+y;
      if(x<0||y<0||x>=map.width||y>=map.height||used.has(k))continue;
@@ -27,13 +29,17 @@ export function runArmyRehearsal({seed=609,ticks=3}={}){
      u.x=x;u.y=y;p.units.push(u);p.popUsed+=u.pop;ids.push(u.id);used.add(k);
     }
   }
-  assert(ids.length===24,"Not enough rehearsal spawn positions");
-  const target={x:home.x+Math.sign(map.width/2-home.x)*6,
-    y:home.y+Math.sign(map.height/2-home.y)*6};
-  const result=host.submit({token:host.credentialsFor(p.id).token,sequence:1,
-    action:"formation",payload:{units:ids,...target}});
-  assert(result.accepted&&result.result.length===24,"Formation rejected");
-  formed++;
+  assert(ids.length===24*squads,"Not enough rehearsal spawn positions");
+  for(let squad=0;squad<squads;squad++){
+   const offset=6+squad*7;
+   const target={x:home.x+Math.sign(map.width/2-home.x)*offset,
+    y:home.y+Math.sign(map.height/2-home.y)*offset};
+   const result=host.submit({token:host.credentialsFor(p.id).token,
+    sequence:squad+1,action:"formation",
+    payload:{units:ids.slice(squad*24,squad*24+24),...target}});
+   assert(result.accepted&&result.result.length===24,"Formation rejected");
+   formed++;
+  }
  }
  assert(validateCollisionState(host.match).overlaps.length===0,"Spawn overlap");
  for(let i=0;i<ticks;i++)host.advance(1000);
@@ -41,11 +47,11 @@ export function runArmyRehearsal({seed=609,ticks=3}={}){
  assert(overlaps.length===0,"Overlapping army units");
  for(const p of host.match.players){
   const token=host.credentialsFor(p.id).token,view=host.view(token);
-  assert(view.state.players.find(q=>q.id===p.id).units.length>=24,"Missing owned army");
+  assert(view.state.players.find(q=>q.id===p.id).units.length>=24*squads,"Missing owned army");
   assert(view.state.players.filter(q=>q.id!==p.id).every(q=>q.resources===undefined),
     "Opponent resources leaked");
  }
- return {seed,players:8,formationOrders:formed,formationUnits:formed*24,
+ return {seed,players:8,squads,formationOrders:formed,formationUnits:formed*24,
   liveUnits:host.match.players.reduce((n,p)=>n+p.units.filter(u=>u.alive).length,0),
   ticks,overlaps:overlaps.length,version:host.version,
   matchChecksum:checksum(host.match),scope:"local in-process simulation"};
