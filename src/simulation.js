@@ -9,6 +9,7 @@ import {tickMode} from "./modes.js";
 import {issueMove,issueAttack,tickBattlefield} from "./battlefield.js";
 import {startConstruction,cancelConstruction,tickConstruction} from "./construction.js";
 import {useHeroAbility} from "./abilities.js";
+import {unitDefinition,researchCatalog} from "./fullCatalog.js";
 export {createMatch};
 export function command(match,input,{allowDebug=false}={}){
   assert(match.winner===null,"Match already finished");
@@ -22,9 +23,9 @@ export function command(match,input,{allowDebug=false}={}){
     case "popCap":result=setPopCap(player,input.cap);break;
     case "facility":result=addFacility(player,input.name);break;
     case "income":result=addIncome(player,input.amount);break; // harness only, disallow on public network server
-    case "research":result=queueResearch(player,input.facility,input.id);break;
+    case "research":result=queueResearch(player,input.facility,input.id,researchCatalog(match,player));break;
     case "cancelResearch":result=cancelResearch(player,input.facility,input.id);break;
-    case "train":result=queueUnit(player,input.facility,input.role);break;
+    case "train":result=queueUnit(player,input.facility,input.role,unitDefinition(match,player,input.role));break;
     case "cancelTrain":result=cancelUnit(player,input.facility,input.index);break;
     case "attack":result=match.battlefield
       ? issueAttack(match,id,input.attacker,input.targetPlayer,input.target)
@@ -60,7 +61,7 @@ export function step(match,deltaMs,opts={}){
   tickBots(match,deltaMs);
   for(const p of match.players.filter(x=>!x.defeated)){
     gather(p,deltaMs,opts.economy?.[p.id]??{});
-    tickResearch(p,deltaMs);
+    tickResearch(p,deltaMs,researchCatalog(match,p));
     tickProduction(match,p,deltaMs);
     tickStatuses(p,deltaMs);
   }
