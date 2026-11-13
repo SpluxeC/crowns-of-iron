@@ -2,7 +2,7 @@ import {ALL_ARCHETYPES} from "./extendedCatalog.js";
 import {makeUnit,nextId} from "./state.js";
 import {assert,ageIndex,spend,refund} from "./util.js";
 import {refreshUnitTechnology} from "./technologyEffects.js";
-import {spawnUnitOnDomain} from "./movementDomains.js";
+import {spawnUnitOnDomain,findAvailableSpawnPosition} from "./movementDomains.js";
 import {researchMultiplier} from "./technologyEffects.js";
 const PRODUCTION_LOCATIONS={
 "Worker":["Town Center"],"Scout":["Town Center","Training Camp"],
@@ -54,6 +54,8 @@ export function tickProduction(match,player,deltaMs){
       }
       if(j.ms<duration)break;
       if(player.popUsed+def.pop>player.popCap)break;
+      if(match.unitCollision&&match.battlefield&&
+        !findAvailableSpawnPosition(match,player,j.role,facility))break;
       jobs.shift();
       const unit=makeUnit(player,j.role,def,nextId(match));
       refreshUnitTechnology(player,unit);
