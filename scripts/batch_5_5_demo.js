@@ -20,7 +20,11 @@ assert(parsed[0]===2,"SSE decoding failed");
 const dir=await mkdtemp(join(tmpdir(),"crowns-phase-")),path=join(dir,"checkpoint.json");
 try{
  await writeHostCheckpoint(host,path);
- await assert.rejects(guardCheckpointStartup(path),/overwritten/);
+ let refusedOverwrite=false;
+ try{await guardCheckpointStartup(path);}catch(e){
+  refusedOverwrite=/overwritten/.test(e.message);
+ }
+ assert(refusedOverwrite,"Existing save overwrite was not prevented");
  const resumed=await readHostCheckpoint(path);
  assert(resumed.version===host.version);
  assert(resumed.credentialsFor("a").token!==token);
