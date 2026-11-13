@@ -18,31 +18,30 @@ export function runArmyRehearsal({seed=609,ticks=3,squads=1}={}){
  let formed=0;
  for(const [i,p] of host.match.players.entries()){
   p.popCap=300;
-  const home=map.starts[i],ids=[];
-  for(let radius=1;ids.length<24*squads&&radius<17;radius++){
-   for(let dy=-radius;dy<=radius&&ids.length<24*squads;dy++)
-    for(let dx=-radius;dx<=radius&&ids.length<24*squads;dx++){
-     if(Math.abs(dx)+Math.abs(dy)!==radius)continue;
-     const x=home.x+dx,y=home.y+dy,k=x+","+y;
-     if(x<0||y<0||x>=map.width||y>=map.height||used.has(k))continue;
-     const u=makeUnit(p,"Swordsman",ARCHETYPES.Swordsman,p.id+"-army-"+ids.length);
-     u.x=x;u.y=y;p.units.push(u);p.popUsed+=u.pop;ids.push(u.id);used.add(k);
-    }
-  }
-  assert(ids.length===24*squads,"Not enough rehearsal spawn positions");
+  const home=map.starts[i];
+  const radial={x:home.x-map.width/2,y:home.y-map.height/2};
+  const length=Math.hypot(radial.x,radial.y)||1;
+  const inward={x:Math.round(-radial.x/length),y:Math.round(-radial.y/length)};
+  const tangent={x:Math.round(-radial.y/length),y:Math.round(radial.x/length)};
+  const directions=[inward,tangent];
   for(let squad=0;squad<squads;squad++){
-   // Keep two squad goals in separate sectors instead of converging
-   // all players' second squads on the same congested map center.
-   const radial={x:home.x-map.width/2,y:home.y-map.height/2};
-   const length=Math.hypot(radial.x,radial.y)||1;
-   const target=squad===0?
-    {x:home.x+Math.sign(map.width/2-home.x)*6,
-     y:home.y+Math.sign(map.height/2-home.y)*6}:
-    {x:home.x+Math.round(-radial.y/length*8),
-     y:home.y+Math.round(radial.x/length*8)};
+   const direction=directions[squad];
+   const anchor={x:home.x+direction.x*6,y:home.y+direction.y*6},ids=[];
+   for(let radius=0;ids.length<24&&radius<9;radius++){
+    for(let dy=-radius;dy<=radius&&ids.length<24;dy++)
+     for(let dx=-radius;dx<=radius&&ids.length<24;dx++){
+      if(Math.abs(dx)+Math.abs(dy)!==radius)continue;
+      const x=anchor.x+dx,y=anchor.y+dy,k=x+","+y;
+      if(x<0||y<0||x>=map.width||y>=map.height||used.has(k))continue;
+      const u=makeUnit(p,"Swordsman",ARCHETYPES.Swordsman,
+       p.id+"-army-"+squad+"-"+ids.length);
+      u.x=x;u.y=y;p.units.push(u);p.popUsed+=u.pop;ids.push(u.id);used.add(k);
+     }
+   }
+   assert(ids.length===24,"Not enough distinct squad spawn positions");
+   const target={x:home.x+direction.x*10,y:home.y+direction.y*10};
    const result=host.submit({token:host.credentialsFor(p.id).token,
-    sequence:squad+1,action:"formation",
-    payload:{units:ids.slice(squad*24,squad*24+24),...target}});
+    sequence:squad+1,action:"formation",payload:{units:ids,...target}});
    assert(result.accepted&&result.result.length===24,"Formation rejected");
    formed++;
   }
