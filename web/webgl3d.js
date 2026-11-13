@@ -39,6 +39,13 @@ export function terrainSignature(world){
   mix(t.occupied?1:0);mix(t.resource?1:0);
  }
  mix(world.width);mix(world.height);
+ // Building kind, position and footprint affect the cached roofline geometry
+ // even when an occupied tile remains occupied across a structure upgrade.
+ const mixText=value=>{for(const char of String(value))mix(char.charCodeAt(0));mix(0);};
+ for(const site of world.structures??[]){
+  mixText(site.id);mixText(site.kind);mix(site.x);mix(site.y);
+  mix(site.width);mix(site.height);
+ }
  return (hash>>>0).toString(16);
 }
 export const heightFor=t=>t?.terrain==="hill"?2.2:t?.terrain==="forest"?.75:
