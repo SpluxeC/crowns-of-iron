@@ -35,3 +35,11 @@ jobs:
       - run: npm run model-assets-demo
       - run: npm run faction-art-demo
       - run: npm run art-stage-demo
+
+      - run: npm run gltf-art-demo
+      - uses: actions/upload-artifact@v4
+        with:
+          name: crowns-of-iron-skinned-gltf-six-factions
+          path: assets/gltf/**/*.gltf
+          if-no-files-found: error
+          retention-days: 30

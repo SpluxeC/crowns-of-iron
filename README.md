@@ -123,3 +123,11 @@ The complete six-faction, 36-archetype roster now has **216 individual, original
 Each new roster OBJ now contains **standard `vt` and face UV coordinates**, which the renderer uses to sample existing original faction patterns and bake them into mesh vertex colors. This is **not yet per-pixel GPU/PBR texturing**. A reusable seven-joint **keyframe animation library** at [assets/animations/rig-clips.json](assets/animations/rig-clips.json) drives idle/walk/attack poses; it is **not an exported glTF/FBX skinned armature**.
 
 The local model gallery at `http://127.0.0.1:5190/model-gallery` now has an individual unit-role picker. Run `npm run art-stage-demo` to validate every model and the real localhost model delivery. For full usage and remaining work, see [Art Stage 8.3–8.6](docs/ART_STAGE_8_3_TO_8_6.md).
+
+### First skinned glTF 2.0 animation and GPU texture stage — Milestones 8.7–9.0
+
+Six **real, exportable, seven-joint skinned glTF 2.0 Swordsman assets**, one for each faction, can now be generated with `npm run export-skinned-gltf`. Each has bone weights, inverse bind matrices, interpolated idle/walk/attack quaternion tracks and an embedded PNG/PBR base-color material derived from the existing faction textures. The generated `assets/gltf/<faction>/swordsman.gltf` files are downloadable from the latest green GitHub Actions workflow as the **crowns-of-iron-skinned-gltf-six-factions** artifact; intentionally generated rather than permanently checked into Git.
+
+The client can load these assets on demand and CPU-skin the mesh in both the RTS and the interactive model gallery, with earlier unique OBJ models as fallback. A WebGL UV texture shader samples real faction patterns per fragment on skinned units and caches GPU textures. **This is textured diffuse rendering, not a full metallic/roughness PBR engine**. The other **210** unique roster OBJ models have not yet been converted to glTF skins. No real-browser screenshot or hardware GPU FPS certification is claimed.
+
+Run `npm run gltf-art-demo` for reproducible full six-model export validation. See [full milestone 8.7–9.0 art guide](docs/ART_STAGE_8_7_TO_9_0.md).
