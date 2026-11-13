@@ -5,6 +5,8 @@ import {createMatch,command,step} from "../src/simulation.js";
 import {attachBattlefield} from "../src/battlefield.js";
 import {pathForUnit} from "../src/movementDomains.js";
 import {at} from "../src/map.js";
+import {installFullCatalog} from "../src/fullCatalog.js";
+import {readFileSync} from "node:fs";
 
 test("seeded maps have one connected perimeter sea and symmetric coastal pads",()=>{
  for(const players of [2,4,6,8]){
@@ -28,6 +30,7 @@ test("coastal generation is reproducible, old maps stay unchanged",()=>{
 test("Dock requires dry shoreline and a real water launch route",()=>{
  const map=makeCoastalMap({seed:44,players:2}),m=createMatch([
   {id:"a",faction:"Humans"},{id:"b",faction:"Orcs"}],44);
+ installFullCatalog(m,JSON.parse(readFileSync("data/balance-v0.2.json","utf8")));
  attachBattlefield(m,map);const p=m.players[0],pad=map.coastalPads[0];
  p.age="II";p.resources.Wood=1000;
  const w=p.units[0];
