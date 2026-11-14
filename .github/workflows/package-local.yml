@@ -1,0 +1,29 @@
+name: Package local browser playtest
+on:
+  push:
+    branches: [main, "milestones/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  playtest-bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Build local playtest package
+        run: npm run package-local
+      - name: Verify extracted game package starts and serves client
+        run: npm run verify-package
+      - name: Upload downloadable playtest folder
+        uses: actions/upload-artifact@v4
+        with:
+          name: crowns-of-iron-local-playtest
+          path: dist/crowns-of-iron-local/
+          if-no-files-found: error
+          retention-days: 30
