@@ -22,52 +22,7 @@ const packageJson={
  scripts:{start:"node scripts/server.js"}
 };
 await writeFile(join(destination,"package.json"),JSON.stringify(packageJson,null,2)+"\n");
-const instructions=`# Crowns of Iron — Local Browser Playtest
-
-This is an **experimental local browser RTS prototype**, not a finished game,
-standalone executable, or publicly hosted online multiplayer service.
-
-## Requirements
-
-Install Node.js **22 or newer** on Windows, macOS, or Linux. A modern desktop
-browser with WebGL is required. The bundle uses Node built-ins only — no
-`npm install`, repository clone, Python, or third-party runtime dependencies.
-
-## Start playing
-
-1. Extract the ZIP archive into a folder.
-2. On Windows, double-click **START-WINDOWS.cmd**. On macOS/Linux, open a
-   terminal in the extracted `crowns-of-iron-local` folder and execute
-   `sh START-MAC-LINUX.sh`. Alternatively run `npm start`.
-3. Keep the server terminal open. It prints separate short-lived session tokens
-   for the local human and orc players.
-4. On the **same computer**, open **http://127.0.0.1:5190/client** in the browser.
-5. Enter the `human` session token printed by the terminal; a second tab can
-   use the `orc` token. Do **not** share either session token publicly.
-6. For the 3D gallery, visit **http://127.0.0.1:5190/model-gallery**.
-7. Stop the local server with Ctrl+C.
-
-## Existing save protection
-
-The server stores developer checkpoints in `.local/crowns-host-checkpoint.json`.
-If it refuses to restart because one already exists, do not delete that file
-without deciding whether to keep it. To restore, set `RESTORE_CHECKPOINT=1`
-before running `npm start`. To reset and lose the old checkpoint, set
-`RESET_CHECKPOINT=1` before running `npm start`.
-
-## Boundaries
-
-- The web server intentionally binds **only 127.0.0.1** and is **not accessible
-  on another device**. Do not expose port 5190, use a public tunnel or forward
-  the server to the Internet; the developer session-token model and transport
-  are not designed for that.
-- There is no accounts system, Internet matchmaking, public TLS, finalized
-  competitive balance, production anti-cheat or installable desktop binary.
-- This playtest includes source assets and renders within a browser. Gameplay
-  completeness and hardware compatibility are still under development.
-- The project currently reserves rights; this ZIP is for personal playtesting,
-  not unrestricted commercial redistribution.
-\n`;
+const instructions=["# Crowns of Iron — Local Browser Playtest","","This is an experimental local browser RTS prototype, not a finished game or a public multiplayer service.","","## Requirements","","Install Node.js 22 or newer on Windows, macOS or Linux. Use a modern WebGL desktop browser. No npm install or repository clone is needed.","","## Start playing","","1. Extract this ZIP into a writable folder.","2. On Windows run START-WINDOWS.cmd. On macOS/Linux run: sh START-MAC-LINUX.sh.","3. Keep the server terminal open and note the human session token shown.","4. On the same computer open http://127.0.0.1:5190/client and enter the human token.","5. Optionally open a second tab using the orc token; never share session tokens publicly.","6. Open http://127.0.0.1:5190/model-gallery for the 3D model gallery.","7. Stop the local server using Ctrl+C.","","## Saving and restoring","","Checkpoints live in .local/crowns-host-checkpoint.json. On restart, choose RESTORE_CHECKPOINT=1 to restore or RESET_CHECKPOINT=1 to discard an existing checkpoint. Never delete a saved checkpoint unintentionally.","","## Scope and security","","The server only binds 127.0.0.1. Do not port forward or expose it to the Internet: authentication and networking remain developer-grade. No accounts, HTTPS hosting, matchmaking, production anti-cheat or installer are included. Node.js 22+ is required. This project reserves rights; do not redistribute commercially."] .join("\n")+"\n";
 await writeFile(join(destination,"README_PLAYTEST.md"),instructions);
 await writeFile(join(destination,"START-WINDOWS.cmd"),
  '@echo off\r\ncd /d "%~dp0"\r\nwhere node >nul 2>nul\r\nif errorlevel 1 (echo Node.js 22+ is required. & pause & exit /b 1)\r\necho Start Crowns of Iron and use the human session token at http://127.0.0.1:5190/client\r\nnode scripts\\server.js\r\npause\r\n');
