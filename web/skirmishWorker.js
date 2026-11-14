@@ -7,6 +7,7 @@ import {enableUnitCollision} from "../src/unitCollision.js";
 import {installFullCatalog} from "../src/fullCatalog.js";
 import {playerCommandCatalog} from "../src/commandCatalog.js";
 import {exportSave,importSave} from "../src/persistence.js";
+import {applySkirmishVictory,SKIRMISH_LIMIT_MS} from "./skirmishRules.js";
 const FACTIONS=["Humans","Orcs","Dwarfs","Tree Elves","Corrupt Elves","Ursa"];
 let match=null,interval=null,paused=false,speed=1,seq=0;
 function send(type,payload={}){postMessage({type,...payload});}
@@ -35,6 +36,7 @@ function view(){
  return {seq:++seq,elapsedMs:match.elapsedMs,tick:match.tick,winner:match.winner,
   humanDefeated:player.defeated,faction:player.faction,age:player.age,
   resources:player.resources,popUsed:player.popUsed,popCap:player.popCap,
+  skirmishLimitMs:SKIRMISH_LIMIT_MS,
   players,world:{width:map.width,height:map.height,tiles,structures},
   catalog:playerCommandCatalog(match,player.id)};
 }
@@ -42,7 +44,7 @@ function publish(){if(match)send("state",{state:view()});}
 function stop(){if(interval)clearInterval(interval);interval=null;}
 function startClock(){stop();interval=setInterval(()=>{
  if(!match||paused||match.winner!==null)return;
- try{step(match,1000*speed);publish();}
+ try{step(match,1000*speed);applySkirmishVictory(match);publish();}
  catch(error){paused=true;send("error",{message:error.message});}
 },1000);}
 function validateStart(config){
@@ -60,6 +62,7 @@ async function begin(config){
  for(let i=0;i<enemies;i++)participants.push({
   id:"ai-"+(i+1),faction:FACTIONS[(FACTIONS.indexOf(faction)+i+1)%6]});
  const game=createMatch(participants,seed);
+ game.skirmishLimitMs=SKIRMISH_LIMIT_MS;
  attachBattlefield(game,makeMap({width:48,height:48,players:participants.length,seed}));
  // Load the actual reconciled faction research/units from the static site.
  const response=await fetch(new URL("../data/balance-v0.2.json",import.meta.url));
@@ -97,7 +100,7 @@ onmessage=async({data})=>{
    case "snapshot":publish();break;
    case "singleStep":
     if(!paused)throw Error("Pause before stepping");
-    step(match,1000);publish();break;
+    step(match,1000);applySkirmishVictory(match);publish();break;
    default:throw Error("Unknown skirmish request");
   }
  }catch(error){send("error",{message:String(error?.message??error)});}
