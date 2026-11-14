@@ -43,7 +43,8 @@ let choices={training:[],research:[],buildings:[]};
 function updateSidebar(s){
  const me=s.players[0],empire=$("empire");
  empire.textContent=s.faction+" · Age "+s.age+" · Population "+s.popUsed+"/"+s.popCap+
-  " · "+Math.floor(s.elapsedMs/60000)+"m "+Math.floor(s.elapsedMs/1000)%60+"s";
+  " · "+Math.floor(s.elapsedMs/60000)+"m "+Math.floor(s.elapsedMs/1000)%60+"s"+
+  " · "+Math.max(0,Math.ceil((s.skirmishLimitMs-s.elapsedMs)/60000))+" min to score victory";
  const resources=$("resources");resources.replaceChildren();
  for(const [name,value] of Object.entries(s.resources)){
   const node=document.createElement("div");
@@ -71,7 +72,7 @@ function updateSidebar(s){
   ours.slice(0,4).map(x=>x.archetype+" "+Math.max(0,Math.ceil(x.hp))+" HP").join(" · ")+
   (ours.length>4?" +"+(ours.length-4)+" more":""):"No units selected";
  $("status").textContent=s.winner!==null?
-  (s.winner==="human"?"Victory! Your faction has won.":"Match finished: "+s.winner):
+  (s.winner==="human"?"Victory! Your faction has won.":s.winner==="draw"?"Draw! No surviving empires.":"Match finished: "+s.winner):
   s.humanDefeated?"Defeat — your civilization has fallen":
   (paused?"Paused · ":"")+(me.faction+" vs "+(s.players.length-1)+" AI opponents");
 }
