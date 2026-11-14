@@ -55,8 +55,10 @@ try{
  await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
   ?.includes("Skirmish saved on this device"),null,{timeout:15000});
  await page.click("#loadGame");
- await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
-  ?.includes("Saved match loaded"),null,{timeout:15000});
+ try{await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
+  ?.includes("Saved match loaded"),null,{timeout:15000});}
+ catch(e){throw Error("Restore smoke failed: "+
+  await page.locator("#messages").textContent()+" Browser errors: "+errors.join("; "));}
  await page.click("#view");
  await page.waitForFunction(()=>!document.querySelector("#map3d")?.hidden);
  await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
