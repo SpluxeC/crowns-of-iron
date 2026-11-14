@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crowns of Iron — AI Skirmish</title>
+<style>
+:root{color-scheme:dark;font:14px system-ui,Segoe UI,sans-serif;background:#0a1520;color:#eef3e9}
+*{box-sizing:border-box}body{margin:0}header{padding:15px 24px;background:#172f3f;border-bottom:1px solid #3d5665;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{margin:0;font-size:24px;letter-spacing:.04em}h2{font-size:16px;margin:0 0 11px}h3{font-size:14px;margin:16px 0 7px}
+small,.hint{font-size:12px;color:#b3cdd3}a{color:#b6dfe6}
+main{max-width:1450px;margin:auto;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px}
+.panel{border:1px solid #3d5c6a;border-radius:12px;background:#172b3a;padding:15px;min-width:0}
+button,select,input{font:inherit;color:#e8f6f8;background:#25495d;border:1px solid #597989;border-radius:8px;padding:9px;max-width:100%}
+button{cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}button:hover:not(:disabled){background:#34687b}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #b0dbaa}
+.controls{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0} .controls button.active{background:#48764c;border-color:#8bcc85}
+label{display:block;color:#c5dce1;font-size:12px;margin:11px 0 5px}
+select{width:100%}canvas{display:block;max-width:100%;width:100%;aspect-ratio:1;border-radius:8px;border:1px solid #5a7889;background:#09151f;cursor:crosshair;touch-action:none}
+#map3d{aspect-ratio:4/3;cursor:grab} [hidden]{display:none!important}
+#status{font-weight:600;color:#d1e9c5;min-height:22px}.resources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.resources div{background:#0f2431;border-radius:5px;padding:7px;font-size:12px}#messages{max-height:135px;overflow:auto;background:#0c1d29;padding:8px;border-radius:6px;font-size:12px;white-space:pre-wrap}
+#setup{position:fixed;inset:0;z-index:10;background:#06111bdc;display:grid;place-items:center;padding:18px}
+.dialog{max-width:460px;width:100%;background:#1b3341;border:1px solid #63808b;border-radius:16px;padding:25px;box-shadow:0 20px 70px #0009}
+.dialog button{width:100%;margin-top:16px;padding:13px;background:#406841}
+.dialog p{color:#c0d6d8;line-height:1.5}
+footer{padding:12px 20px;color:#93b3bd;text-align:center;font-size:12px}
+@media(max-width:900px){main{grid-template-columns:1fr;padding:9px}header{padding:12px}}
+</style></head>
+<body>
+<header><div><h1>Crowns of Iron</h1><small>Single-player AI skirmish · Browser prototype</small></div>
+<div class="controls"><button id="newGame">New skirmish</button><button id="saveGame">Save</button>
+<button id="loadGame">Load</button><a href="./model-gallery/" style="align-self:center">3D gallery</a></div></header>
+<div id="setup">
+<div class="dialog" role="dialog" aria-labelledby="setupTitle" aria-modal="true">
+<h1 id="setupTitle">Start a Skirmish</h1>
+<p>Command your civilization against computer-controlled opponents. Everything runs locally in your browser. No account or game server is required.</p>
+<label for="faction">Your faction</label>
+<select id="faction"><option>Humans</option><option>Orcs</option><option>Dwarfs</option><option>Tree Elves</option><option>Corrupt Elves</option><option>Ursa</option></select>
+<label for="difficulty">AI difficulty</label>
+<select id="difficulty"><option>Easy</option><option selected>Normal</option><option>Hard</option></select>
+<label for="enemies">AI opponents</label>
+<select id="enemies"><option value="1">1 opponent</option><option value="3" selected>3 opponents</option><option value="5">5 opponents</option><option value="7">7 opponents</option></select>
+<label for="seed">Map seed</label><input id="seed" type="number" min="1" max="999999999" value="712">
+<button id="launch">Start Skirmish</button>
+<p class="hint">Early browser playtest: tactical AI and skirmish balance are still under development. Your save stays on this device.</p>
+</div></div>
+<main>
+<section class="panel">
+<div class="controls"><button id="view">Switch to 3D</button><button id="pause">Pause</button>
+<button id="speed">Speed 1×</button><button id="step" disabled>Step +1s</button></div>
+<div id="status">Choose a faction to begin.</div>
+<div id="battle">
+<canvas id="map" width="768" height="768" aria-label="Tactical battlefield: click your unit to select, then choose Move or Attack"></canvas>
+<canvas id="map3d" width="960" height="720" aria-label="3D battlefield, drag to rotate, scroll to zoom" hidden></canvas>
+</div>
+<p class="hint">Click your unit to select. Choose Move and click a destination, or Attack and click an enemy. Hold Shift to select multiple units. In 3D: drag to orbit and use the mouse wheel to zoom.</p>
+<div class="controls"><button id="select">Select units</button><button id="move">Move</button>
+<button id="attack">Attack</button><button id="stop">Stop</button>
+<button id="workers">Select Workers (W)</button><button id="military">Select Military (A)</button></div>
+<div id="selection" class="hint">No units selected</div>
+<h3>Battle log</h3><div id="messages" aria-live="polite">Waiting to start…</div>
+</section>
+<aside class="panel">
+<h2>Empire</h2><div id="empire" class="hint">No active game</div>
+<div id="resources" class="resources"></div>
+<h3>Production</h3><label for="trainChoice">Recruit unit</label><select id="trainChoice"></select>
+<div class="controls"><button id="train">Queue recruitment</button></div>
+<h3>Research</h3><label for="researchChoice">Technology</label><select id="researchChoice"></select>
+<div class="controls"><button id="research">Start research</button></div>
+<h3>Construction</h3><label for="buildChoice">Building</label><select id="buildChoice"></select>
+<div class="controls"><button id="build">Place building</button></div>
+<p class="hint">Select a Worker, then choose a building and click a suitable empty grass tile. Resource requirements and age restrictions follow the actual faction catalog.</p>
+<h3>Opponents</h3><div id="opponents" class="hint">No opponents</div>
+<h3>Storage</h3><p class="hint">Save and Load use your browser's IndexedDB. Clearing site data removes saves. Loading pauses the simulation.</p>
+</aside></main>
+<footer>Prototype v12.4 · Single-player simulation · Multiplayer code preserved separately · Not a final competitive release</footer>
+<script type="module" src="./web/skirmish.js"></script>
+</body></html>
