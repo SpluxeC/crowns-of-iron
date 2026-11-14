@@ -3,7 +3,10 @@ import {createMatch,step,command} from "./simulation.js";
 const VERSION=1;
 export function exportSave(match){
   assert(match&&Array.isArray(match.players)&&Number.isSafeInteger(match.elapsedMs),"Invalid match");
-  const state=clone(match);
+  // Hash the exact JSON representation that a browser/IndexedDB restore parses.
+  // Hashing a live object retains undefined fields that JSON serialization drops,
+  // making otherwise valid saves fail integrity checks on re-import.
+  const state=JSON.parse(JSON.stringify(clone(match)));
   return JSON.stringify({format:"crowns-of-iron-match",version:VERSION,checksum:hash(state),state});
 }
 export function importSave(encoded){

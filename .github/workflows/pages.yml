@@ -1,0 +1,54 @@
+name: Build and deploy single-player GitHub Pages
+on:
+  push:
+    branches: [main, "milestones/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Prebuild static single-player site and glTF models
+        run: npm run build-pages
+      - name: Install real Chromium test runner
+        run: npm install --no-save playwright@1.56.1
+      - name: Install headless Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify worker skirmish, IndexedDB save/load, WebGL and galleries
+        run: npm run pages-smoke
+      - name: Upload verified static preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: crowns-of-iron-github-pages-preview
+          path: dist/pages/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload GitHub Pages artifact
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/pages/
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: build-and-verify
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Deploy static single-player game
+        id: deploy
+        uses: actions/deploy-pages@v4
