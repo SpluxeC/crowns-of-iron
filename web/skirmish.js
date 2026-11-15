@@ -92,7 +92,7 @@ function render3d(){
   elapsedMs:state.elapsedMs},selected);}catch(e){log("3D render: "+e.message);}
 }
 function draw(){render3d();}
-function setTool(mode){tool=mode;pendingBuild=null;
+function setTool(mode){tool=mode;
  for(const name of ["select","move","attack","build"]){
   $(name)?.classList.toggle("active",name===mode);
  } }
