@@ -9,7 +9,61 @@ let state=null,selected=new Set(),tool="select",paused=false,speed=1,
  renderer=null,loading3d=false,panning=null,focusInitial=true,
  selectedStructure=null,edgePointer=null,rotationHeld=false,altDown=false;
 const camera=createRtsCamera();
-let previousFrame=0,lastRender=0;
+let previousFrame=0,lastRender=0,orientationPaused=false;
+const empirePanel=$("empirePanel"),empireToggle=$("toggleEmpire");
+function showEmpire(open){
+ empirePanel.hidden=!open;
+ empireToggle.setAttribute("aria-expanded",String(open));
+ empireToggle.textContent=open?"Close Empire":"Empire";
+}
+empireToggle.addEventListener("click",()=>showEmpire(empirePanel.hidden));
+$("closeEmpire").addEventListener("click",()=>showEmpire(false));
+function resizeBattlefield(){
+ const r=canvas.getBoundingClientRect();
+ if(!r.width||!r.height)return;
+ const pixelRatio=Math.min(1.75,Math.max(1,window.devicePixelRatio||1));
+ const maxDimension=2048,limit=Math.min(pixelRatio,maxDimension/r.width,maxDimension/r.height);
+ const w=Math.max(1,Math.round(r.width*limit)),
+  h=Math.max(1,Math.round(r.height*limit));
+ if(canvas.width!==w||canvas.height!==h){
+  canvas.width=w;canvas.height=h;
+  if(renderer&&state)render3d();
+ }
+}
+new ResizeObserver(resizeBattlefield).observe(canvas);
+window.addEventListener("resize",resizeBattlefield);
+window.addEventListener("orientationchange",resizeBattlefield);
+resizeBattlefield();
+const portraitQuery=window.matchMedia("(orientation: portrait) and (max-width: 900px)");
+function checkOrientation(){
+ const blocked=portraitQuery.matches;
+ if(!state)return;
+ if(blocked&&!paused&&!orientationPaused){
+  orientationPaused=true;
+  worker.postMessage({type:"pause"});
+ }else if(!blocked&&orientationPaused){
+  orientationPaused=false;
+  // Allow state messages to apply the pause before resuming.
+  worker.postMessage({type:"pause"});
+ }
+}
+portraitQuery.addEventListener?.("change",checkOrientation);
+window.addEventListener("orientationchange",checkOrientation);
+$("fullscreen").addEventListener("click",async()=>{
+ try{
+  if(document.fullscreenElement)await document.exitFullscreen();
+  else if(document.documentElement.requestFullscreen){
+   await document.documentElement.requestFullscreen();
+   // Landscape lock requires fullscreen and is unsupported on some iOS browsers.
+   try{await screen.orientation?.lock?.("landscape");}catch{}
+  }else log("Fullscreen is unavailable in this browser. Rotate your device to play.");
+ }catch(error){log("Fullscreen unavailable: "+error.message);}
+ resizeBattlefield();checkOrientation();
+});
+document.addEventListener("fullscreenchange",()=>{
+ $("fullscreen").textContent=document.fullscreenElement?"Exit Fullscreen":"Fullscreen";
+ resizeBattlefield();
+});
 const log=message=>{const area=$("messages");
  area.textContent=(new Date().toLocaleTimeString()+"  "+message+"\n"+area.textContent).slice(0,3200);};
 const order=action=>worker.postMessage({type:"order",order:action});
@@ -88,7 +142,7 @@ async function init3D(){
   if(!renderer)throw Error("WebGL unavailable on this device");
   await renderer.loadAssets({notify:render3d});
   await renderer.loadFactionAssets({notify:render3d});
-  render3d();log("3D models loaded");
+  resizeBattlefield();render3d();log("3D models loaded");
  }catch(e){
   log("3D battlefield unavailable: "+e.message);
   $("status").textContent="3D battlefield unavailable — WebGL is required.";
@@ -265,7 +319,7 @@ $("train").onclick=()=>{const row=choices.training[Number($("trainChoice").value
  if(row)order({action:"train",facility:row.facility,role:row.role});};
 $("research").onclick=()=>{const row=choices.research[Number($("researchChoice").value)];
  if(row)order({action:"research",facility:row.facility,id:row.id});};
-$("build").onclick=()=>{setTool("build");log("Select a Worker and click grass to place the building");};
+$("build").onclick=()=>{setTool("build");showEmpire(false);log("Select a Worker and click grass to place the building");};
 window.addEventListener("keydown",e=>{
  if(e.key==="Alt"){altDown=true;return;}
  const typing=["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName)||
@@ -285,6 +339,7 @@ window.addEventListener("keyup",e=>{
 worker.onmessage=async({data})=>{
  switch(data.type){
   case "state":state=data.state;
+   checkOrientation();
    camera.setMap(state.world);
    if(focusInitial){
     const first=state.players[0].units.find(u=>u.archetype==="Scout")??
@@ -297,11 +352,13 @@ worker.onmessage=async({data})=>{
     selectedStructure=null;
    updateSidebar(state);draw();break;
   case "started":$("setup").hidden=true;$("launch").disabled=false;
+   showEmpire(false);checkOrientation();
    selected.clear();selectedStructure=null;paused=false;setTool("select");
    log("Started "+data.faction+" vs "+data.enemies+" AI · "+data.difficulty);break;
   case "paused":paused=data.paused;$("pause").textContent=paused?"Resume":"Pause";
    $("step").disabled=!paused;if(state)updateSidebar(state);break;
   case "loaded":$("setup").hidden=true;paused=true;focusInitial=false;
+   showEmpire(false);
    $("pause").textContent="Resume";$("step").disabled=false;log("Saved match loaded (paused)");break;
   case "save":
    try{await stored("write",data.encoded);log("Skirmish saved on this device");}
