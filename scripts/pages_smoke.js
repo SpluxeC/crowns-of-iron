@@ -44,8 +44,15 @@ try{
  assert.equal(await page.locator("#view").count(),0,"Legacy view switch still present");
  assert.equal(await page.locator("#map3d").count(),1,"3D game canvas missing");
  assert.equal(await page.locator("#map3d").isHidden(),false,"3D game canvas hidden");
- await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
-  ?.includes("3D models loaded"),null,{timeout:60000});
+ try{
+  await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
+   ?.includes("3D models loaded"),null,{timeout:15000});
+ }catch(e){
+  throw Error("3D initialization failed: "+
+   await page.locator("#messages").textContent()+
+   " | page errors: "+errors.join("; ")+
+   " | status: "+await page.locator("#status").textContent());
+ }
  await page.selectOption("#enemies","1");
  await page.selectOption("#difficulty","Easy");
  await page.click("#launch");
