@@ -65,7 +65,7 @@ test("camera smoothly follows elevated terrain with no tile-edge jumps",()=>{
  const cam=createRtsCamera();cam.setMap(map);
  const a=height(map,15.45,15.5),b=height(map,15.55,15.5);
  assert.ok(Math.abs(a-b)<.4);
- cam.focus(15.5,15.5);
+ cam.focus(15.5,15.5,{immediate:true});
  const before=cam.state().ground;cam.update(.05,{terrainHeight:height});
  assert.ok(cam.state().ground>before);
  const pose=cam.pose(height);
