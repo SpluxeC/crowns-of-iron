@@ -79,8 +79,8 @@ try{
  await page.locator("#map3d").hover({position:{x:200,y:200}});
  await page.mouse.wheel(0,-700);
  await page.waitForFunction(before=>
-  document.querySelector("#cameraStatus")?.textContent.match(/Zoom (\\d+)/)?.[1]!==
-   before.match(/Zoom (\\d+)/)?.[1],
+  document.querySelector("#cameraStatus")?.textContent.match(/Zoom ([0-9]+)/)?.[1]!==
+   before.match(/Zoom ([0-9]+)/)?.[1],
   beforeWheel,{timeout:5000});
  await page.keyboard.press("Backspace");
  assert.equal(await page.locator("#view").count(),0,"2D toggle must remain absent");
