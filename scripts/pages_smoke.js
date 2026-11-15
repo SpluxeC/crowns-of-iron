@@ -50,11 +50,6 @@ try{
  });
  assert.equal(fullscreenLayout.width,fullscreenLayout.viewWidth,"Battlefield does not fill viewport width");
  assert.equal(fullscreenLayout.height,fullscreenLayout.viewHeight,"Battlefield does not fill viewport height");
- assert.equal(await page.locator("#empirePanel").isHidden(),true,"Empire drawer should start collapsed");
- await page.click("#toggleEmpire");
- assert.equal(await page.locator("#empirePanel").isHidden(),false,"Empire management overlay should open");
- await page.click("#closeEmpire");
- assert.equal(await page.locator("#empirePanel").isHidden(),true,"Empire management overlay should close");
  try{
   await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
    ?.includes("3D models loaded"),null,{timeout:15000});
@@ -71,6 +66,12 @@ try{
   ?.includes("Age I"),null,{timeout:60000});
  await page.waitForFunction(()=>document.querySelector("#empire")?.textContent
   ?.includes("s"),null,{timeout:15000});
+ assert.equal(await page.locator("#empirePanel").isHidden(),true,"Empire drawer should start collapsed");
+ await page.click("#toggleEmpire");
+ assert.equal(await page.locator("#empirePanel").isHidden(),false,"Empire management overlay should open");
+ await page.click("#closeEmpire");
+ assert.equal(await page.locator("#empirePanel").isHidden(),true,"Empire management overlay should close");
+
  assert.ok(!(await page.locator("#map3d").isHidden()),"3D battlefield hidden");
  // Verify the 3D player controls are available in the actual match.
  await page.click("#workers");
