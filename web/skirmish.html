@@ -15,8 +15,7 @@ button{cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}button:hover
 button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid #b0dbaa}
 .controls{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0} .controls button.active{background:#48764c;border-color:#8bcc85}
 label{display:block;color:#c5dce1;font-size:12px;margin:11px 0 5px}
-select{width:100%}canvas{display:block;max-width:100%;width:100%;aspect-ratio:1;border-radius:8px;border:1px solid #5a7889;background:#09151f;cursor:crosshair;touch-action:none}
-#map3d{aspect-ratio:4/3;cursor:grab} [hidden]{display:none!important}
+select{width:100%}#map3d{display:block;max-width:100%;width:100%;aspect-ratio:4/3;border-radius:8px;border:1px solid #5a7889;background:#09151f;cursor:grab;touch-action:none} [hidden]{display:none!important}
 #status{font-weight:600;color:#d1e9c5;min-height:22px}.resources{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 .resources div{background:#0f2431;border-radius:5px;padding:7px;font-size:12px}#messages{max-height:135px;overflow:auto;background:#0c1d29;padding:8px;border-radius:6px;font-size:12px;white-space:pre-wrap}
 #setup{position:fixed;inset:0;z-index:10;background:#06111bdc;display:grid;place-items:center;padding:18px}
@@ -46,14 +45,13 @@ footer{padding:12px 20px;color:#93b3bd;text-align:center;font-size:12px}
 </div></div>
 <main>
 <section class="panel">
-<div class="controls"><button id="view">Switch to 3D</button><button id="pause">Pause</button>
+<div class="controls"><button id="pause">Pause</button>
 <button id="speed">Speed 1×</button><button id="step" disabled>Step +1s</button></div>
 <div id="status">Choose a faction to begin.</div>
 <div id="battle">
-<canvas id="map" width="768" height="768" aria-label="Tactical battlefield: click your unit to select, then choose Move or Attack"></canvas>
-<canvas id="map3d" width="960" height="720" aria-label="3D battlefield, drag to rotate, scroll to zoom" hidden></canvas>
+<canvas id="map3d" width="960" height="720" aria-label="3D battlefield: click units, drag to rotate, scroll to zoom"></canvas>
 </div>
-<p class="hint">Click your unit to select. Choose Move and click a destination, or Attack and click an enemy. Hold Shift to select multiple units. In 3D: drag to orbit and use the mouse wheel to zoom.</p>
+<p class="hint">3D controls: click a unit to select, then choose Move and click a destination, or Attack and click an enemy. Hold Shift while clicking to select multiple units. Drag to orbit and scroll to zoom.</p>
 <div class="controls"><button id="select">Select units</button><button id="move">Move</button>
 <button id="attack">Attack</button><button id="stop">Stop</button>
 <button id="workers">Select Workers (W)</button><button id="military">Select Military (A)</button></div>
@@ -73,6 +71,6 @@ footer{padding:12px 20px;color:#93b3bd;text-align:center;font-size:12px}
 <h3>Opponents</h3><div id="opponents" class="hint">No opponents</div>
 <h3>Storage</h3><p class="hint">Save and Load use your browser's IndexedDB. Clearing site data removes saves. Loading pauses the simulation.</p>
 </aside></main>
-<footer>Prototype v12.4 · Single-player simulation · Multiplayer code preserved separately · Not a final competitive release</footer>
+<footer>Prototype v12.5 · 3D-only single-player skirmishes · Multiplayer code preserved separately · Not a final competitive release</footer>
 <script type="module" src="./web/skirmish.js"></script>
 </body></html>

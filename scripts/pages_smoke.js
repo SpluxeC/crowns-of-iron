@@ -39,6 +39,20 @@ try{
  page.on("console",m=>{if(m.type()==="error")errors.push("console "+m.text());});
  await page.goto(url,{waitUntil:"domcontentloaded"});
  await page.waitForSelector("#setupTitle");
+ // No legacy 2D canvas or view-switch affordance ships in the game.
+ assert.equal(await page.locator("#map").count(),0,"Legacy 2D canvas still present");
+ assert.equal(await page.locator("#view").count(),0,"Legacy view switch still present");
+ assert.equal(await page.locator("#map3d").count(),1,"3D game canvas missing");
+ assert.equal(await page.locator("#map3d").isHidden(),false,"3D game canvas hidden");
+ try{
+  await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
+   ?.includes("3D models loaded"),null,{timeout:15000});
+ }catch(e){
+  throw Error("3D initialization failed: "+
+   await page.locator("#messages").textContent()+
+   " | page errors: "+errors.join("; ")+
+   " | status: "+await page.locator("#status").textContent());
+ }
  await page.selectOption("#enemies","1");
  await page.selectOption("#difficulty","Easy");
  await page.click("#launch");
@@ -46,7 +60,11 @@ try{
   ?.includes("Age I"),null,{timeout:60000});
  await page.waitForFunction(()=>document.querySelector("#empire")?.textContent
   ?.includes("s"),null,{timeout:15000});
- assert.ok(!(await page.locator("#map").isHidden()),"2D game canvas missing");
+ assert.ok(!(await page.locator("#map3d").isHidden()),"3D battlefield hidden");
+ // Verify the 3D player controls are available in the actual match.
+ await page.click("#workers");
+ await page.waitForFunction(()=>document.querySelector("#selection")?.textContent
+  ?.includes("Worker"),null,{timeout:15000});
  await page.click("#pause");
  await page.waitForFunction(()=>document.querySelector("#status")?.textContent
   ?.includes("Paused"));
@@ -59,16 +77,15 @@ try{
   ?.includes("Saved match loaded"),null,{timeout:15000});}
  catch(e){throw Error("Restore smoke failed: "+
   await page.locator("#messages").textContent()+" Browser errors: "+errors.join("; "));}
- await page.click("#view");
- await page.waitForFunction(()=>!document.querySelector("#map3d")?.hidden);
- await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
-  ?.includes("3D models loaded"),null,{timeout:60000});
+ // The 3D renderer remains visible through pause, step and save/load.
+ assert.equal(await page.locator("#map3d").isHidden(),false);
+ assert.equal(await page.locator("#map").count(),0);
  await page.goto(url+"model-gallery/",{waitUntil:"domcontentloaded"});
  await page.waitForFunction(()=>document.querySelector("#details")?.textContent
   ?.includes("All 60 faction meshes loaded"),null,{timeout:60000});
  assert.deepEqual(errors,[],"Browser runtime errors");
  console.log(JSON.stringify({staticPages:true,workerSkirmish:true,
-  pauseStepSaveRestore:true,webglRender:true,gallery:true,
+  pauseStepSaveRestore:true,webglRender:true,only3D:true,gallery:true,
   errors:errors.length,base:url}));
 }finally{
  await browser?.close();
