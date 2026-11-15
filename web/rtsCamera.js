@@ -97,7 +97,7 @@ export function createRtsCamera({width=48,height=48,settings=RTS_CAMERA}={}){
   const keys=panKeys(),axis=normalizedPan(keys.x+edge.x,keys.z+edge.z);
   const cos=Math.cos(target.yaw),sin=Math.sin(target.yaw);
   // Camera-local right=(cos,-sin), forward=(-sin,-cos).
-  const dx=axis.x*cos-axis.z*sin,dz=-axis.x*sin-axis.z*cos;
+  const dx=axis.x*cos+axis.z*sin,dz=-axis.x*sin+axis.z*cos;
   const speed=settings.panSpeed*(.65+target.radius/settings.defaultRadius*.35);
   const pos=clampFocus(target.x+dx*speed*dt,target.z+dz*speed*dt,
    map.width,map.height);
