@@ -156,19 +156,41 @@ function tileClick(x,y,shift=false){
  selectedStructure=null;
  updateSidebar(state);draw();
 }
+const pointAt=e=>{
+ const rect=canvas.getBoundingClientRect();
+ return {x:e.clientX-rect.left,y:e.clientY-rect.top,width:rect.width,height:rect.height};
+};
+function stopRotation(){rotationHeld=false;camera.resetRotation();}
+canvas.addEventListener("contextmenu",e=>e.preventDefault());
 canvas.addEventListener("pointerdown",e=>{
- panning={x:e.clientX,y:e.clientY,moved:false};
- canvas.setPointerCapture(e.pointerId);
+ if(e.pointerType==="mouse"&&e.button!==0&&e.button!==1)return;
+ const rotation=e.button===1||e.altKey||altDown;
+ panning={x:e.clientX,y:e.clientY,moved:false,rotating:rotation,
+  pointerType:e.pointerType,button:e.button};
+ if(rotation)rotationHeld=true;
+ try{canvas.setPointerCapture(e.pointerId);}catch{}
+ e.preventDefault();
 });
 canvas.addEventListener("pointermove",e=>{
- if(!panning||!renderer)return;
+ // Edge pan is tracked in screen coordinates even while no button is held.
+ edgePointer=pointAt(e);
+ if(!panning)return;
  const dx=e.clientX-panning.x,dy=e.clientY-panning.y;
- if(Math.abs(dx)+Math.abs(dy)>2)panning.moved=true;
- renderer.orbit(dx,dy);panning.x=e.clientX;panning.y=e.clientY;
- render3d();
+ if(Math.hypot(dx,dy)>1.5)panning.moved=true;
+ if(panning.rotating){
+  camera.rotate(dx);
+ }else if(panning.pointerType==="touch"&&panning.moved){
+  // Touch drag is a camera translation; a stationary touch is a unit tap.
+  const target=camera.target(),scale=camera.state().radius*.0022,
+   yaw=target.yaw;
+  camera.focus(target.x-scale*(dx*Math.cos(yaw)-dy*Math.sin(yaw)),
+   target.z+scale*(dx*Math.sin(yaw)+dy*Math.cos(yaw)));
+ }
+ panning.x=e.clientX;panning.y=e.clientY;
 });
 canvas.addEventListener("pointerup",e=>{
- if(!panning?.moved&&renderer&&state){
+ if(panning?.rotating)stopRotation();
+ else if(panning&&!panning.moved&&renderer&&state){
   const rect=canvas.getBoundingClientRect();
   const pick=renderer.pick((e.clientX-rect.left)*canvas.width/rect.width,
    (e.clientY-rect.top)*canvas.height/rect.height);
@@ -176,9 +198,35 @@ canvas.addEventListener("pointerup",e=>{
  }
  panning=null;
 });
+canvas.addEventListener("pointercancel",()=>{stopRotation();panning=null;edgePointer=null;});
+canvas.addEventListener("pointerleave",()=>{edgePointer=null;});
 canvas.addEventListener("wheel",e=>{
- e.preventDefault();renderer?.zoom(Math.sign(e.deltaY));render3d();
+ e.preventDefault();
+ camera.zoom(e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?canvas.height:1));
 },{passive:false});
+window.addEventListener("blur",()=>{stopRotation();edgePointer=null;panning=null;
+ for(const key of ["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"])
+  camera.key(key,false);
+});
+function cameraFrame(now){
+ const dt=previousFrame?Math.min(.1,(now-previousFrame)/1000):1/60;
+ previousFrame=now;
+ if(state&&renderer){
+  const pointer=edgePointer;
+  const edge=pointer&&!panning&&!rotationHeld?
+   edgeAxis(pointer.x,pointer.y,pointer.width,pointer.height):{x:0,z:0};
+  const changed=camera.update(dt,{edge,terrainHeight:
+   (world,x,z)=>sampleTerrain(world,x,z,heightFor)});
+  if(changed&&now-lastRender>=1000/45){render3d();lastRender=now;}
+  const pos=camera.state();
+  const status=$("cameraStatus");
+  if(status)status.textContent="Camera: X "+pos.x.toFixed(1)+" · Z "+
+   pos.z.toFixed(1)+" · Angle "+(pos.pitch*180/Math.PI).toFixed(0)+
+   "° · Zoom "+Math.round(pos.radius);
+ }
+ requestAnimationFrame(cameraFrame);
+}
+requestAnimationFrame(cameraFrame);
 $("launch").onclick=()=>{
  $("launch").disabled=true;focusInitial=true;selectedStructure=null;
  worker.postMessage({type:"start",settings:{
@@ -210,10 +258,20 @@ $("research").onclick=()=>{const row=choices.research[Number($("researchChoice")
  if(row)order({action:"research",facility:row.facility,id:row.id});};
 $("build").onclick=()=>{setTool("build");log("Select a Worker and click grass to place the building");};
 window.addEventListener("keydown",e=>{
- if(["INPUT","SELECT"].includes(document.activeElement?.tagName))return;
- if(e.key.toLowerCase()==="w")selectWhere(x=>x.archetype==="Worker");
- if(e.key.toLowerCase()==="a")selectWhere(x=>x.archetype!=="Worker");
- if(e.key==="Escape"){selected.clear();setTool("select");if(state)updateSidebar(state);draw();}
+ if(e.key==="Alt"){altDown=true;return;}
+ const typing=["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName)||
+  document.activeElement?.isContentEditable;
+ if(typing)return;
+ if(e.key==="Backspace"){e.preventDefault();stopRotation();return;}
+ if(camera.key(e.key,true)){e.preventDefault();return;}
+ if(e.key==="Escape"){
+  selected.clear();selectedStructure=null;setTool("select");
+  if(state)updateSidebar(state);draw();
+ }
+});
+window.addEventListener("keyup",e=>{
+ if(e.key==="Alt"){altDown=false;if(rotationHeld)stopRotation();}
+ camera.key(e.key,false);
 });
 worker.onmessage=async({data})=>{
  switch(data.type){
