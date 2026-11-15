@@ -199,7 +199,6 @@ worker.onmessage=async({data})=>{
    updateSidebar(state);draw();break;
   case "started":$("setup").hidden=true;$("launch").disabled=false;
    selected.clear();paused=false;setTool("select");
-void init3D();
    log("Started "+data.faction+" vs "+data.enemies+" AI · "+data.difficulty);break;
   case "paused":paused=data.paused;$("pause").textContent=paused?"Resume":"Pause";
    $("step").disabled=!paused;if(state)updateSidebar(state);break;
@@ -214,3 +213,4 @@ void init3D();
  }
 };
 setTool("select");
+void init3D();
