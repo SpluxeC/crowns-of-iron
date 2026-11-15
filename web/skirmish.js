@@ -1,6 +1,7 @@
 /** GitHub Pages single-player shell; multiplayer browser client is untouched. */
 import {createWebGLRenderer,heightFor} from "./webgl3d.js";
-import {createRtsCamera,sampleTerrain,edgeAxis,RTS_CAMERA} from "./rtsCamera.js";
+import {createRtsCamera,sampleTerrain,edgeAxis} from "./rtsCamera.js";
+import {projectedEntityHit} from "./rtsPicking.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map3d");
 const worker=new Worker(new URL("./skirmishWorker.js",import.meta.url),{type:"module"});
@@ -118,11 +119,11 @@ function unitAt(x,y){
  return all.filter(u=>Math.abs(u.x-x)<=1&&Math.abs(u.y-y)<=1)
   .sort((a,b)=>(a.x-x)**2+(a.y-y)**2-(b.x-x)**2-(b.y-y)**2)[0]??null;
 }
-function tileClick(x,y,shift=false){
+function tileClick(x,y,shift=false,hit=null){
  if(!state||state.winner!==null)return;
  x=Math.floor(x);y=Math.floor(y);
  if(x<0||y<0||x>=state.world.width||y>=state.world.height)return;
- const unit=unitAt(x,y),ours=state.players[0].units;
+ const unit=hit?.kind==="unit"?hit.unit:unitAt(x,y),ours=state.players[0].units;
  if(tool==="build"){
   const building=choices.buildings[Number($("buildChoice").value)];
   const workerUnit=ours.find(u=>selected.has(u.id)&&u.archetype==="Worker");
@@ -148,7 +149,7 @@ function tileClick(x,y,shift=false){
   setTool("select");return;
  }
  if(tool==="select"){
-  const site=structureAt(x,y);
+  const site=hit?.kind==="structure"?hit.site:structureAt(x,y);
   if(site){selectedStructure=site.id;selected.clear();
    updateSidebar(state);draw();return;}
  }
@@ -192,9 +193,17 @@ canvas.addEventListener("pointerup",e=>{
  if(panning?.rotating)stopRotation();
  else if(panning&&!panning.moved&&renderer&&state){
   const rect=canvas.getBoundingClientRect();
-  const pick=renderer.pick((e.clientX-rect.left)*canvas.width/rect.width,
-   (e.clientY-rect.top)*canvas.height/rect.height);
-  if(pick)tileClick(pick.x,pick.y,e.shiftKey);
+  const x=(e.clientX-rect.left)*canvas.width/rect.width,
+   y=(e.clientY-rect.top)*canvas.height/rect.height;
+  const hit=projectedEntityHit(state.world,state.players,
+   camera.pose((world,a,b)=>sampleTerrain(world,a,b,heightFor)),
+   x,y,canvas.width,canvas.height);
+  const pick=renderer.pick(x,y);
+  if(hit||pick){
+   const tile=hit?.kind==="unit"?{x:hit.unit.x,y:hit.unit.y}:
+    hit?.kind==="structure"?{x:hit.site.x,y:hit.site.y}:pick;
+   tileClick(tile.x,tile.y,e.shiftKey,hit);
+  }
  }
  panning=null;
 });
