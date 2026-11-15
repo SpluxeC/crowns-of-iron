@@ -44,6 +44,17 @@ try{
  assert.equal(await page.locator("#view").count(),0,"Legacy view switch still present");
  assert.equal(await page.locator("#map3d").count(),1,"3D game canvas missing");
  assert.equal(await page.locator("#map3d").isHidden(),false,"3D game canvas hidden");
+ const fullscreenLayout=await page.evaluate(()=>{
+  const rect=document.querySelector("#map3d").getBoundingClientRect();
+  return {width:rect.width,height:rect.height,viewWidth:innerWidth,viewHeight:innerHeight};
+ });
+ assert.equal(fullscreenLayout.width,fullscreenLayout.viewWidth,"Battlefield does not fill viewport width");
+ assert.equal(fullscreenLayout.height,fullscreenLayout.viewHeight,"Battlefield does not fill viewport height");
+ assert.equal(await page.locator("#empirePanel").isHidden(),true,"Empire drawer should start collapsed");
+ await page.click("#toggleEmpire");
+ assert.equal(await page.locator("#empirePanel").isHidden(),false,"Empire management overlay should open");
+ await page.click("#closeEmpire");
+ assert.equal(await page.locator("#empirePanel").isHidden(),true,"Empire management overlay should close");
  try{
   await page.waitForFunction(()=>document.querySelector("#messages")?.textContent
    ?.includes("3D models loaded"),null,{timeout:15000});
@@ -102,9 +113,45 @@ try{
  await page.goto(url+"model-gallery/",{waitUntil:"domcontentloaded"});
  await page.waitForFunction(()=>document.querySelector("#details")?.textContent
   ?.includes("All 60 faction meshes loaded"),null,{timeout:60000});
+ // Mobile portrait must stop play, while landscape uses a full-screen 3D battlefield
+ // with touch-friendly management controls over the map.
+ const mobile=await browser.newContext({
+  viewport:{width:390,height:844},deviceScaleFactor:2,isMobile:true,hasTouch:true
+ });
+ const phone=await mobile.newPage();
+ const phoneErrors=[];
+ phone.on("pageerror",e=>phoneErrors.push(e.message));
+ await phone.goto(url,{waitUntil:"domcontentloaded"});
+ await phone.waitForSelector("#orientationGate");
+ assert.equal(await phone.locator("#orientationGate").isVisible(),true,
+  "Portrait mobile gameplay must show rotate-device blocker");
+ await phone.setViewportSize({width:844,height:390});
+ await phone.waitForFunction(()=>getComputedStyle(
+  document.querySelector("#orientationGate")).display==="none");
+ const phoneDimensions=await phone.evaluate(()=>{
+  const bounds=document.querySelector("#map3d").getBoundingClientRect();
+  return {width:bounds.width,height:bounds.height,vw:innerWidth,vh:innerHeight};
+ });
+ assert.equal(phoneDimensions.width,phoneDimensions.vw);
+ assert.equal(phoneDimensions.height,phoneDimensions.vh);
+ await phone.selectOption("#enemies","1");
+ await phone.click("#launch");
+ await phone.waitForFunction(()=>document.querySelector("#empire")?.textContent
+  ?.includes("Age I"),null,{timeout:60000});
+ await phone.click("#toggleEmpire");
+ assert.equal(await phone.locator("#empirePanel").isVisible(),true);
+ await phone.click("#closeEmpire");
+ assert.equal(await phone.locator("#empirePanel").isHidden(),true);
+ await phone.locator("#map3d").tap({position:{x:300,y:210}});
+ await phone.setViewportSize({width:390,height:844});
+ await phone.waitForFunction(()=>getComputedStyle(
+  document.querySelector("#orientationGate")).display!=="none");
+ assert.deepEqual(phoneErrors,[],"Mobile runtime errors");
+ await mobile.close();
  assert.deepEqual(errors,[],"Browser runtime errors");
  console.log(JSON.stringify({staticPages:true,workerSkirmish:true,
   pauseStepSaveRestore:true,webglRender:true,only3D:true,gallery:true,
+  fullscreenBattlefield:true,landscapeMobile:true,overlayEmpire:true,
   errors:errors.length,base:url}));
 }finally{
  await browser?.close();
