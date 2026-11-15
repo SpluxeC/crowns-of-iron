@@ -65,6 +65,25 @@ try{
  await page.click("#workers");
  await page.waitForFunction(()=>document.querySelector("#selection")?.textContent
   ?.includes("Worker"),null,{timeout:15000});
+ // Verify the primary 3D camera responds to keyboard and wheel input.
+ await page.waitForFunction(()=>document.querySelector("#cameraStatus")?.textContent
+  ?.includes("Zoom"),null,{timeout:15000});
+ const initialCamera=await page.locator("#cameraStatus").textContent();
+ await page.keyboard.down("d");
+ await page.waitForTimeout(450);
+ await page.keyboard.up("d");
+ await page.waitForFunction(initial=>
+  document.querySelector("#cameraStatus")?.textContent!==initial,
+  initialCamera,{timeout:5000});
+ const beforeWheel=await page.locator("#cameraStatus").textContent();
+ await page.locator("#map3d").hover({position:{x:200,y:200}});
+ await page.mouse.wheel(0,-700);
+ await page.waitForFunction(before=>
+  document.querySelector("#cameraStatus")?.textContent.match(/Zoom ([0-9]+)/)?.[1]!==
+   before.match(/Zoom ([0-9]+)/)?.[1],
+  beforeWheel,{timeout:5000});
+ await page.keyboard.press("Backspace");
+ assert.equal(await page.locator("#view").count(),0,"2D toggle must remain absent");
  await page.click("#pause");
  await page.waitForFunction(()=>document.querySelector("#status")?.textContent
   ?.includes("Paused"));
