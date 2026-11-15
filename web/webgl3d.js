@@ -24,13 +24,14 @@ const sub=(a,b)=>({x:a.x-b.x,y:a.y-b.y,z:a.z-b.z});
 const dot=(a,b)=>a.x*b.x+a.y*b.y+a.z*b.z;
 const cross=(a,b)=>({x:a.y*b.z-a.z*b.y,y:a.z*b.x-a.x*b.z,z:a.x*b.y-a.y*b.x});
 const norm=v=>{const d=Math.hypot(v.x,v.y,v.z)||1;return {x:v.x/d,y:v.y/d,z:v.z/d};};
-export function cameraForMap(width,height,{yaw=.82,pitch=.72,radius=68}={}){
- const target={x:width/2,y:0,z:height/2};
+export function cameraForMap(width,height,{yaw=.82,pitch=.72,radius=68,
+ targetX=width/2,targetZ=height/2,targetY=0,fovDeg=58}={}){
+ const target={x:targetX,y:targetY,z:targetZ};
  const eye={x:target.x+radius*Math.cos(pitch)*Math.sin(yaw),
-  y:radius*Math.sin(pitch),z:target.z+radius*Math.cos(pitch)*Math.cos(yaw)};
+  y:target.y+radius*Math.sin(pitch),z:target.z+radius*Math.cos(pitch)*Math.cos(yaw)};
  const forward=norm(sub(target,eye)),right=norm(cross(forward,{x:0,y:1,z:0}));
  return {eye,forward,right,up:norm(cross(right,forward)),yaw,pitch,radius,
-   tanHalfFov:Math.tan(58*Math.PI/360)};
+   tanHalfFov:Math.tan(fovDeg*Math.PI/360)};
 }
 export function projectWorld(point,width,height,camera){
  const delta=sub(point,camera.eye),depth=dot(delta,camera.forward);
@@ -166,7 +167,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
  const staticBuffer=gl.createBuffer(),dynamicBuffer=gl.createBuffer();
  gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);
  const uvRenderer=createUvTextureRenderer(gl);
- let yaw=.82,pitch=.72,radius=preview?18:68,worldForPick=null,camForPick=null,
+ let yaw=.82,pitch=.72,radius=preview?18:68,externalCamera=null,worldForPick=null,camForPick=null,
   terrainKey=null,terrainVertexCount=0,rebuilds=0,
   models=null,textures=null,textureFailure=null,
   modelPromise=null,factionPromise=null,modelFailure=null,rosterLoader=null,
@@ -263,7 +264,7 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   },
   rosterLoadStatus(){return rosterLoader?.stats()??{loaded:0,pending:0,errors:0};},
   draw(world,match,selectedUnits,{previewPose=null}={}){
-   const cam=cameraForMap(world.width,world.height,{yaw,pitch,radius});
+   const cam=cameraForMap(world.width,world.height,externalCamera??{yaw,pitch,radius});
    worldForPick=world;camForPick=cam;
    const key=terrainSignature(world)+"|"+(world.structures??[]).map(s=>{
     const owner=match.players.find(p=>p.id===s.owner);
@@ -452,6 +453,12 @@ void main(){gl_FragColor=vec4(v_color,1.0);}
   },
   pick(px,py){return camForPick&&worldForPick
     ?raycastTerrain(camForPick,px,py,canvas.width,canvas.height,worldForPick):null},
+  setCamera(next){
+   if(!next){externalCamera=null;return;}
+   for(const prop of ["yaw","pitch","radius","targetX","targetZ","targetY"])
+    if(!Number.isFinite(next[prop]))throw Error("Invalid camera property "+prop);
+   externalCamera={...next};
+  },
   orbit(dx,dy){yaw+=dx*.009;pitch=Math.max(.22,Math.min(1.37,pitch+dy*.008));},
   zoom(direction){radius=Math.max(preview?9:30,Math.min(preview?45:125,radius+direction*(preview?2:5)));},
   camera(){return {yaw,pitch,radius};},
