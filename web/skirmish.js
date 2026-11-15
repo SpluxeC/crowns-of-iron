@@ -1,10 +1,14 @@
 /** GitHub Pages single-player shell; multiplayer browser client is untouched. */
-import {createWebGLRenderer} from "./webgl3d.js";
+import {createWebGLRenderer,heightFor} from "./webgl3d.js";
+import {createRtsCamera,sampleTerrain,edgeAxis,RTS_CAMERA} from "./rtsCamera.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map3d");
 const worker=new Worker(new URL("./skirmishWorker.js",import.meta.url),{type:"module"});
 let state=null,selected=new Set(),tool="select",paused=false,speed=1,
- renderer=null,loading3d=false,panning=null;
+ renderer=null,loading3d=false,panning=null,focusInitial=true,
+ selectedStructure=null,edgePointer=null,rotationHeld=false,altDown=false;
+const camera=createRtsCamera();
+let previousFrame=0,lastRender=0;
 const log=message=>{const area=$("messages");
  area.textContent=(new Date().toLocaleTimeString()+"  "+message+"\n"+area.textContent).slice(0,3200);};
 const order=action=>worker.postMessage({type:"order",order:action});
@@ -65,7 +69,11 @@ function updateSidebar(s){
  const ours=me.units.filter(x=>selected.has(x.id));
  $("selection").textContent=ours.length?
   ours.slice(0,4).map(x=>x.archetype+" "+Math.max(0,Math.ceil(x.hp))+" HP").join(" · ")+
-  (ours.length>4?" +"+(ours.length-4)+" more":""):"No units selected";
+  (ours.length>4?" +"+(ours.length-4)+" more":""):
+  selectedStructure?
+   (s.world.structures.find(site=>site.id===selectedStructure)?.kind??"No selection")+
+   " · "+(s.world.structures.find(site=>site.id===selectedStructure)?.owner==="human"?
+    "Friendly structure":"Visible enemy structure"):"No units or buildings selected";
  $("status").textContent=s.winner!==null?
   (s.winner==="human"?"Victory! Your faction has won.":s.winner==="draw"?"Draw! No surviving empires.":"Match finished: "+s.winner):
   s.humanDefeated?"Defeat — your civilization has fallen":
@@ -88,14 +96,22 @@ async function init3D(){
 }
 function render3d(){
  if(!renderer||!state)return;
- try{renderer.draw(state.world,{players:state.players,viewerId:"human",
-  elapsedMs:state.elapsedMs},selected);}catch(e){log("3D render: "+e.message);}
+ try{
+  renderer.setCamera(camera.pose((world,x,z)=>sampleTerrain(world,x,z,heightFor)));
+  renderer.draw(state.world,{players:state.players,viewerId:"human",
+   elapsedMs:state.elapsedMs},selected);
+ }catch(e){log("3D render: "+e.message);}
 }
 function draw(){render3d();}
 function setTool(mode){tool=mode;
  for(const name of ["select","move","attack","build"]){
   $(name)?.classList.toggle("active",name===mode);
  } }
+function structureAt(x,y){
+ if(!state)return null;
+ return state.world.structures.find(site=>x>=site.x&&
+  x<site.x+(site.width??2)&&y>=site.y&&y<site.y+(site.height??2))??null;
+}
 function unitAt(x,y){
  if(!state)return null;
  const all=state.players.flatMap(p=>p.units.map(u=>({...u,side:p.id})));
@@ -115,6 +131,7 @@ function tileClick(x,y,shift=false){
   setTool("select");return;
  }
  if(unit?.side==="human"&&(tool==="select"||tool==="attack")){
+  selectedStructure=null;
   if(!shift)selected.clear();
   if(shift&&selected.has(unit.id))selected.delete(unit.id);
   else selected.add(unit.id);
@@ -130,7 +147,13 @@ function tileClick(x,y,shift=false){
    targetPlayer:unit.side,target:unit.id});
   setTool("select");return;
  }
+ if(tool==="select"){
+  const site=structureAt(x,y);
+  if(site){selectedStructure=site.id;selected.clear();
+   updateSidebar(state);draw();return;}
+ }
  if(!shift)selected.clear();
+ selectedStructure=null;
  updateSidebar(state);draw();
 }
 canvas.addEventListener("pointerdown",e=>{
@@ -157,7 +180,7 @@ canvas.addEventListener("wheel",e=>{
  e.preventDefault();renderer?.zoom(Math.sign(e.deltaY));render3d();
 },{passive:false});
 $("launch").onclick=()=>{
- $("launch").disabled=true;
+ $("launch").disabled=true;focusInitial=true;selectedStructure=null;
  worker.postMessage({type:"start",settings:{
  faction:$("faction").value,difficulty:$("difficulty").value,
  enemies:Number($("enemies").value),seed:Number($("seed").value)}});
@@ -178,7 +201,7 @@ for(const mode of ["select","move","attack"])$(mode).onclick=()=>setTool(mode);
 $("stop").onclick=()=>{for(const id of selected)order({action:"stop",unitId:id});};
 $("workers").onclick=()=>selectWhere(x=>x.archetype==="Worker");
 $("military").onclick=()=>selectWhere(x=>x.archetype!=="Worker");
-function selectWhere(fn){if(!state)return;selected=new Set(
+function selectWhere(fn){if(!state)return;selectedStructure=null;selected=new Set(
  state.players[0].units.filter(fn).slice(0,24).map(x=>x.id));
  updateSidebar(state);draw();}
 $("train").onclick=()=>{const row=choices.training[Number($("trainChoice").value)];
@@ -195,14 +218,23 @@ window.addEventListener("keydown",e=>{
 worker.onmessage=async({data})=>{
  switch(data.type){
   case "state":state=data.state;
+   camera.setMap(state.world);
+   if(focusInitial){
+    const first=state.players[0].units.find(u=>u.archetype==="Scout")??
+     state.players[0].units[0];
+    if(first)camera.focus(first.x+.5,first.y+.5,{immediate:true});
+    focusInitial=false;
+   }
    selected=new Set([...selected].filter(id=>state.players[0].units.some(x=>x.id===id)));
+   if(selectedStructure&&!state.world.structures.some(site=>site.id===selectedStructure))
+    selectedStructure=null;
    updateSidebar(state);draw();break;
   case "started":$("setup").hidden=true;$("launch").disabled=false;
-   selected.clear();paused=false;setTool("select");
+   selected.clear();selectedStructure=null;paused=false;setTool("select");
    log("Started "+data.faction+" vs "+data.enemies+" AI · "+data.difficulty);break;
   case "paused":paused=data.paused;$("pause").textContent=paused?"Resume":"Pause";
    $("step").disabled=!paused;if(state)updateSidebar(state);break;
-  case "loaded":$("setup").hidden=true;paused=true;
+  case "loaded":$("setup").hidden=true;paused=true;focusInitial=false;
    $("pause").textContent="Resume";$("step").disabled=false;log("Saved match loaded (paused)");break;
   case "save":
    try{await stored("write",data.encoded);log("Skirmish saved on this device");}
