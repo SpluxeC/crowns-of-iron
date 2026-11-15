@@ -48,10 +48,11 @@ footer{padding:12px 20px;color:#93b3bd;text-align:center;font-size:12px}
 <div class="controls"><button id="pause">Pause</button>
 <button id="speed">Speed 1×</button><button id="step" disabled>Step +1s</button></div>
 <div id="status">Choose a faction to begin.</div>
+<div id="cameraStatus" class="hint" aria-live="off">Camera: isometric view · tactical zoom</div>
 <div id="battle">
-<canvas id="map3d" width="960" height="720" aria-label="3D battlefield: click units, drag to rotate, scroll to zoom"></canvas>
+<canvas id="map3d" width="960" height="720" aria-label="3D RTS battlefield: tap units or buildings to select, WASD to pan, middle mouse drag to rotate, wheel to zoom"></canvas>
 </div>
-<p class="hint">3D controls: click a unit to select, then choose Move and click a destination, or Attack and click an enemy. Hold Shift while clicking to select multiple units. Drag to orbit and scroll to zoom.</p>
+<p class="hint">Camera: WASD or Arrow keys to pan, or move the cursor to a screen edge. Mouse wheel to smoothly zoom with adaptive pitch. Middle-mouse drag or Alt+drag rotates; release to face north, or press Backspace to reset. Tap/click units or buildings to inspect them. Shift+click selects multiple units; choose Move or Attack and click a map target. On touchscreens, drag to pan and tap to select.</p>
 <div class="controls"><button id="select">Select units</button><button id="move">Move</button>
 <button id="attack">Attack</button><button id="stop">Stop</button>
 <button id="workers">Select Workers (W)</button><button id="military">Select Military (A)</button></div>
@@ -71,6 +72,6 @@ footer{padding:12px 20px;color:#93b3bd;text-align:center;font-size:12px}
 <h3>Opponents</h3><div id="opponents" class="hint">No opponents</div>
 <h3>Storage</h3><p class="hint">Save and Load use your browser's IndexedDB. Clearing site data removes saves. Loading pauses the simulation.</p>
 </aside></main>
-<footer>Prototype v12.5 · 3D-only single-player skirmishes · Multiplayer code preserved separately · Not a final competitive release</footer>
+<footer>Prototype v12.6 · RTS camera and map selection · 3D-only single-player skirmishes · Multiplayer code preserved separately · Not a final competitive release</footer>
 <script type="module" src="./web/skirmish.js"></script>
 </body></html>
