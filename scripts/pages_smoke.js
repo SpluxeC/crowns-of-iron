@@ -153,6 +153,14 @@ try{
   ?.includes("Age I"),null,{timeout:60000});
  await phone.click("#toggleEmpire");
  assert.equal(await phone.locator("#empirePanel").isVisible(),true);
+ assert.equal(await phone.locator("#graphicsMode").inputValue(),"Auto");
+ await phone.selectOption("#graphicsMode","Performance");
+ await phone.waitForFunction(()=>document.querySelector("#map3d").width<=innerWidth*.71,
+  null,{timeout:8000});
+ await phone.selectOption("#graphicsMode","Quality");
+ await phone.waitForFunction(()=>document.querySelector("#map3d").width>=innerWidth*.95,
+  null,{timeout:8000});
+ await phone.selectOption("#graphicsMode","Auto");
  await phone.click("#closeEmpire");
  assert.equal(await phone.locator("#empirePanel").isHidden(),true);
  await phone.locator("#workers").click();
