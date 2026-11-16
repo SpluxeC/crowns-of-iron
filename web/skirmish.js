@@ -2,12 +2,17 @@
 import {createWebGLRenderer,heightFor} from "./webgl3d.js";
 import {createRtsCamera,sampleTerrain,edgeAxis} from "./rtsCamera.js";
 import {projectedEntityHit} from "./rtsPicking.js";
+import {cameraForMap,projectWorld,heightFor as terrainHeight} from "./webgl3d.js";
+import {clampSelection,rectangleUnits,smartOrder,placementValid,MAX_SELECTION} from "./rtsInteraction.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map3d");
 const worker=new Worker(new URL("./skirmishWorker.js",import.meta.url),{type:"module"});
 let state=null,selected=new Set(),tool="select",paused=false,speed=1,
  renderer=null,loading3d=false,panning=null,focusInitial=true,
- selectedStructure=null,edgePointer=null,rotationHeld=false,altDown=false;
+ selectedStructure=null,edgePointer=null,rotationHeld=false,altDown=false,
+ activeTouches=new Map(),pinchDistance=null,dragOrigin=null,lastPointer=null;
+const feedback=$("feedback"),placement=$("placement");
+let feedbackReset=null;
 const camera=createRtsCamera();
 let previousFrame=0,lastRender=0,orientationPaused=false;
 const empirePanel=$("empirePanel"),empireToggle=$("toggleEmpire");
@@ -67,6 +72,40 @@ document.addEventListener("fullscreenchange",()=>{
 const log=message=>{const area=$("messages");
  area.textContent=(new Date().toLocaleTimeString()+"  "+message+"\n"+area.textContent).slice(0,3200);};
 const order=action=>worker.postMessage({type:"order",order:action});
+function notify(message,error=false){
+ feedback.hidden=false;feedback.textContent=message;
+ feedback.classList.toggle("error",error);
+ clearTimeout(feedbackReset);
+ feedbackReset=setTimeout(()=>{feedback.hidden=true;},2600);
+ if(error)log(message);
+}
+function contextSite(){return state?.world.structures.find(s=>s.id===selectedStructure)??null;}
+function projected(unit,world,pose,width,height){
+ const cam=cameraForMap(world.width,world.height,pose);
+ const tile=world.tiles[unit.y*world.width+unit.x];
+ return projectWorld({x:unit.x+.5,z:unit.y+.5,
+  y:terrainHeight(tile)+.7},width,height,cam);
+}
+function pose(){return camera.pose((world,x,z)=>sampleTerrain(world,x,z,heightFor));}
+function showRect(a,b){
+ const r=canvas.getBoundingClientRect(),rect=$("selectionRect");
+ rect.hidden=false;rect.style.left=r.left+Math.min(a.x,b.x)+"px";
+ rect.style.top=r.top+Math.min(a.y,b.y)+"px";
+ rect.style.width=Math.abs(a.x-b.x)+"px";
+ rect.style.height=Math.abs(a.y-b.y)+"px";
+}
+function clearRect(){ $("selectionRect").hidden=true; }
+function placementPreview(x,y,clientX,clientY){
+ if(tool!=="build"||!state)return;
+ const building=choices.buildings[Number($("buildChoice").value)];
+ if(!building)return;
+ const valid=placementValid(state.world,x,y,building.footprint);
+ placement.style.display="block";placement.style.left=clientX+12+"px";
+ placement.style.top=clientY-25+"px";
+ placement.textContent=building.kind+" "+building.footprint.join("×")+" "+(valid?"✓":"✕");
+ placement.classList.toggle("valid",valid);
+}
+
 function db(){return new Promise((resolve,reject)=>{
  const r=indexedDB.open("crowns-of-iron-solo",1);
  r.onupgradeneeded=()=>r.result.createObjectStore("saves");
@@ -104,8 +143,12 @@ function updateSidebar(s){
   const node=document.createElement("div");
   node.textContent=name+": "+Math.floor(value);resources.append(node);
  }
- choices.training=s.catalog.training.filter(x=>x.available);
- choices.research=s.catalog.research.filter(x=>x.available);
+ const selectedSite=contextSite(),facility=selectedSite?.owner==="human"?
+  selectedSite.facilityKey:null;
+ choices.training=s.catalog.training.filter(x=>x.available&&
+  (!facility||x.facility===facility));
+ choices.research=s.catalog.research.filter(x=>x.available&&
+  (!facility||x.facility===facility));
  choices.buildings=s.catalog.buildings.filter(x=>x.ageUnlocked&&x.affordable);
  const cost=x=>Object.entries(x.cost).filter(([,v])=>v>0)
   .map(([k,v])=>k[0]+Math.round(v)).join(" ");
@@ -122,6 +165,21 @@ function updateSidebar(s){
    " · "+p.units.length+" visible units").join("\n");
  $("opponents").style.whiteSpace="pre-line";
  const ours=me.units.filter(x=>selected.has(x.id));
+ const detail=$("selectedDetail"),site=contextSite();
+ if(site){
+  detail.textContent=site.kind+" · "+(site.owner==="human"?"Your building":"Enemy building")+
+   " · "+Math.round((site.progress??1)*100)+"% built"+
+   (site.facilityKey?" · Production: "+site.facilityKey:"");
+ }else if(ours.length){
+  const stances=[...new Set(ours.map(x=>x.stance))].join("/");
+  detail.textContent=ours.length+" unit(s) · "+ours.map(x=>x.archetype).slice(0,3).join(", ")+
+   " · "+stances+" · "+ours.filter(x=>x.order).length+" with orders"+
+   " · "+ours.reduce((a,u)=>a+Math.round(u.hp),0)+" total HP";
+ }else detail.textContent="Select a unit or building to view its status and actions.";
+ $("cancelBuild").hidden=!(site?.owner==="human"&&!site.completed);
+ $("repairBuilding").hidden=!(site?.owner==="human"&&site.completed);
+ $("applyStance").disabled=!ours.some(x=>x.attack>0);
+ $("selectedDetail").title=detail.textContent;
  $("selection").textContent=ours.length?
   ours.slice(0,4).map(x=>x.archetype+" "+Math.max(0,Math.ceil(x.hp))+" HP").join(" · ")+
   (ours.length>4?" +"+(ours.length-4)+" more":""):
@@ -158,8 +216,8 @@ function render3d(){
  }catch(e){log("3D render: "+e.message);}
 }
 function draw(){render3d();}
-function setTool(mode){tool=mode;
- for(const name of ["select","move","attack","build"]){
+function setTool(mode){tool=mode;placement.style.display="none";
+ for(const name of ["select","smart","move","attack","attackMove","formation","harvest","build"]){
   $(name)?.classList.toggle("active",name===mode);
  } }
 function structureAt(x,y){
