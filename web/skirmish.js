@@ -397,6 +397,7 @@ canvas.addEventListener("wheel",e=>{
  camera.zoom(e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?canvas.height:1));
 },{passive:false});
 window.addEventListener("blur",()=>{stopRotation();edgePointer=null;panning=null;
+ activeTouches.clear();pinchDistance=null;dragOrigin=null;clearRect();
  for(const key of ["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"])
   camera.key(key,false);
 });
@@ -437,18 +438,58 @@ $("pause").onclick=()=>worker.postMessage({type:"pause"});
 $("speed").onclick=()=>{speed=speed===1?2:speed===2?4:1;
  worker.postMessage({type:"speed",multiplier:speed});$("speed").textContent="Speed "+speed+"×";};
 $("step").onclick=()=>worker.postMessage({type:"singleStep"});
-for(const mode of ["select","move","attack"])$(mode).onclick=()=>setTool(mode);
-$("stop").onclick=()=>{for(const id of selected)order({action:"stop",unitId:id});};
+for(const mode of ["select","smart","move","attack","attackMove","formation","harvest"])
+ $(mode).onclick=()=>{
+  if(mode!=="select"&&!selected.size){notify("Select units before issuing orders",true);return;}
+  setTool(mode);
+  if(mode!=="select")notify("Tap a destination for "+mode);
+ };
+$("stop").onclick=()=>{
+ if(!selected.size){notify("Select units to stop",true);return;}
+ for(const id of selected)order({action:"stop",unitId:id});
+ notify("Stop issued to "+selected.size+" unit(s)");
+};
 $("workers").onclick=()=>selectWhere(x=>x.archetype==="Worker");
 $("military").onclick=()=>selectWhere(x=>x.archetype!=="Worker");
 function selectWhere(fn){if(!state)return;selectedStructure=null;selected=new Set(
  state.players[0].units.filter(fn).slice(0,24).map(x=>x.id));
  updateSidebar(state);draw();}
-$("train").onclick=()=>{const row=choices.training[Number($("trainChoice").value)];
- if(row)order({action:"train",facility:row.facility,role:row.role});};
-$("research").onclick=()=>{const row=choices.research[Number($("researchChoice").value)];
- if(row)order({action:"research",facility:row.facility,id:row.id});};
-$("build").onclick=()=>{setTool("build");showEmpire(false);log("Select a Worker and click grass to place the building");};
+$("train").onclick=()=>{
+ const row=choices.training[Number($("trainChoice").value)];
+ if(row){order({action:"train",facility:row.facility,role:row.role});
+  notify("Recruiting "+row.name);}
+};
+$("research").onclick=()=>{
+ const row=choices.research[Number($("researchChoice").value)];
+ if(row){order({action:"research",facility:row.facility,id:row.id});
+  notify("Research started: "+row.name);}
+};
+$("build").onclick=()=>{
+ if(!state?.players[0].units.some(u=>u.archetype==="Worker"&&selected.has(u.id))){
+  notify("Select a Worker before placing a building",true);return;
+ }
+ setTool("build");showEmpire(false);notify("Tap clear grass to place building");
+};
+$("applyStance").onclick=()=>{
+ if(!state)return;
+ const armed=state.players[0].units.filter(u=>selected.has(u.id)&&u.attack>0);
+ issueOrders(armed.map(u=>({action:"stance",unitId:u.id,
+  stance:$("stanceChoice").value})),"Stance");
+};
+$("cancelBuild").onclick=()=>{
+ const site=contextSite();if(!site||site.owner!=="human"||site.completed)return;
+ order({action:"cancelBuild",siteId:site.id});notify("Construction cancelled");
+};
+$("repairBuilding").onclick=()=>{
+ const site=contextSite();
+ const workerIds=state?.players[0].units.filter(u=>selected.has(u.id)&&u.archetype==="Worker")
+  .map(u=>u.id)??[];
+ if(!site||site.owner!=="human"||!workerIds.length){
+  notify("Select workers before repairing a friendly building",true);return;
+ }
+ order({action:"repairBuilding",siteId:site.id,workers:workerIds,amount:20});
+ notify("Repair requested");
+};
 window.addEventListener("keydown",e=>{
  if(e.key==="Alt"){altDown=true;return;}
  const typing=["INPUT","SELECT","TEXTAREA"].includes(document.activeElement?.tagName)||
@@ -456,8 +497,11 @@ window.addEventListener("keydown",e=>{
  if(typing)return;
  if(e.key==="Backspace"){e.preventDefault();stopRotation();return;}
  if(camera.key(e.key,true)){e.preventDefault();return;}
+ if(e.key.toLowerCase()==="q"){setTool("smart");return;}
+ if(e.key.toLowerCase()==="f"){setTool("formation");return;}
+ if(e.key.toLowerCase()==="g"){setTool("harvest");return;}
  if(e.key==="Escape"){
-  selected.clear();selectedStructure=null;setTool("select");
+  clearRect();selected.clear();selectedStructure=null;setTool("select");
   if(state)updateSidebar(state);draw();
  }
 });
@@ -493,7 +537,7 @@ worker.onmessage=async({data})=>{
    try{await stored("write",data.encoded);log("Skirmish saved on this device");}
    catch(e){log("Save failed: "+e.message);}
    break;
-  case "error":$("launch").disabled=false;log("Error: "+data.message);break;
+  case "error":$("launch").disabled=false;notify("Action failed: "+data.message,true);break;
   case "ordered":log("Order accepted: "+data.action);break;
  }
 };
