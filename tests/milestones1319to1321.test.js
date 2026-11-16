@@ -29,7 +29,8 @@ test("objective must be attackable by at least one squad member",()=>{
  const guard=ai.units.find(u=>u.archetype==="Scout");
  const scout=enemy.units.find(u=>u.archetype==="Scout");
  const other=enemy.units.find(u=>u.archetype==="Worker");
- scout.archetype="Bomber";other.alive=false;
+ scout.archetype="Bomber";
+ for(const worker of enemy.units.filter(u=>u.archetype==="Worker"))worker.alive=false;
  assert.equal(selectSquadObjective(m,"ai","assault",[guard]),null);
 });
 const snapshot=(faction,age,activeArmy,activeWorkers,completedTech,completedConstruction=0)=>
