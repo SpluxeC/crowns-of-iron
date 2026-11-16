@@ -11,7 +11,8 @@ let state=null,selected=new Set(),tool="select",paused=false,speed=1,
  renderer=null,loading3d=false,panning=null,focusInitial=true,
  selectedStructure=null,edgePointer=null,rotationHeld=false,altDown=false,
  activeTouches=new Map(),pinchDistance=null,dragOrigin=null,lastPointer=null;
-const feedback=$("feedback"),placement=$("placement");
+const feedback=$("feedback"),placement=$("placement"),
+ buildOutline=$("buildOutline"),buildPolygon=$("buildPolygon");
 let feedbackReset=null;
 const camera=createRtsCamera();
 let previousFrame=0,lastRender=0,orientationPaused=false;
@@ -100,6 +101,18 @@ function placementPreview(x,y,clientX,clientY){
  const building=choices.buildings[Number($("buildChoice").value)];
  if(!building)return;
  const valid=placementValid(state.world,x,y,building.footprint);
+ const cam=cameraForMap(state.world.width,state.world.height,pose());
+ const [w,h]=building.footprint;
+ const t=state.world.tiles[y*state.world.width+x];
+ const elevation=heightFor(t)+.12;
+ const corners=[[x,y],[x+w,y],[x+w,y+h],[x,y+h]].map(([xx,zz])=>
+  projectWorld({x:xx,y:elevation,z:zz},canvas.width,canvas.height,cam));
+ if(corners.every(Boolean)){
+  buildOutline.hidden=false;
+  buildOutline.setAttribute("viewBox",`0 0 ${canvas.width} ${canvas.height}`);
+  buildPolygon.setAttribute("points",corners.map(p=>p.x+","+p.y).join(" "));
+  buildPolygon.classList.toggle("invalid",!valid);
+ }else buildOutline.hidden=true;
  placement.style.display="block";placement.style.left=clientX+12+"px";
  placement.style.top=clientY-25+"px";
  placement.textContent=building.kind+" "+building.footprint.join("×")+" "+(valid?"✓":"✕");
@@ -217,7 +230,7 @@ function render3d(){
  }catch(e){log("3D render: "+e.message);}
 }
 function draw(){render3d();}
-function setTool(mode){tool=mode;placement.style.display="none";
+function setTool(mode){tool=mode;placement.style.display="none";buildOutline.hidden=true;
  for(const name of ["select","smart","move","attack","attackMove","formation","patrol","harvest","build"]){
   $(name)?.classList.toggle("active",name===mode);
  } }
@@ -358,7 +371,7 @@ canvas.addEventListener("pointermove",e=>{
   const p=renderer.pick((e.clientX-rect.left)*canvas.width/rect.width,
    (e.clientY-rect.top)*canvas.height/rect.height);
   if(p)placementPreview(p.x,p.y,e.clientX,e.clientY);
-  else placement.style.display="none";
+  else {placement.style.display="none";buildOutline.hidden=true;}
  }
  if(!panning)return;
  const dx=e.clientX-panning.x,dy=e.clientY-panning.y;
@@ -392,7 +405,7 @@ canvas.addEventListener("pointercancel",e=>{
 });
 canvas.addEventListener("pointerleave",()=>{
  edgePointer=null;
- if(tool==="build")placement.style.display="none";
+ if(tool==="build"){placement.style.display="none";buildOutline.hidden=true;}
 });
 canvas.addEventListener("wheel",e=>{
  e.preventDefault();
