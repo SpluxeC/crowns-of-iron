@@ -24,6 +24,7 @@ import {tickRenewables} from "./renewableEconomy.js";
 import {staffedHospitalHeal,staffedVehicleRepair} from "./localBuildingEffects.js";
 import {orderFormation,orderSiege} from "./formationOrders.js";
 import {issueAttackMove,setCombatStance} from "./combatDirectives.js";
+import {issuePatrol,cancelPatrol,tickPatrolRoutes} from "./patrolOrders.js";
 import {assignSeaTrade,cancelSeaTrade,tickNavalEconomy} from "./navalEconomy.js";
 import {embark,disembark,transportLosses} from "./transports.js";
 import {deploySiegeRamp,assaultBattlement,resetInvalidRamps} from "./siegeTowers.js";
@@ -34,6 +35,14 @@ export function command(match,input,{allowDebug=false}={}){
   if(["income","popCap","facility"].includes(action))assert(allowDebug,"Developer-only action");
   const player=getPlayer(match,id);
   assert(player.alive&&!player.defeated,"Player eliminated");
+  // A new explicit order cancels the previous patrol route for that unit.
+  if(action!=="patrol"&&match.patrolRoutes){
+   if(typeof input.unitId==="string"&&["move","stop","attackMove","siege","stance"]
+    .includes(action))cancelPatrol(match,input.unitId);
+   if(action==="attack"&&typeof input.attacker==="string")cancelPatrol(match,input.attacker);
+   if(action==="formation"&&Array.isArray(input.units))
+    for(const uid of input.units)cancelPatrol(match,uid);
+  }
   let result;
   switch(action){
     case "allocate":result=setWorkerAllocation(player,input.workers);break;
@@ -49,6 +58,7 @@ export function command(match,input,{allowDebug=false}={}){
       : strike(player,getPlayer(match,input.targetPlayer),input.attacker,input.target,{nowMs:match.elapsedMs});break;
     case "move":result=issueMove(match,id,input.unitId,input.x,input.y);break;
     case "attackMove":result=issueAttackMove(match,id,input.unitId,input.x,input.y);break;
+    case "patrol":result=issuePatrol(match,id,input.unitId,input.x,input.y);break;
     case "stance":result=setCombatStance(match,id,input.unitId,input.stance);break;
     case "stop":{
       assert(typeof input.unitId==="string","Invalid stop unit");
@@ -125,6 +135,7 @@ function substep(match,ms,opts){
   tickRenewables(match,ms);
   tickSpatialHarvest(match);
   tickBattlefield(match,ms);
+  tickPatrolRoutes(match);
   tickNavalEconomy(match,ms);
   tickFortificationFire(match);
   tickStructureCombat(match);
