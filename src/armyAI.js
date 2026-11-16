@@ -110,8 +110,8 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
    }else if(current)continue;
    const candidateScore=entry=>{
     const key=targetKey(entry.owner.id,entry.unit.id);
-    const selfAssigned=Number(current?.aiIssued&&
-     current.targetPlayer===entry.owner.id&&current.targetId===entry.unit.id);
+    const selfAssigned=Number(Boolean(current?.aiIssued&&
+     current.targetPlayer===entry.owner.id&&current.targetId===entry.unit.id));
     return score(entry.unit,unit,stance,focus)-
      (objective?.unit.id===entry.unit.id?85:0)+
      botTargetSaturationPenalty(Math.max(0,count(key)-selfAssigned));
