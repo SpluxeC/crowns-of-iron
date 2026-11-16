@@ -9,7 +9,7 @@ const soldiers=[{id:"s1",x:2,y:2,archetype:"Swordsman",attack:14,alive:true},
  {id:"w1",x:3,y:5,archetype:"Worker",attack:0,alive:true}];
 const players=[{id:"human",units:soldiers},{id:"ai-1",units:[{id:"e",x:7,y:7,alive:true}]}];
 test("selection rectangle includes only human units whose projections are inside",()=>{
- const ids=rectangleUnits(players,map,{}, {x1:100,y1:100,x2:290,y2:290},800,600,
+ const ids=rectangleUnits(players,map,{}, {x1:100,y1:100,x2:290,y2:250},800,600,
   u=>({x:u.x*75,y:u.y*55}));
  assert.deepEqual(ids,["s1"]);
 });
