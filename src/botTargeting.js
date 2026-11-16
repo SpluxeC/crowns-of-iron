@@ -1,6 +1,7 @@
 /** Deterministic tactical focus planning for full-catalog AI.
  * Group target scoring is independent of player-array ordering and never
  * mutates the economy or unit stats. */
+import {canEngage} from "./engagementRules.js";
 export const gridDistance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 export function threatenedLocations(match,owner,radius=12){
  const p=match.players.find(x=>x.id===owner);
@@ -23,9 +24,12 @@ export function selectSquadObjective(match,owner,stance,army){
   .flatMap(foe=>foe.units.filter(u=>u.alive&&Number.isInteger(u.x)&&
    !u.garrisonedAt&&!u.embarkedAt).map(unit=>({owner:foe.id,unit})));
  if(!enemies.length)return null;
- const totalArmy=army.filter(u=>u.attack>0).length;
- const candidates=enemies.filter(({unit})=>stance!=="defend"||
-  defenders.some(point=>gridDistance(point,unit)<=9));
+ // Only select objectives that at least one member can actually attack.
+ // A defensive squad prioritizes armed intruders, not harmless workers.
+ const candidates=enemies.filter(({unit})=>
+  army.some(attacker=>attacker.attack>0&&canEngage(attacker,unit))&&
+  (stance!=="defend"||(unit.attack>0&&unit.archetype!=="Worker"&&
+   defenders.some(point=>gridDistance(point,unit)<=9))));
  if(!candidates.length)return null;
  const center={x:Math.round(army.reduce((a,u)=>a+u.x,0)/army.length),
   y:Math.round(army.reduce((a,u)=>a+u.y,0)/army.length)};
