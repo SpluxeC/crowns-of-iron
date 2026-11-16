@@ -12,7 +12,7 @@ import {enableBot} from "../src/ai.js";
 import {applySkirmishVictory,skirmishScore} from "../web/skirmishRules.js";
 const catalog=JSON.parse(readFileSync(new URL("../data/balance-v0.2.json",import.meta.url)));
 const factions=["Humans","Orcs","Dwarfs","Tree Elves","Corrupt Elves","Ursa"];
-const seconds=900;
+const seconds=480;
 function trial(left,right,seed){
  const participants=[{id:"left",faction:left},{id:"right",faction:right}];
  const match=createMatch(participants,seed);
