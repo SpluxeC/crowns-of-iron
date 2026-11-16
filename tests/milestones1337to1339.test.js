@@ -23,7 +23,7 @@ test("harvest assignment ignores depleted and blocked resource tiles",()=>{
   {x:1,y:0,resource:"Wood",amount:0},
   {x:0,y:1,resource:null,amount:0},
   {x:1,y:1,resource:"Stone",amount:30}
- ],structures:[]};
+ ].map(tile=>({...tile,terrain:"grass",occupied:null})),structures:[]};
  // Uses the same domain walkability contract as real harvesting.
  assert.equal(harvestDepositAvailable(map,{x:0,y:0}),true);
  assert.equal(harvestDepositAvailable(map,{x:1,y:0}),false);
