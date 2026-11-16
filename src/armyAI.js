@@ -51,7 +51,15 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
    const current=match.orders?.[unit.id];
    if(current?.kind==="attack"&&current.aiIssued){
      const target=enemies.find(e=>e.owner.id===current.targetPlayer&&e.unit.id===current.targetId);
-     if(target&&(stance!=="defend"||(points?points.some(pt=>gridDistance(pt,target.unit)<=9):distance(target.unit,start)<=12)))continue;
+     if(target&&(stance!=="defend"||(points?points.some(pt=>gridDistance(pt,target.unit)<=9):distance(target.unit,start)<=12))){
+       // An existing raid/assault order must not distract defenders from a
+       // more urgent attacker threatening the base or its workers.
+       const needsDefenseRetarget=stance==="defend"&&objective&&
+        objective.unit.id!==target.unit.id&&
+        score(objective.unit,unit,"defend",objective.unit.id)+25<
+          score(target.unit,unit,"defend",null);
+       if(!needsDefenseRetarget)continue;
+     }
      delete match.orders[unit.id];
    }else if(current)continue;
    const candidates=enemies.filter(e=>eligible(unit,e.unit)&&
@@ -60,7 +68,7 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
       (objective?.unit.id===a.unit.id?85:0))-
       (score(b.unit,unit,stance,focus)-
       (objective?.unit.id===b.unit.id?85:0))||
-       a.unit.id.localeCompare(b.unit.id));
+       a.owner.id.localeCompare(b.owner.id)||a.unit.id.localeCompare(b.unit.id));
    const [fallbackRange]=ATTACK_PROFILE[unit.archetype]??[1];
    const range=unit.range??fallbackRange;
    if(range<=0)continue;
