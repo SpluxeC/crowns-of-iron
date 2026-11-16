@@ -177,7 +177,8 @@ function updateSidebar(s){
    " · "+ours.reduce((a,u)=>a+Math.round(u.hp),0)+" total HP";
  }else detail.textContent="Select a unit or building to view its status and actions.";
  $("cancelBuild").hidden=!(site?.owner==="human"&&!site.completed);
- $("repairBuilding").hidden=!(site?.owner==="human"&&site.completed);
+ $("repairBuilding").hidden=!(site?.owner==="human"&&site.completed&&
+  Number.isFinite(site.hp)&&site.hp<site.maxHp);
  $("applyStance").disabled=!ours.some(x=>x.attack>0);
  $("selectedDetail").title=detail.textContent;
  $("selection").textContent=ours.length?
@@ -241,7 +242,7 @@ function tileClick(x,y,shift=false,hit=null,context=false){
  x=Math.floor(x);y=Math.floor(y);
  if(x<0||y<0||x>=state.world.width||y>=state.world.height)return;
  const tile=state.world.tiles[y*state.world.width+x];
- const unit=hit?.kind==="unit"?hit.unit:unitAt(x,y),ours=state.players[0].units;
+ const unit=hit?.kind==="structure"?null:hit?.kind==="unit"?hit.unit:unitAt(x,y),ours=state.players[0].units;
  const site=hit?.kind==="structure"?hit.site:structureAt(x,y);
  if(tool==="build"&&!context){
   const building=choices.buildings[Number($("buildChoice").value)];
@@ -284,7 +285,7 @@ function tileClick(x,y,shift=false,hit=null,context=false){
  }
  if(site){
   selectedStructure=site.id;selected.clear();
-  updateSidebar(state);draw();notify("Selected "+site.kind);return;
+  updateSidebar(state);showEmpire(true);draw();notify("Selected "+site.kind);return;
  }
  if(!shift)selected.clear();
  selectedStructure=null;updateSidebar(state);draw();
@@ -483,10 +484,13 @@ $("cancelBuild").onclick=()=>{
 };
 $("repairBuilding").onclick=()=>{
  const site=contextSite();
- const workerIds=state?.players[0].units.filter(u=>selected.has(u.id)&&u.archetype==="Worker")
-  .map(u=>u.id)??[];
- if(!site||site.owner!=="human"||!workerIds.length){
-  notify("Select workers before repairing a friendly building",true);return;
+ if(!site||site.owner!=="human")return;
+ const workerIds=state.players[0].units.filter(u=>u.archetype==="Worker"&&
+  Math.max(site.x-u.x,0,u.x-(site.x+(site.width??2)-1))+
+  Math.max(site.y-u.y,0,u.y-(site.y+(site.height??2)-1))<=1)
+  .slice(0,4).map(u=>u.id);
+ if(!workerIds.length){
+  notify("Move a Worker adjacent to the building to repair it",true);return;
  }
  order({action:"repairBuilding",siteId:site.id,workers:workerIds,amount:20});
  notify("Repair requested");
