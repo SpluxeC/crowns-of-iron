@@ -85,13 +85,18 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  const points=stance==="defend"&&match.fullCatalog?threatenedLocations(match,owner):null;
  const issued=[];let focus=objective?.unit.id??null;
  const targetKey=(playerId,targetId)=>playerId+"|"+targetId;
+ // Index live enemies once per decision instead of rescanning the entire
+ // roster for every retained order and every active soldier.
+ const liveTargets=new Map(enemies.map(entry=>[
+  targetKey(entry.owner.id,entry.unit.id),entry
+ ]));
  const load=new Map(),count=key=>load.get(key)??0;
  const adjust=(key,delta)=>load.set(key,Math.max(0,count(key)+delta));
  // Count existing orders for live targets to avoid over-concentrating a squad.
  for(const unit of attackers){
   const order=match.orders?.[unit.id];
   if(order?.aiIssued&&order.kind==="attack"&&
-    enemies.some(e=>e.owner.id===order.targetPlayer&&e.unit.id===order.targetId))
+    liveTargets.has(targetKey(order.targetPlayer,order.targetId)))
    adjust(targetKey(order.targetPlayer,order.targetId),1);
  }
  for(const unit of attackers){
@@ -99,7 +104,7 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
    const current=match.orders?.[unit.id];
    let previousTarget=null;
    if(current?.kind==="attack"&&current.aiIssued){
-     previousTarget=enemies.find(e=>e.owner.id===current.targetPlayer&&e.unit.id===current.targetId);
+     previousTarget=liveTargets.get(targetKey(current.targetPlayer,current.targetId));
      const retainable=shouldRetainBotAttackTarget(unit,previousTarget?.unit,
       stance,points,start);
      if(retainable&&
