@@ -1,44 +1,80 @@
+/** Deterministic, age-aware AI resource allocation. Workers physically collect
+ * and return finite cargo; resource selection never credits free inventory. */
 import {assignHarvestJob} from "./spatialEconomy.js";
 import {findPath,walkable} from "./map.js";
 import {getPlayer} from "./state.js";
-
+import {ageResearchDeficit} from "./botResearchPlanner.js";
 const PRIORITIES={
- I:["Food","Wood","Stone","Food","Wood","Gold"],
+ I:["Food","Wood","Stone","Gold"],
  II:["Food","Wood","Stone","Metal","Gold"],
  III:["Food","Metal","Wood","Stone","Gold"],
  IV:["Food","Metal","Gold","Wood","Stone","Aether"],
  V:["Food","Gold","Metal","Aether","Stone","Wood"]
 };
+const BASE_WEIGHTS={
+ I:{Food:34,Wood:27,Stone:12,Gold:3},
+ II:{Food:35,Wood:20,Stone:16,Metal:18,Gold:9},
+ III:{Food:28,Metal:24,Wood:18,Stone:14,Gold:18},
+ IV:{Food:22,Metal:26,Gold:18,Wood:12,Stone:12,Aether:5},
+ V:{Food:19,Metal:22,Gold:18,Wood:11,Stone:12,Aether:14}
+};
+export function resourcePriorities(match,owner){
+ const p=getPlayer(match,owner),resources=PRIORITIES[p.age]??PRIORITIES.I;
+ const deficits=match.fullCatalog?ageResearchDeficit(match,p):{};
+ const counts=Object.fromEntries(resources.map(k=>[k,0]));
+ for(const job of Object.values(match.harvestJobs??{})){
+  if(job.owner!==owner)continue;
+  const tile=match.battlefield.tiles[job.y*match.battlefield.width+job.x];
+  if(tile?.resource&&tile.resource in counts)counts[tile.resource]++;
+ }
+ const score=resource=>(
+  (BASE_WEIGHTS[p.age]?.[resource]??5)+Math.min(300,(deficits[resource]??0)*1.4)
+ )/(1+counts[resource]*.9);
+ return [...resources].sort((a,b)=>score(b)-score(a)||
+  resources.indexOf(a)-resources.indexOf(b));
+}
 export function assignSpatialBotWorker(match,owner){
  if(match.economyMode!=="spatial"||!match.battlefield)return null;
- const p=getPlayer(match,owner),jobs=match.harvestJobs??{};
- const busy=new Set(Object.values(match.constructions??{}).filter(s=>!s.completed&&s.owner===owner)
-  .flatMap(s=>s.workerIds));
+ const p=getPlayer(match,owner),jobs=match.harvestJobs??{},
+  busy=new Set(Object.values(match.constructions??{})
+   .filter(s=>!s.completed&&s.owner===owner).flatMap(s=>s.workerIds));
  const workers=p.units.filter(u=>u.alive&&u.archetype==="Worker"&&
-  Number.isInteger(u.x)&&!jobs[u.id]&&!busy.has(u.id)&&!(u.cargo?.amount>0));
- if(!workers.length)return null;
- const current=Object.fromEntries((PRIORITIES[p.age]??PRIORITIES.I).map(r=>[r,0]));
- for(const [id,job] of Object.entries(jobs))if(job.owner===owner){
-  const tile=match.battlefield.tiles.find(t=>t.x===job.x&&t.y===job.y);
-  if(tile?.resource)current[tile.resource]=(current[tile.resource]??0)+1;
+  Number.isInteger(u.x)&&!busy.has(u.id));
+ const eligible=workers.filter(u=>!jobs[u.id]&&!(u.cargo?.amount>0));
+ const priority=resourcePriorities(match,owner);
+ // If all workers are busy on optional resources, rebalance an empty-handed
+ // worker only when mandatory tech has an unmet resource requirement.
+ if(!eligible.length&&match.fullCatalog){
+  const deficits=ageResearchDeficit(match,p);
+  const needed=priority.find(r=>(deficits[r]??0)>0);
+  if(needed&&!workers.some(u=>{
+   const job=jobs[u.id],tile=job&&match.battlefield.tiles[job.y*match.battlefield.width+job.x];
+   return tile?.resource===needed;
+  })){
+   const candidate=workers.filter(u=>{
+    const job=jobs[u.id];if(!job||u.cargo?.amount>0||job.phase!=="harvest")return false;
+    if(match.elapsedMs-(job.assignedAtMs??0)<20000)return false;
+    const tile=match.battlefield.tiles[job.y*match.battlefield.width+job.x];
+    return (deficits[tile?.resource]??0)===0;
+   }).sort((a,b)=>a.id.localeCompare(b.id))[0];
+   if(candidate)eligible.push(candidate);
+  }
  }
- const priority=[...new Set(PRIORITIES[p.age]??PRIORITIES.I)]
-  .sort((a,b)=>(current[a]??0)-(current[b]??0)||
-    (PRIORITIES[p.age]??PRIORITIES.I).indexOf(a)-(PRIORITIES[p.age]??PRIORITIES.I).indexOf(b));
- for(const worker of workers){
+ for(const worker of eligible){
   for(const resource of priority){
    const sites=match.battlefield.tiles.filter(t=>t.resource===resource&&t.amount>0&&
-     walkable(match.battlefield,t.x,t.y))
-     .sort((a,b)=>(Math.abs(worker.x-a.x)+Math.abs(worker.y-a.y))-
-       (Math.abs(worker.x-b.x)+Math.abs(worker.y-b.y))||a.y-b.y||a.x-b.x);
+    walkable(match.battlefield,t.x,t.y)).sort((a,b)=>
+     Math.abs(worker.x-a.x)+Math.abs(worker.y-a.y)-
+     Math.abs(worker.x-b.x)-Math.abs(worker.y-b.y)||a.y-b.y||a.x-b.x);
    for(const site of sites){
     if(!findPath(match.battlefield,{x:worker.x,y:worker.y},{x:site.x,y:site.y}))continue;
     try{
-      assignHarvestJob(match,owner,worker.id,site.x,site.y);
-      return {workerId:worker.id,resource,x:site.x,y:site.y};
+     assignHarvestJob(match,owner,worker.id,site.x,site.y);
+     match.harvestJobs[worker.id].assignedAtMs=match.elapsedMs;
+     return {workerId:worker.id,resource,x:site.x,y:site.y};
     }catch(e){
-      if(/unreachable|age locked|No viable/.test(e.message))continue;
-      throw e;
+     if(/unreachable|age locked|No viable/.test(e.message))continue;
+     throw e;
     }
    }
   }

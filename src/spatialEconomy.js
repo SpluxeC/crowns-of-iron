@@ -16,20 +16,42 @@ function qualifies(player,resource){
    (resource!=="Aether"||["III","IV","V"].includes(player.age));
 }
 function cargo(worker){worker.cargo??={resource:null,amount:0};return worker.cargo;}
+/** Valid drop-off approaches. Town Center is a logical drop-off around its
+ * starting tile; older saves may have structures covering its exact center.
+ * Never route a loaded worker to a tile that is now a building. */
+export function dropoffCandidates(match,owner){
+ const p=getPlayer(match,owner),map=match.battlefield;
+ const start=map.starts[match.players.indexOf(p)],points=[],seen=new Set();
+ function add(x,y){
+  if(!walkable(map,x,y))return;
+  const k=x+","+y;if(seen.has(k))return;seen.add(k);points.push({x,y});
+ }
+ // Prefer the Town Center origin, then a small pedestrian approach ring.
+ if(walkable(map,start.x,start.y))add(start.x,start.y);
+ else for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)
+  if(Math.max(Math.abs(dx),Math.abs(dy))===2)add(start.x+dx,start.y+dy);
+ for(const site of map.structures.filter(s=>s.owner===owner&&
+  match.constructions?.[s.id]?.completed&&s.kind==="Resource Depot")){
+  for(let y=site.y-1;y<=site.y+site.height;y++)
+   for(let x=site.x-1;x<=site.x+site.width;x++)
+    if(x===site.x-1||x===site.x+site.width||
+       y===site.y-1||y===site.y+site.height)add(x,y);
+ }
+ return points;
+}
 function home(match,owner,unit){
- const p=getPlayer(match,owner);
- const owned=match.battlefield.structures.filter(s=>s.owner===owner&&
-   match.constructions?.[s.id]?.completed&&s.kind==="Resource Depot");
- const options=[match.battlefield.starts[match.players.indexOf(p)],
-   ...owned.flatMap(s=>{
-     const cells=[];
-     for(let y=s.y-1;y<=s.y+s.height;y++)for(let x=s.x-1;x<=s.x+s.width;x++){
-       if(walkable(match.battlefield,x,y))cells.push({x,y});
-     }
-     return cells;
-   })].filter(Boolean);
- return options.sort((a,b)=>Math.abs(a.x-unit.x)+Math.abs(a.y-unit.y)-
-   (Math.abs(b.x-unit.x)+Math.abs(b.y-unit.y))||a.y-b.y||a.x-b.x)[0];
+ if(!Number.isInteger(unit.x)||!Number.isInteger(unit.y))return null;
+ const map=match.battlefield;
+ const options=dropoffCandidates(match,owner).map(point=>{
+  const path=findPath(map,{x:unit.x,y:unit.y},point);
+  return path?{...point,steps:path.length-1}:null;
+ }).filter(Boolean);
+ options.sort((a,b)=>a.steps-b.steps||a.y-b.y||a.x-b.x);
+ return options[0]??null;
+}
+function canDeliverHere(match,owner,worker){
+ return dropoffCandidates(match,owner).some(p=>
+  Math.abs(worker.x-p.x)+Math.abs(worker.y-p.y)<=1);
 }
 export function assignHarvestJob(match,owner,workerId,x,y){
  assert(match.economyMode==="spatial","Spatial harvesting mode is not enabled");
@@ -61,7 +83,7 @@ export function deliverCargo(match,owner,workerId){
  const worker=p.units.find(u=>u.id===workerId&&u.alive&&u.archetype==="Worker");
  assert(worker,"Owned worker unavailable");
  const held=cargo(worker),target=home(match,owner,worker);
- assert(target&&Math.abs(worker.x-target.x)+Math.abs(worker.y-target.y)<=1,"Worker is not at a depot");
+ assert(target&&canDeliverHere(match,owner,worker),"Worker is not at a depot");
  if(!held.amount)return 0;
  p.resources[held.resource]+=held.amount;
  const amount=held.amount;held.amount=0;held.resource=null;
@@ -87,7 +109,7 @@ export function tickSpatialHarvest(match){
    const tile=at(match.battlefield,job.x,job.y);
    const held=cargo(worker),base=home(match,job.owner,worker);
    if(job.phase==="return"){
-     if(base&&Math.abs(worker.x-base.x)+Math.abs(worker.y-base.y)<=1&&
+     if(base&&canDeliverHere(match,job.owner,worker)&&
        (worker.nextDeliveryAtMs??0)<=match.elapsedMs){
        deliverCargo(match,job.owner,workerId);
        if(!tile?.resource||tile.amount<=0){delete match.harvestJobs[workerId];continue;}

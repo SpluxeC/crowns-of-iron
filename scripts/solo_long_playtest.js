@@ -55,7 +55,12 @@ function simulate(seed,enemies,seconds){
    trained:p.units.length,active:p.units.filter(u=>u.alive).length,
    buildings:Object.values(game.constructions??{}).filter(s=>s.owner===p.id).length,
    techs:p.completed.length,stance:game.bots[p.id].stance??"assault",
-   decisions:game.bots[p.id].decisions
+   decisions:game.bots[p.id].decisions,
+   resources:p.resources,
+   researchQueues:Object.fromEntries(Object.entries(p.researchQueues).filter(([,q])=>q.length).map(([k,q])=>[k,q.map(j=>j.id)])),
+   jobs:Object.entries(game.harvestJobs??{}).filter(([,j])=>j.owner===p.id).map(([id,j])=>({id,phase:j.phase,x:j.x,y:j.y,
+    unit:p.units.find(u=>u.id===id)?{x:p.units.find(u=>u.id===id).x,y:p.units.find(u=>u.id===id).y,cargo:p.units.find(u=>u.id===id).cargo}:null})),
+   deposits:game.battlefield.tiles.filter(t=>t.amount>0&&t.resource).length
   })),checksum:checksum(game)};
  assert.ok(overview.bots.every(b=>b.decisions>=Math.floor(ticks/10)),
   "Bot decision loop stopped unexpectedly");

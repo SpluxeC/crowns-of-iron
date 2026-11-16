@@ -3,6 +3,7 @@
 import {affordable,ageIndex} from "./util.js";
 import {unitDefinition} from "./fullCatalog.js";
 import {PRODUCTION_LOCATIONS,queueUnit} from "./production.js";
+import {canFundOptionalSpend} from "./botResearchPlanner.js";
 const PLANS={
  I:["Club Fighter","Stone Spearman","Stone Slinger","Scout"],
  II:["Swordsman","Archer","Raider","Pikeman","Club Fighter"],
@@ -24,7 +25,8 @@ export function tryBotRecruitment(match,player,desiredArmy=12){
  const candidates=[...age].sort((a,b)=>count[a]-count[b]||age.indexOf(a)-age.indexOf(b));
  for(const role of candidates){
   const def=unitDefinition(match,player,role);
-  if(!def||ageIndex(player.age)<ageIndex(def.age)||!affordable(player.resources,def.cost))
+  if(!def||ageIndex(player.age)<ageIndex(def.age)||!affordable(player.resources,def.cost)||
+   !canFundOptionalSpend(match,player,def.cost))
    continue;
   for(const facility of Object.keys(player.unitQueues).sort()){
    if(!(PRODUCTION_LOCATIONS[role]??[]).includes(facility.split("#")[0])||

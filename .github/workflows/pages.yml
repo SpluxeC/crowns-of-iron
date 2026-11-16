@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Run full 30-minute-capped AI match matrix across six factions
+        run: npm run full-match-matrix
       - name: Run long AI skirmish soak and deterministic replay
         run: npm run solo-soak
       - name: Prebuild static single-player site and glTF models

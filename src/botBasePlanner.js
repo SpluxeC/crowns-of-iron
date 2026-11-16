@@ -6,7 +6,7 @@ import {constructionDefinition} from "./structureCatalog.js";
 import {STRUCTURES} from "./construction.js";
 import {ageIndex,affordable} from "./util.js";
 import {cancelHarvestJob} from "./spatialEconomy.js";
-const MAX_SITES={Shelter:3,"Training Camp":1,Barracks:2,"Archery Range":1,
+const MAX_SITES={Shelter:3,"Training Camp":1,Farm:2,Barracks:2,"Archery Range":1,
  "Resource Depot":2,Forge:1};
 const ageAllowed=(p,def)=>ageIndex(p.age)>=ageIndex(def.age);
 function siteCount(match,p,kind){
@@ -19,7 +19,7 @@ export function desiredBotBuilding(match,player){
  const want=[
   ...(player.popCap-alive-waiting<=4?[ "Shelter" ]:[]),
   "Training Camp",
-  ...(player.age!=="I"?["Barracks","Archery Range","Forge"]:[]),
+  ...(player.age!=="I"?["Farm","Barracks","Archery Range","Forge"]:[]),
   ...(player.age!=="I"?["Resource Depot"]:[]),
   ...(alive+waiting>=player.popCap-3?["Shelter"]:[])
  ];
@@ -33,6 +33,19 @@ export function desiredBotBuilding(match,player){
   return {kind,def};
  }
  return null;
+}
+/** Reserve the shared Town Center drop-off and straight roads to its start
+ * deposits. Blocking these tiles can deadlock every harvesting worker. */
+export function blocksBaseLogistics(map,x,y,width,height){
+ return map.starts.some(start=>{
+  for(let yy=y;yy<y+height;yy++)for(let xx=x;xx<x+width;xx++){
+   const dx=xx-start.x,dy=yy-start.y;
+   if(Math.abs(dx)<=1&&Math.abs(dy)<=1)return true;
+   if(dy===0&&Math.abs(dx)<=3)return true;
+   if(dx===0&&Math.abs(dy)<=3)return true;
+  }
+  return false;
+ });
 }
 export function tryBotConstruction(match,player){
  const plan=desiredBotBuilding(match,player);
@@ -53,7 +66,7 @@ export function tryBotConstruction(match,player){
  const options=[];
  for(let y=Math.max(0,start.y-9);y<=Math.min(map.height-h,start.y+9);y++)
   for(let x=Math.max(0,start.x-9);x<=Math.min(map.width-w,start.x+9);x++){
-   if(!canPlace(map,x,y,w,h))continue;
+   if(!canPlace(map,x,y,w,h)||blocksBaseLogistics(map,x,y,w,h))continue;
    options.push({x,y,score:Math.abs(x-builder.x)+Math.abs(y-builder.y)+
     Math.abs(x-start.x)*.2+Math.abs(y-start.y)*.2});
   }
