@@ -53,6 +53,18 @@ small,.hint{color:#b7d2d8;font-size:12px}a{color:#c3e7ed}
 .dialog label{display:block;color:#c5dce1;font-size:12px;margin:10px 0 4px}
 .dialog select,.dialog input{width:100%}
 .dialog #launch{width:100%;margin-top:15px;padding:12px;background:#426c47}
+#matchEnd{position:fixed;inset:0;z-index:18;display:grid;place-items:center;
+ background:#06111bc9;padding:20px;overflow:auto}
+#matchEnd .report{width:min(570px,100%);max-height:90vh;overflow:auto;
+ background:#142c3bf7;border:1px solid #72949e;border-radius:15px;padding:20px;
+ box-shadow:0 20px 75px #000b}
+#resultHeading{font-size:25px}
+#resultScores{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;
+ margin:14px 0}
+#resultScores th,#resultScores td{text-align:left;padding:7px;border-bottom:1px solid #425c64}
+#resultScores th{color:#c1dce3;font-size:11px}
+#resultScores .winner{background:#36553e70}
+#matchEnd .controls{justify-content:flex-end}
 #orientationGate{display:none;position:fixed;inset:0;z-index:40;background:#061520;align-items:center;justify-content:center;text-align:center;padding:calc(env(safe-area-inset-top) + 25px) calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 25px) calc(env(safe-area-inset-left) + 20px)}
 #orientationGate .rotatePrompt{max-width:360px}#orientationGate .rotateIcon{font-size:52px;display:block;margin-bottom:15px}
 @media (max-width:1050px){
@@ -144,6 +156,17 @@ small,.hint{color:#b7d2d8;font-size:12px}a{color:#c3e7ed}
 <p class="hint">Early browser playtest: tactical AI and skirmish balance are still under development. Your save stays on this device.</p>
 </div></div>
 
+<section id="matchEnd" hidden role="dialog" aria-modal="true" aria-labelledby="resultHeading">
+ <div class="report">
+  <h1 id="resultHeading">Skirmish complete</h1>
+  <p id="resultSubhead" class="hint"></p>
+  <table id="resultScores"><thead><tr><th>Faction</th><th>Score</th>
+   <th>Units</th><th>Buildings</th><th>Tech</th></tr></thead>
+   <tbody id="resultBody"></tbody></table>
+  <div class="controls"><button id="closeResults">View battlefield</button>
+   <button id="newFromResults">New skirmish</button></div>
+ </div>
+</section>
 <div id="orientationGate" role="alert" aria-label="Landscape orientation required">
  <div class="rotatePrompt"><span class="rotateIcon" aria-hidden="true">↻</span>
  <h1>Rotate your device</h1>
