@@ -30,6 +30,14 @@ function score(target,unit,stance,allyFocus){
  if(allyFocus===target.id)s-=25;
  return s;
 }
+/** Favor the current target unless the squad focus is materially more urgent.
+ * Pure comparison: military navigation/engagement legality is still validated
+ * by planArmyOrders before any new attack order is issued. */
+export function shouldDefenderRetarget(unit,currentTarget,objective){
+ if(!objective||objective.id===currentTarget?.id)return false;
+ return score(objective,unit,"defend",objective.id)+25<
+  score(currentTarget,unit,"defend",null);
+}
 /** One deterministic tactical decision; does not issue unvalidated client commands. */
 export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  assert(STANCES.has(stance),"Invalid army stance");
@@ -51,7 +59,13 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
    const current=match.orders?.[unit.id];
    if(current?.kind==="attack"&&current.aiIssued){
      const target=enemies.find(e=>e.owner.id===current.targetPlayer&&e.unit.id===current.targetId);
-     if(target&&(stance!=="defend"||(points?points.some(pt=>gridDistance(pt,target.unit)<=9):distance(target.unit,start)<=12)))continue;
+     if(target&&(stance!=="defend"||(points?points.some(pt=>gridDistance(pt,target.unit)<=9):distance(target.unit,start)<=12))){
+       // An existing raid/assault order must not distract defenders from a
+       // more urgent attacker threatening the base or its workers.
+       const needsDefenseRetarget=stance==="defend"&&
+        shouldDefenderRetarget(unit,target.unit,objective?.unit);
+       if(!needsDefenseRetarget)continue;
+     }
      delete match.orders[unit.id];
    }else if(current)continue;
    const candidates=enemies.filter(e=>eligible(unit,e.unit)&&
@@ -60,7 +74,7 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
       (objective?.unit.id===a.unit.id?85:0))-
       (score(b.unit,unit,stance,focus)-
       (objective?.unit.id===b.unit.id?85:0))||
-       a.unit.id.localeCompare(b.unit.id));
+       a.owner.id.localeCompare(b.owner.id)||a.unit.id.localeCompare(b.unit.id));
    const [fallbackRange]=ATTACK_PROFILE[unit.archetype]??[1];
    const range=unit.range??fallbackRange;
    if(range<=0)continue;
