@@ -19,7 +19,7 @@ Target: browser-local 3D single-player AI skirmish at `https://spluxec.github.io
 ## 13.12 — Mirrored combat balance diagnostic
 
 - `npm run faction-matchups` simulates **30 headless real-logic matches**: all 15 unique faction pairs, each repeated with their start positions swapped, seeded consistently per pair.
-- Each fixture advances to a genuine victory or **900 seconds** of simulation; unresolved games remain flagged as unresolved, and the leading score is recorded separately. The report distinguishes **actual wins** from interim score leaders.
+- Each fixture advances to a genuine victory or **480 seconds** of simulation; unresolved games remain flagged as unresolved, and the leading score is recorded separately. The report distinguishes **actual wins** from interim score leaders.
 - Reports faction-specific wins, unresolved matches, score leads and progression to Age II. This identifies large disparities but **does not silently modify balance values** based on a small sample.
 - The GitHub Pages CI pipeline runs the mirrored matchups before the already-established seven complete-game scenarios, 30-minute timed-resolution test, deterministic replay, static build and real Chromium browser smoke.
 - The new `tests/botCoordinatedTactics.test.js` and `tests/botLateAgePlanner.test.js` validate target selection, worker defense and later-age facility selection.
