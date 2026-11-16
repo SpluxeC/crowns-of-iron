@@ -12,6 +12,7 @@ import {assignSpatialBotWorker} from "./spatialBot.js";
 import {tryBotConstruction} from "./botBasePlanner.js";
 import {tryBotRecruitment} from "./botRecruitment.js";
 import {chooseBotStrategy} from "./botStrategy.js";
+import {canFundOptionalSpend} from "./botResearchPlanner.js";
 
 const BOT_LEVELS=Object.freeze({
   Easy:{decisionMs:10000,workerGoal:8},
@@ -89,7 +90,8 @@ function tryWorker(player,goal,match){
   const queued=Object.values(player.unitQueues).flat().filter(j=>j.role==="Worker").length;
   if(trained+queued>=goal)return null;
   const jobs=player.unitQueues["Town Center"]??[];
-  if(jobs.length>=3||!affordable(player.resources,ARCHETYPES.Worker.cost))return null;
+  if(jobs.length>=3||!affordable(player.resources,ARCHETYPES.Worker.cost)||
+  !canFundOptionalSpend(match,player,unitDefinition(match,player,"Worker").cost))return null;
   if(player.popUsed+queued>=player.popCap)return null;
   queueUnit(player,"Town Center","Worker",unitDefinition(match,player,"Worker"));return "worker";
 }
