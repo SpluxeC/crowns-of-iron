@@ -4,6 +4,7 @@ import {makeMap} from "../src/map.js";
 import {attachBattlefield} from "../src/battlefield.js";
 import {enableBot} from "../src/ai.js";
 import {enableUnitCollision} from "../src/unitCollision.js";
+import {setEconomyMode} from "../src/spatialEconomy.js";
 import {installFullCatalog} from "../src/fullCatalog.js";
 import {playerCommandCatalog} from "../src/commandCatalog.js";
 import {exportSave,importSave} from "../src/persistence.js";
@@ -30,15 +31,27 @@ function view(){
   team:p.team,units:p.units.filter(u=>u.alive&&Number.isInteger(u.x)&&
    (i===0||visible.has(u.y*map.width+u.x))).map(u=>({
    id:u.id,owner:u.owner,archetype:u.archetype,x:u.x,y:u.y,
-   hp:u.hp,maxHp:u.maxHp,alive:u.alive}))}));
+   hp:u.hp,maxHp:u.maxHp,alive:u.alive,
+   attack:u.attack??0,stance:u.combatStance??"guard",
+   cargo:i===0?(u.cargo??null):null,
+   order:i===0?(match.orders?.[u.id]?.kind??null):null}))}));
  const structures=map.structures.filter(s=>
-  s.owner===player.id||visible.has(s.y*map.width+s.x));
+  s.owner===player.id||visible.has(s.y*map.width+s.x)).map(s=>{
+   const job=match.constructions?.[s.id];
+   return {...s,completed:job?.completed??true,
+    progress:job?.completed?1:job?Math.min(1,job.elapsedMs/job.durationMs):1,
+    facilityKey:s.owner==="human"?job?.facilityKey??null:null,
+    hp:job?.hp??null,maxHp:job?.maxHp??null};
+  });
  return {seq:++seq,elapsedMs:match.elapsedMs,tick:match.tick,winner:match.winner,
   humanDefeated:player.defeated,faction:player.faction,age:player.age,
   resources:player.resources,popUsed:player.popUsed,popCap:player.popCap,
   skirmishLimitMs:SKIRMISH_LIMIT_MS,
   players,world:{width:map.width,height:map.height,tiles,structures},
-  catalog:playerCommandCatalog(match,player.id)};
+  catalog:playerCommandCatalog(match,player.id),
+  economyMode:match.economyMode,harvestJobs:match.harvestJobs?
+   Object.fromEntries(Object.entries(match.harvestJobs)
+    .filter(([,job])=>job.owner==="human")):{}};
 }
 function publish(){if(match)send("state",{state:view()});}
 function stop(){if(interval)clearInterval(interval);interval=null;}
@@ -69,6 +82,7 @@ async function begin(config){
  if(!response.ok)throw Error("Faction balance data unavailable");
  installFullCatalog(game,await response.json());
  enableUnitCollision(game);
+ setEconomyMode(game,"spatial");
  for(const p of participants.slice(1))enableBot(game,p.id,difficulty);
  match=game;paused=false;speed=1;startClock();publish();
  send("started",{faction,difficulty,enemies,seed});
