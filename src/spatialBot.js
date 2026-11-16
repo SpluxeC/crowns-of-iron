@@ -33,6 +33,13 @@ export function resourcePriorities(match,owner){
  return [...resources].sort((a,b)=>score(b)-score(a)||
   resources.indexOf(a)-resources.indexOf(b));
 }
+/** Prefer an uncovered mandatory input over resources already being harvested.
+ * Never reassign a loaded worker or steal the only worker covering another
+ * mandatory deficit. This plans an existing worker job, not free inventory. */
+export function uncoveredMandatoryResource(priority,deficits,assignedResources){
+ return priority.find(resource=>(deficits[resource]??0)>0&&
+  !assignedResources.includes(resource))??null;
+}
 export function assignSpatialBotWorker(match,owner){
  if(match.economyMode!=="spatial"||!match.battlefield)return null;
  const p=getPlayer(match,owner),jobs=match.harvestJobs??{},
@@ -46,11 +53,12 @@ export function assignSpatialBotWorker(match,owner){
  // worker only when mandatory tech has an unmet resource requirement.
  if(!eligible.length&&match.fullCatalog){
   const deficits=ageResearchDeficit(match,p);
-  const needed=priority.find(r=>(deficits[r]??0)>0);
-  if(needed&&!workers.some(u=>{
-   const job=jobs[u.id],tile=job&&match.battlefield.tiles[job.y*match.battlefield.width+job.x];
-   return tile?.resource===needed;
-  })){
+  const assigned=workers.map(u=>{
+   const job=jobs[u.id];
+   return job?match.battlefield.tiles[job.y*match.battlefield.width+job.x]?.resource:null;
+  }).filter(Boolean);
+  const needed=uncoveredMandatoryResource(priority,deficits,assigned);
+  if(needed){
    const candidate=workers.filter(u=>{
     const job=jobs[u.id];if(!job||u.cargo?.amount>0||job.phase!=="harvest")return false;
     if(match.elapsedMs-(job.assignedAtMs??0)<20000)return false;

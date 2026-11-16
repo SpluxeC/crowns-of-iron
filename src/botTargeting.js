@@ -43,8 +43,14 @@ export function selectSquadObjective(match,owner,stance,army){
    const workerBonus=stance==="raid"&&u.archetype==="Worker"?-45:0;
    const defensive=stance==="defend"?threat*12:nearBase*.15;
    const siegeBonus=["Heavy Artillery","Bomber"].includes(u.archetype)?-15:0;
+   // Prefer objectives that more of the existing squad can legally engage.
+   // A mixed land/air army should not converge on an inaccessible air target
+   // when a similar land threat can be handled by the whole group.
+   const coverage=army.filter(attacker=>attacker.attack>0&&
+    canEngage(attacker,u)).length;
+   const uncovered=army.length-coverage;
    return baseDistance*4+defensive+workerBonus+siegeBonus+
-    Math.round(u.hp/40);
+    uncovered*12+Math.round(u.hp/40);
   }
   return cost(a)-cost(b)||a.owner.localeCompare(b.owner)||
     a.unit.id.localeCompare(b.unit.id);
