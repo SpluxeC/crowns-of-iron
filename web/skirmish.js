@@ -217,7 +217,7 @@ function render3d(){
 }
 function draw(){render3d();}
 function setTool(mode){tool=mode;placement.style.display="none";
- for(const name of ["select","smart","move","attack","attackMove","formation","harvest","build"]){
+ for(const name of ["select","smart","move","attack","attackMove","formation","patrol","harvest","build"]){
   $(name)?.classList.toggle("active",name===mode);
  } }
 function structureAt(x,y){
@@ -253,7 +253,7 @@ function tileClick(x,y,shift=false,hit=null,context=false){
   order({action:"build",kind:building.kind,x,y,workers});
   setTool("select");notify("Building ordered: "+building.kind);return;
  }
- if(context||["smart","move","attack","attackMove","formation","harvest"].includes(tool)){
+ if(context||["smart","move","attack","attackMove","formation","patrol","harvest"].includes(tool)){
   if(!selected.size){notify("Select units first",true);return;}
   const ids=[...selected],armed=ours.filter(u=>selected.has(u.id)&&u.attack>0);
   let commands=[];
@@ -266,6 +266,7 @@ function tileClick(x,y,shift=false,hit=null,context=false){
   else if(tool==="harvest")commands=ours.filter(u=>selected.has(u.id)&&u.archetype==="Worker")
    .map(u=>({action:"assignHarvest",workerId:u.id,x,y}));
   else if(tool==="attackMove")commands=armed.map(u=>({action:"attackMove",unitId:u.id,x,y}));
+  else if(tool==="patrol")commands=armed.map(u=>({action:"patrol",unitId:u.id,x,y}));
   else if(tool==="attack"){
    if(unit&&unit.side!=="human")commands=armed.map(u=>({action:"attack",attacker:u.id,
     targetPlayer:unit.side,target:unit.id}));
@@ -438,7 +439,7 @@ $("pause").onclick=()=>worker.postMessage({type:"pause"});
 $("speed").onclick=()=>{speed=speed===1?2:speed===2?4:1;
  worker.postMessage({type:"speed",multiplier:speed});$("speed").textContent="Speed "+speed+"×";};
 $("step").onclick=()=>worker.postMessage({type:"singleStep"});
-for(const mode of ["select","smart","move","attack","attackMove","formation","harvest"])
+for(const mode of ["select","smart","move","attack","attackMove","formation","patrol","harvest"])
  $(mode).onclick=()=>{
   if(mode!=="select"&&!selected.size){notify("Select units before issuing orders",true);return;}
   setTool(mode);
