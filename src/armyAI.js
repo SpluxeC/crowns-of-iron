@@ -108,19 +108,18 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
      // Keep a valid, in-zone fallback while checking candidate routes.
      // Out-of-zone/illegal orders are discarded if no replacement is reachable.
    }else if(current)continue;
+   const candidateScore=entry=>{
+    const key=targetKey(entry.owner.id,entry.unit.id);
+    const selfAssigned=Number(current?.aiIssued&&
+     current.targetPlayer===entry.owner.id&&current.targetId===entry.unit.id);
+    return score(entry.unit,unit,stance,focus)-
+     (objective?.unit.id===entry.unit.id?85:0)+
+     botTargetSaturationPenalty(Math.max(0,count(key)-selfAssigned));
+   };
    const candidates=enemies.filter(e=>eligible(unit,e.unit)&&
       (stance!=="defend"||(points?points.some(pt=>gridDistance(pt,e.unit)<=9):distance(e.unit,start)<=12)))
-     .sort((a,b)=>(score(a.unit,unit,stance,focus)-
-      (objective?.unit.id===a.unit.id?85:0)+
-      botTargetSaturationPenalty(Math.max(0,count(targetKey(a.owner.id,a.unit.id))-
-       Number(current?.aiIssued&&current.targetPlayer===a.owner.id&&
-        current.targetId===a.unit.id))))-
-      (score(b.unit,unit,stance,focus)-
-      (objective?.unit.id===b.unit.id?85:0)+
-      botTargetSaturationPenalty(Math.max(0,count(targetKey(b.owner.id,b.unit.id))-
-       Number(current?.aiIssued&&current.targetPlayer===b.owner.id&&
-        current.targetId===b.unit.id)))))||
-       a.owner.id.localeCompare(b.owner.id)||a.unit.id.localeCompare(b.unit.id));
+     .sort((a,b)=>candidateScore(a)-candidateScore(b)||
+      a.owner.id.localeCompare(b.owner.id)||a.unit.id.localeCompare(b.unit.id));
    const [fallbackRange]=ATTACK_PROFILE[unit.archetype]??[1];
    const range=unit.range??fallbackRange;
    if(range<=0)continue;
