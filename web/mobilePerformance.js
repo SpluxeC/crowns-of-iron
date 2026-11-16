@@ -1,6 +1,18 @@
 /** Adaptive browser WebGL render policy. Pure state machine, no browser globals. 
  * Frame budget includes CPU mesh generation and GPU submission; this is
  * intentionally coarse and cannot measure asynchronous GPU frame time. */
+/** Bound WebGL render-target memory by both its longest edge and total pixels.
+ * The CSS battlefield still occupies the full viewport at any quality level. */
+export function battlefieldRenderSize(width,height,scale,{mobile=false}={}){
+ if(!Number.isFinite(width)||!Number.isFinite(height)||
+    !Number.isFinite(scale)||width<=0||height<=0||scale<=0)
+  return {width:1,height:1};
+ const pixels=mobile?1500000:3000000;
+ const limit=Math.min(scale,2048/width,2048/height,
+  Math.sqrt(pixels/(width*height)));
+ return {width:Math.max(1,Math.round(width*limit)),
+  height:Math.max(1,Math.round(height*limit))};
+}
 export function createRenderQuality({mobile=false,devicePixelRatio=1,mode="Auto"}={}){
  if(!["Auto","Performance","Quality"].includes(mode))throw Error("Invalid graphics mode");
  // Browsers may temporarily report zero or nonfinite DPR during resize,
