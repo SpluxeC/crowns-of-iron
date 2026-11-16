@@ -18,6 +18,9 @@ small,.hint{color:#b7d2d8;font-size:12px}a{color:#c3e7ed}
 #battle{z-index:0}#map3d{display:block;border:0;background:#09151f;cursor:grab;touch-action:none}
 #map3d:active{cursor:grabbing}
 #selectionRect{position:fixed;z-index:2;border:1px solid #dcef84;background:#dcef8430;pointer-events:none}
+#buildOutline{position:fixed;inset:0;width:100%;height:100%;z-index:2;pointer-events:none}
+#buildPolygon{fill:#63be7c5c;stroke:#a3f7ae;stroke-width:3}
+#buildPolygon.invalid{fill:#e76b535a;stroke:#f5aa9a}
 #placement{position:fixed;z-index:3;display:none;pointer-events:none;border:2px solid #d8b066;background:#c8994060;border-radius:4px;min-width:22px;min-height:22px;font-size:10px;color:white;padding:3px;box-shadow:0 0 10px #0008}
 #placement.valid{border-color:#9ce69c;background:#55a86570}
 #feedback{position:fixed;z-index:7;left:50%;top:calc(env(safe-area-inset-top) + 66px);transform:translateX(-50%);max-width:min(80vw,480px);padding:8px 12px;border-radius:8px;border:1px solid #a4c4cf;background:#112b3df0;color:#eaf6f0;text-align:center;pointer-events:none}
@@ -75,6 +78,9 @@ small,.hint{color:#b7d2d8;font-size:12px}a{color:#c3e7ed}
 <body>
 <div id="battle"><canvas id="map3d" width="960" height="720" aria-label="Fullscreen 3D RTS battlefield: select units or buildings, drag selection rectangles on desktop, pinch to zoom on touchscreens"></canvas></div>
 <div id="selectionRect" hidden aria-hidden="true"></div>
+<svg id="buildOutline" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" hidden preserveAspectRatio="none">
+ <polygon id="buildPolygon"></polygon>
+</svg>
 <div id="placement" aria-live="off"></div>
 <div id="feedback" hidden role="status" aria-live="polite"></div>
 <header id="topbar">
