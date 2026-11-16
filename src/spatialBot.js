@@ -1,6 +1,6 @@
 /** Deterministic, age-aware AI resource allocation. Workers physically collect
  * and return finite cargo; resource selection never credits free inventory. */
-import {assignHarvestJob} from "./spatialEconomy.js";
+import {assignHarvestJob,cancelHarvestJob} from "./spatialEconomy.js";
 import {findPath,walkable} from "./map.js";
 import {getPlayer} from "./state.js";
 import {ageResearchDeficit} from "./botResearchPlanner.js";
@@ -18,14 +18,22 @@ const BASE_WEIGHTS={
  IV:{Food:22,Metal:26,Gold:18,Wood:12,Stone:12,Aether:5},
  V:{Food:19,Metal:22,Gold:18,Wood:11,Stone:12,Aether:14}
 };
+/** Only living deposits can support a continued harvest assignment.
+ * Loaded workers must still return their remaining cargo independently. */
+export function harvestDepositAvailable(map,job){
+ if(!job||!map||!Number.isInteger(job.x)||!Number.isInteger(job.y))return false;
+ const tile=map.tiles[job.y*map.width+job.x];
+ return Boolean(tile?.resource&&tile.amount>0&&walkable(map,job.x,job.y));
+}
 export function resourcePriorities(match,owner){
  const p=getPlayer(match,owner),resources=PRIORITIES[p.age]??PRIORITIES.I;
  const deficits=match.fullCatalog?ageResearchDeficit(match,p):{};
  const counts=Object.fromEntries(resources.map(k=>[k,0]));
  for(const job of Object.values(match.harvestJobs??{})){
   if(job.owner!==owner)continue;
+  if(!harvestDepositAvailable(match.battlefield,job))continue;
   const tile=match.battlefield.tiles[job.y*match.battlefield.width+job.x];
-  if(tile?.resource&&tile.resource in counts)counts[tile.resource]++;
+  if(tile.resource in counts)counts[tile.resource]++;
  }
  const score=resource=>(
   (BASE_WEIGHTS[p.age]?.[resource]??5)+Math.min(300,(deficits[resource]??0)*1.4)
@@ -50,6 +58,14 @@ export function assignSpatialBotWorker(match,owner){
    .filter(s=>!s.completed&&s.owner===owner).flatMap(s=>s.workerIds));
  const workers=p.units.filter(u=>u.alive&&u.archetype==="Worker"&&
   Number.isInteger(u.x)&&!busy.has(u.id));
+ // Recycle depleted or newly blocked assignments without dropping loaded cargo.
+ // The next harvest assignment is still validated by authoritative movement.
+ for(const worker of workers){
+  const job=jobs[worker.id];
+  if(job?.owner===owner&&!(worker.cargo?.amount>0)&&
+     !harvestDepositAvailable(match.battlefield,job))
+   cancelHarvestJob(match,owner,worker.id);
+ }
  const eligible=workers.filter(u=>!jobs[u.id]&&!(u.cargo?.amount>0));
  const priority=resourcePriorities(match,owner);
  let reassignedWorkerId=null,requiredResource=null;
@@ -59,7 +75,8 @@ export function assignSpatialBotWorker(match,owner){
   const deficits=ageResearchDeficit(match,p);
   const assigned=workers.map(u=>{
    const job=jobs[u.id];
-   return job?match.battlefield.tiles[job.y*match.battlefield.width+job.x]?.resource:null;
+   return harvestDepositAvailable(match.battlefield,job)?
+    match.battlefield.tiles[job.y*match.battlefield.width+job.x].resource:null;
   }).filter(Boolean);
   const needed=uncoveredMandatoryResource(priority,deficits,assigned);
   if(needed){
