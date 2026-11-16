@@ -21,6 +21,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Run mirrored faction combat balance diagnostics
+        run: npm run faction-matchups
       - name: Run full 30-minute-capped AI match matrix across six factions
         run: npm run full-match-matrix
       - name: Run long AI skirmish soak and deterministic replay
