@@ -231,43 +231,62 @@ function unitAt(x,y){
  return all.filter(u=>Math.abs(u.x-x)<=1&&Math.abs(u.y-y)<=1)
   .sort((a,b)=>(a.x-x)**2+(a.y-y)**2-(b.x-x)**2-(b.y-y)**2)[0]??null;
 }
-function tileClick(x,y,shift=false,hit=null){
+function issueOrders(commands,label="Order"){
+ if(!commands.length){notify(label+" unavailable for this selection",true);return;}
+ for(const entry of commands)order(entry);
+ notify(label+" issued ("+commands.length+")");
+}
+function tileClick(x,y,shift=false,hit=null,context=false){
  if(!state||state.winner!==null)return;
  x=Math.floor(x);y=Math.floor(y);
  if(x<0||y<0||x>=state.world.width||y>=state.world.height)return;
+ const tile=state.world.tiles[y*state.world.width+x];
  const unit=hit?.kind==="unit"?hit.unit:unitAt(x,y),ours=state.players[0].units;
- if(tool==="build"){
+ const site=hit?.kind==="structure"?hit.site:structureAt(x,y);
+ if(tool==="build"&&!context){
   const building=choices.buildings[Number($("buildChoice").value)];
-  const workerUnit=ours.find(u=>selected.has(u.id)&&u.archetype==="Worker");
-  if(!building||!workerUnit){log("Select an active Worker and a building");return;}
-  order({action:"build",kind:building.kind,x,y,workers:[workerUnit.id]});
-  setTool("select");return;
+  const workers=ours.filter(u=>selected.has(u.id)&&u.archetype==="Worker").map(u=>u.id);
+  if(!building||!workers.length){notify("Select a Worker and choose a building",true);return;}
+  if(!placementValid(state.world,x,y,building.footprint)){
+   notify("Building footprint must be on unoccupied grass",true);return;
+  }
+  order({action:"build",kind:building.kind,x,y,workers});
+  setTool("select");notify("Building ordered: "+building.kind);return;
  }
- if(unit?.side==="human"&&(tool==="select"||tool==="attack")){
+ if(context||["smart","move","attack","attackMove","formation","harvest"].includes(tool)){
+  if(!selected.size){notify("Select units first",true);return;}
+  const ids=[...selected],armed=ours.filter(u=>selected.has(u.id)&&u.attack>0);
+  let commands=[];
+  if(context||tool==="smart")
+   commands=smartOrder({selected:ids,units:ours,
+    hit:hit??(unit?{kind:"unit",unit}:site?{kind:"structure",site}:null),
+    tile,terrain:tile,modifier:shift});
+  else if(tool==="move")commands=ids.map(unitId=>({action:"move",unitId,x,y}));
+  else if(tool==="formation")commands=[{action:"formation",units:ids,x,y}];
+  else if(tool==="harvest")commands=ours.filter(u=>selected.has(u.id)&&u.archetype==="Worker")
+   .map(u=>({action:"assignHarvest",workerId:u.id,x,y}));
+  else if(tool==="attackMove")commands=armed.map(u=>({action:"attackMove",unitId:u.id,x,y}));
+  else if(tool==="attack"){
+   if(unit&&unit.side!=="human")commands=armed.map(u=>({action:"attack",attacker:u.id,
+    targetPlayer:unit.side,target:unit.id}));
+   else if(site&&site.owner!=="human")commands=armed.map(u=>({action:"attackStructure",
+    unitId:u.id,siteId:site.id}));
+  }
+  issueOrders(commands,context?"Smart command":tool);
+  if(!context)setTool("select");
+  return;
+ }
+ if(unit?.side==="human"){
   selectedStructure=null;
-  if(!shift)selected.clear();
-  if(shift&&selected.has(unit.id))selected.delete(unit.id);
-  else selected.add(unit.id);
+  selected=new Set(clampSelection([unit.id],ours.map(u=>u.id),shift,[...selected]));
   updateSidebar(state);draw();return;
  }
- if(tool==="move"){
-  if(!selected.size){log("Select units first");return;}
-  for(const id of selected)order({action:"move",unitId:id,x,y});
-  setTool("select");return;
- }
- if(tool==="attack"&&unit?.side!=="human"&&unit){
-  for(const id of selected)order({action:"attack",attacker:id,
-   targetPlayer:unit.side,target:unit.id});
-  setTool("select");return;
- }
- if(tool==="select"){
-  const site=hit?.kind==="structure"?hit.site:structureAt(x,y);
-  if(site){selectedStructure=site.id;selected.clear();
-   updateSidebar(state);draw();return;}
+ if(site){
+  selectedStructure=site.id;selected.clear();
+  updateSidebar(state);draw();notify("Selected "+site.kind);return;
  }
  if(!shift)selected.clear();
- selectedStructure=null;
- updateSidebar(state);draw();
+ selectedStructure=null;updateSidebar(state);draw();
 }
 const pointAt=e=>{
  const rect=canvas.getBoundingClientRect();
