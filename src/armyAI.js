@@ -58,6 +58,11 @@ export function selectReachableBotTarget(candidates,canReach,maxChecks=16){
   if(canReach(candidate))return candidate;
  return null;
 }
+/** The next soldier follows the last *reachable* target, not a global
+ * objective that may be blocked by mountains, walls or domain constraints. */
+export function nextBotSquadFocus(previousFocus,reachableTarget){
+ return reachableTarget?.id??previousFocus??null;
+}
 /** One deterministic tactical decision; does not issue unvalidated client commands. */
 export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  assert(STANCES.has(stance),"Invalid army stance");
@@ -107,7 +112,7 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
       targetId:candidate.unit.id,carryMs:0,aiIssued:true};
     // Coordinate subsequent units around an objective that was actually
     // reachable; do not keep favoring a squad objective nobody can path to.
-    focus=candidate.unit.id;
+    focus=nextBotSquadFocus(focus,candidate.unit);
     issued.push({unitId:unit.id,targetId:candidate.unit.id});
    }
    // Cleanup an invalid stale order only when there is no valid target left.
