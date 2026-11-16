@@ -3,13 +3,18 @@
  * intentionally coarse and cannot measure asynchronous GPU frame time. */
 export function createRenderQuality({mobile=false,devicePixelRatio=1,mode="Auto"}={}){
  if(!["Auto","Performance","Quality"].includes(mode))throw Error("Invalid graphics mode");
- const maximum=mobile?Math.min(1.35,devicePixelRatio):Math.min(1.75,devicePixelRatio);
+ // Browsers may temporarily report zero or nonfinite DPR during resize,
+ // orientation transitions or WebView lifecycle changes.
+ const safeDpr=Number.isFinite(devicePixelRatio)&&devicePixelRatio>0
+  ?devicePixelRatio:1;
+ const maximum=mobile?Math.min(1.35,safeDpr):Math.min(1.75,safeDpr);
  const minimum=mobile?Math.min(.7,maximum):Math.min(.85,maximum);
  let scale=mode==="Performance"?minimum:maximum;
  let interval=mobile?1000/30:1000/45;
- let slow=0,fast=0,lastAdjustment=0,average=0,samples=0;
+ let slow=0,fast=0,lastAdjustment=0,lastObserved=-Infinity,average=0,samples=0;
  function observe(ms,atMs){
-  if(!Number.isFinite(ms)||ms<0||!Number.isFinite(atMs))return false;
+  if(!Number.isFinite(ms)||ms<0||!Number.isFinite(atMs)||atMs<lastObserved)return false;
+  lastObserved=atMs;
   average=average?average*.85+ms*.15:ms;
   samples++;
   if(mode!=="Auto"||samples<12||atMs-lastAdjustment<3500)return false;
@@ -35,7 +40,7 @@ export function createRenderQuality({mobile=false,devicePixelRatio=1,mode="Auto"
  function setMode(next){
   if(!["Auto","Performance","Quality"].includes(next))throw Error("Invalid graphics mode");
   mode=next;scale=next==="Performance"?minimum:maximum;average=0;
-  samples=slow=fast=0;lastAdjustment=0;interval=mobile?1000/30:1000/45;
+  samples=slow=fast=0;lastAdjustment=0;lastObserved=-Infinity;interval=mobile?1000/30:1000/45;
  }
  return {observe,setMode,scale:()=>scale,frameInterval:()=>interval,
   stats:()=>({mode,mobile,scale,averageMs:Math.round(average*10)/10,
