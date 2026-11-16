@@ -57,16 +57,17 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  for(const unit of attackers){
    if(issued.length>=maxOrders)break;
    const current=match.orders?.[unit.id];
+   let previousTarget=null;
    if(current?.kind==="attack"&&current.aiIssued){
-     const target=enemies.find(e=>e.owner.id===current.targetPlayer&&e.unit.id===current.targetId);
-     if(target&&(stance!=="defend"||(points?points.some(pt=>gridDistance(pt,target.unit)<=9):distance(target.unit,start)<=12))){
-       // An existing raid/assault order must not distract defenders from a
-       // more urgent attacker threatening the base or its workers.
-       const needsDefenseRetarget=stance==="defend"&&
-        shouldDefenderRetarget(unit,target.unit,objective?.unit);
-       if(!needsDefenseRetarget)continue;
-     }
-     delete match.orders[unit.id];
+     previousTarget=enemies.find(e=>e.owner.id===current.targetPlayer&&e.unit.id===current.targetId);
+     const withinDefense=stance!=="defend"||(points?
+      points.some(pt=>gridDistance(pt,previousTarget?.unit??{x:Infinity,y:Infinity})<=9):
+      previousTarget&&distance(previousTarget.unit,start)<=12);
+     if(previousTarget&&eligible(unit,previousTarget.unit)&&withinDefense&&
+       !(stance==="defend"&&shouldDefenderRetarget(unit,previousTarget.unit,objective?.unit)))
+      continue;
+     // Preserve a viable fallback while checking replacement paths. Never
+     // discard a legitimate existing attack just because a new path fails.
    }else if(current)continue;
    const candidates=enemies.filter(e=>eligible(unit,e.unit)&&
       (stance!=="defend"||(points?points.some(pt=>gridDistance(pt,e.unit)<=9):distance(e.unit,start)<=12)))
@@ -90,6 +91,10 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
      issued.push({unitId:unit.id,targetId:candidate.unit.id});
      break;
    }
+   // Cleanup an invalid stale order only when there is no valid target left.
+   if(current?.aiIssued&&current.kind==="attack"&&!issued.some(x=>x.unitId===unit.id)&&
+    (!previousTarget||!eligible(unit,previousTarget.unit)))
+    delete match.orders[unit.id];
  }
  return issued;
 }
