@@ -1,5 +1,6 @@
 /** Local full-catalog AI stance selection without hidden player input or randomness.
  * Uses only authoritative positions and deterministic integer comparisons. */
+import {threatenedLocations} from "./botTargeting.js";
 const distance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
 const DEPTH={Easy:7,Normal:10,Hard:13};
 export function assessBotThreat(match,owner){
@@ -11,7 +12,8 @@ export function assessBotThreat(match,owner){
  const enemies=match.players.filter(p=>p.team!==player.team&&!p.defeated)
   .flatMap(p=>p.units.filter(u=>u.alive&&Number.isInteger(u.x)));
  const radius=DEPTH[match.bots?.[owner]?.difficulty]??10;
- const nearby=enemies.filter(u=>distance(u,start)<=radius);
+ const protectedPoints=match.fullCatalog?threatenedLocations(match,owner):[start];
+ const nearby=enemies.filter(u=>protectedPoints.some(pt=>distance(u,pt)<=radius));
  const workers=player.units.filter(u=>u.alive&&u.archetype==="Worker"&&Number.isInteger(u.x));
  return {nearby:nearby.filter(u=>u.attack>0).length,
   workersThreatened:workers.filter(w=>enemies.some(e=>distance(e,w)<=4)).length,

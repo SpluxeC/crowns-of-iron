@@ -6,8 +6,10 @@ import {constructionDefinition} from "./structureCatalog.js";
 import {STRUCTURES} from "./construction.js";
 import {ageIndex,affordable} from "./util.js";
 import {cancelHarvestJob} from "./spatialEconomy.js";
+import {canFundOptionalSpend} from "./botResearchPlanner.js";
 const MAX_SITES={Shelter:3,"Training Camp":1,Farm:2,Barracks:2,"Archery Range":1,
- "Resource Depot":2,Forge:1};
+ "Resource Depot":2,Forge:1,Academy:1,"Siege Workshop":1,
+ "Field Hospital":1,Foundry:1,"Airship Hangar":1,"Grand Factory":1};
 const ageAllowed=(p,def)=>ageIndex(p.age)>=ageIndex(def.age);
 function siteCount(match,p,kind){
  return Object.values(match.constructions??{}).filter(s=>s.owner===p.id&&s.kind===kind).length;
@@ -21,11 +23,18 @@ export function desiredBotBuilding(match,player){
   "Training Camp",
   ...(player.age!=="I"?["Farm","Barracks","Archery Range","Forge"]:[]),
   ...(player.age!=="I"?["Resource Depot"]:[]),
+  ...(["III","IV","V"].includes(player.age)?
+   ["Academy","Siege Workshop","Field Hospital"]:[]),
+  ...(["IV","V"].includes(player.age)?["Foundry","Airship Hangar"]:[]),
+  ...(player.age==="V"?["Grand Factory"]:[]),
   ...(alive+waiting>=player.popCap-3?["Shelter"]:[])
  ];
  for(const kind of want){
   const def=constructionDefinition(match,player,kind,STRUCTURES);
   if(!def||!ageAllowed(player,def)||!affordable(player.resources,def.cost))continue;
+  // A military or utility expansion should never consume funds earmarked for
+  // the next mandatory civilization technology. Housing remains emergency.
+  if(kind!=="Shelter"&&!canFundOptionalSpend(match,player,def.cost))continue;
   if(siteCount(match,player,kind)>=(MAX_SITES[kind]??1))continue;
   const existing=Object.values(match.constructions??{}).find(s=>
    s.owner===player.id&&s.kind===kind&&!s.completed);
