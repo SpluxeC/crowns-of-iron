@@ -21,7 +21,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Run long AI skirmish soak and deterministic replay\n        run: npm run solo-soak\n      - name: Prebuild static single-player site and glTF models
+      - name: Run long AI skirmish soak and deterministic replay
+        run: npm run solo-soak
+      - name: Prebuild static single-player site and glTF models
         run: npm run build-pages
       - name: Install real Chromium test runner
         run: npm install --no-save playwright@1.56.1
