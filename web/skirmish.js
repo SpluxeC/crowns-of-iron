@@ -4,6 +4,7 @@ import {createRtsCamera,sampleTerrain,edgeAxis} from "./rtsCamera.js";
 import {projectedEntityHit} from "./rtsPicking.js";
 import {cameraForMap,projectWorld,heightFor as terrainHeight} from "./webgl3d.js";
 import {clampSelection,rectangleUnits,smartOrder,placementValid,MAX_SELECTION} from "./rtsInteraction.js";
+import {createRenderQuality} from "./mobilePerformance.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map3d");
 const worker=new Worker(new URL("./skirmishWorker.js",import.meta.url),{type:"module"});
@@ -16,6 +17,11 @@ const feedback=$("feedback"),placement=$("placement"),
 let feedbackReset=null;
 const camera=createRtsCamera();
 let previousFrame=0,lastRender=0,orientationPaused=false;
+const mobileDevice=window.matchMedia("(pointer: coarse)").matches||
+ window.matchMedia("(max-width: 900px)").matches;
+const graphics=createRenderQuality({mobile:mobileDevice,
+ devicePixelRatio:window.devicePixelRatio||1});
+let qualityResizeQueued=false,frameCounter=0;
 let reportedWinner=null;
 function displayResults(report){
  if(!report||reportedWinner===report.winner)return;
@@ -56,13 +62,13 @@ $("closeEmpire").addEventListener("click",()=>showEmpire(false));
 function resizeBattlefield(){
  const r=canvas.getBoundingClientRect();
  if(!r.width||!r.height)return;
- const pixelRatio=Math.min(1.75,Math.max(1,window.devicePixelRatio||1));
+ const pixelRatio=graphics.scale();
  const maxDimension=2048,limit=Math.min(pixelRatio,maxDimension/r.width,maxDimension/r.height);
  const w=Math.max(1,Math.round(r.width*limit)),
   h=Math.max(1,Math.round(r.height*limit));
  if(canvas.width!==w||canvas.height!==h){
   canvas.width=w;canvas.height=h;
-  if(renderer&&state)render3d();
+  if(renderer&&state)requestAnimationFrame(()=>render3d());
  }
 }
 new ResizeObserver(resizeBattlefield).observe(canvas);
@@ -251,12 +257,27 @@ async function init3D(){
  finally{loading3d=false;}
 }
 function render3d(){
- if(!renderer||!state)return;
+ if(!renderer||!state||document.hidden)return;
+ const begin=performance.now();
  try{
   renderer.setCamera(camera.pose((world,x,z)=>sampleTerrain(world,x,z,heightFor)));
   renderer.draw(state.world,{players:state.players,viewerId:"human",
    elapsedMs:state.elapsedMs},selected);
  }catch(e){log("3D render: "+e.message);}
+ finally{
+  const ended=performance.now();
+  const adjusted=graphics.observe(ended-begin,ended);
+  if(adjusted&&!qualityResizeQueued){
+   qualityResizeQueued=true;
+   requestAnimationFrame(()=>{qualityResizeQueued=false;resizeBattlefield();});
+  }
+  if(++frameCounter%20===0){
+   const status=graphics.stats();
+   $("graphicsStats").textContent="Render: "+status.targetFps+
+    " FPS cap · "+status.scale.toFixed(2)+"× resolution · CPU "+
+    status.averageMs.toFixed(1)+" ms/frame";
+  }
+ }
 }
 function draw(){render3d();}
 function setTool(mode){tool=mode;placement.style.display="none";buildOutline.hidden=true;
@@ -454,7 +475,7 @@ function cameraFrame(now){
    edgeAxis(pointer.x,pointer.y,pointer.width,pointer.height):{x:0,z:0};
   const changed=camera.update(dt,{edge,terrainHeight:
    (world,x,z)=>sampleTerrain(world,x,z,heightFor)});
-  if(changed&&now-lastRender>=1000/45){render3d();lastRender=now;}
+  if(changed&&now-lastRender>=graphics.frameInterval()){render3d();lastRender=now;}
   const pos=camera.state();
   const status=$("cameraStatus");
   if(status)status.textContent="Camera: X "+pos.x.toFixed(1)+" · Z "+
@@ -464,6 +485,12 @@ function cameraFrame(now){
  requestAnimationFrame(cameraFrame);
 }
 requestAnimationFrame(cameraFrame);
+$("graphicsMode").addEventListener("change",e=>{
+ graphics.setMode(e.target.value);resizeBattlefield();
+ const status=graphics.stats();
+ $("graphicsStats").textContent=status.mode+" · "+status.scale.toFixed(2)+
+  "× resolution · "+status.targetFps+" FPS target";
+});
 $("launch").onclick=()=>{
  $("launch").disabled=true;focusInitial=true;selectedStructure=null;
  worker.postMessage({type:"start",settings:{
