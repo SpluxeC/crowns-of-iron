@@ -2,6 +2,7 @@ import {assert} from "./util.js";
 import {pathForUnit,movementDomain} from "./movementDomains.js";
 import {ATTACK_PROFILE} from "./battlefield.js";
 import {canEngage} from "./engagementRules.js";
+import {selectSquadObjective,threatenedLocations,gridDistance} from "./botTargeting.js";
 
 const STANCES=new Set(["assault","defend","raid","hold"]);
 const ANTI_AIR=new Set(["Anti-Air Infantry","Interceptor","Gunship","Aerial Battleship"]);
@@ -42,18 +43,23 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  const enemies=match.players.filter(x=>x.team!==p.team&&!x.defeated).flatMap(owner=>
   owner.units.filter(u=>u.alive&&Number.isInteger(u.x)&&!u.garrisonedAt&&!u.embarkedAt)
    .map(unit=>({owner,unit})));
- const issued=[];let focus=null;
+ const objective=match.fullCatalog?selectSquadObjective(match,owner,stance,attackers):null;
+ const points=stance==="defend"&&match.fullCatalog?threatenedLocations(match,owner):null;
+ const issued=[];let focus=objective?.unit.id??null;
  for(const unit of attackers){
    if(issued.length>=maxOrders)break;
    const current=match.orders?.[unit.id];
    if(current?.kind==="attack"&&current.aiIssued){
      const target=enemies.find(e=>e.owner.id===current.targetPlayer&&e.unit.id===current.targetId);
-     if(target&&(stance!=="defend"||distance(target.unit,start)<=12))continue;
+     if(target&&(stance!=="defend"||(points?points.some(pt=>gridDistance(pt,target.unit)<=9):distance(target.unit,start)<=12)))continue;
      delete match.orders[unit.id];
    }else if(current)continue;
    const candidates=enemies.filter(e=>eligible(unit,e.unit)&&
-      (stance!=="defend"||distance(e.unit,start)<=12))
-     .sort((a,b)=>score(a.unit,unit,stance,focus)-score(b.unit,unit,stance,focus)||
+      (stance!=="defend"||(points?points.some(pt=>gridDistance(pt,e.unit)<=9):distance(e.unit,start)<=12)))
+     .sort((a,b)=>(score(a.unit,unit,stance,focus)-
+      (objective?.unit.id===a.unit.id?85:0))-
+      (score(b.unit,unit,stance,focus)-
+      (objective?.unit.id===b.unit.id?85:0))||
        a.unit.id.localeCompare(b.unit.id));
    const [fallbackRange]=ATTACK_PROFILE[unit.archetype]??[1];
    const range=unit.range??fallbackRange;
