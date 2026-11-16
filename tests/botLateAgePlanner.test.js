@@ -24,7 +24,9 @@ test("Age III expands its economy and then unlocks Academy-era building plans",(
  m.constructions={"test":{owner:p.id,kind:"Training Camp",completed:true}};
  assert.equal(desiredBotBuilding(m,p)?.kind,"Farm");
  m.constructions.farm={owner:p.id,kind:"Farm",completed:true};
+ m.constructions.farm2={owner:p.id,kind:"Farm",completed:true};
  m.constructions.barracks={owner:p.id,kind:"Barracks",completed:true};
+ m.constructions.barracks2={owner:p.id,kind:"Barracks",completed:true};
  m.constructions.range={owner:p.id,kind:"Archery Range",completed:true};
  m.constructions.forge={owner:p.id,kind:"Forge",completed:true};
  m.constructions.depot={owner:p.id,kind:"Resource Depot",completed:true};
@@ -33,7 +35,7 @@ test("Age III expands its economy and then unlocks Academy-era building plans",(
 test("Age IV and V plans contain distinct heavy production facilities",()=>{
  const {m,p}=fixture("V");
  const kinds=["Training Camp","Farm","Barracks","Archery Range","Forge","Resource Depot",
-  "Academy","Siege Workshop","Field Hospital"];
+  "Academy","Siege Workshop","Field Hospital","Farm","Barracks"];
  m.constructions=Object.fromEntries(kinds.map((kind,i)=>[
   "site"+i,{kind,owner:p.id,completed:true}]));
  assert.equal(desiredBotBuilding(m,p)?.kind,"Foundry");
