@@ -108,11 +108,15 @@ export function tickBots(match,deltaMs){
     // Economic development plus deterministic strategic and tactical decisions.
     const harvest=match.economyMode==="spatial"?assignSpatialBotWorker(match,id):null;
     const planned=match.economyMode==="spatial"&&match.fullCatalog?tryBotConstruction(match,player):null;
-    const recruited=!planned&&match.fullCatalog?
+    // Avoid starving age advancement and worker growth by queueing combat
+    // units before every economic decision. All actions spend real resources.
+    const economy=!planned?
+      tryResearch(player,match)??tryWorker(player,settings.workerGoal,match):null;
+    const recruited=!planned&&!economy&&match.fullCatalog?
       tryBotRecruitment(match,player,bot.difficulty==="Hard"?18:
        bot.difficulty==="Normal"?12:8):null;
-    const decision=planned?"build "+planned.kind:recruited?"recruit "+recruited.role:
-      tryResearch(player,match)??tryWorker(player,settings.workerGoal,match)??
+    const decision=planned?"build "+planned.kind:economy??
+      (recruited?"recruit "+recruited.role:null)??
       tryBaseExpansion(match,player)??tryInfantry(player,match)??
       (harvest?"harvest "+harvest.resource:null);
     const strategy=match.fullCatalog&&match.battlefield?
