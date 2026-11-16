@@ -2,6 +2,7 @@
  * Full catalog, collisions, harvesting and AI; no combat modifiers applied. */
 import assert from "node:assert/strict";
 import {analyzeMirroredMatchups} from "../src/mirroredMatchupDiagnostics.js";
+import {analyzeFactionProgression} from "../src/factionProgressionDiagnostics.js";
 import {readFileSync} from "node:fs";
 import {createMatch,step} from "../src/simulation.js";
 import {makeMap} from "../src/map.js";
@@ -62,9 +63,12 @@ const report=factions.map(faction=>{
   reachedII:appearances.filter(t=>(t.left===faction?t.ages[0]:t.ages[1])!=="I").length};
 });
 const diagnostics=analyzeMirroredMatchups(trials,factions);
+const progression=analyzeFactionProgression(trials,factions);
 const resolved=trials.filter(t=>!t.unresolved).length;
 assert.equal(diagnostics.resolved,resolved);
 assert.equal(diagnostics.mirroredPairs,15);
+assert.equal(progression.factions.length,6);
+assert.ok(progression.factions.every(r=>r.observations>0));
 assert.ok(trials.every(t=>t.ticks>0&&t.ticks<=seconds));
 assert.ok(trials.every(t=>t.checkpoints.every((c,i)=>c.second===(i+1)*120&&
  c.players.length===2&&c.players.every(p=>
@@ -74,5 +78,5 @@ assert.ok(report.every(r=>r.games===10));
 console.log("FACTION_BALANCE_RESULT="+JSON.stringify({
  pass:true,headlessOnly:true,fullCatalog:true,
  mirroredPairs:15,trials:30,horizonSeconds:seconds,resolved,
- factionSummary:report,sideDiagnostics:diagnostics,fixtures:trials
+ factionSummary:report,sideDiagnostics:diagnostics,progression,fixtures:trials
 }));
