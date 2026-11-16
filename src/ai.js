@@ -105,7 +105,7 @@ export function tickBots(match,deltaMs){
     if(match.economyMode!=="spatial")assignWorkers(player);
     // AI is economy/tech only. Tactical pathing and full-combat behaviors are later milestones.
     const harvest=match.economyMode==="spatial"?assignSpatialBotWorker(match,id):null;
-    const planned=match.economyMode==="spatial"?tryBotConstruction(match,player):null;
+    const planned=match.economyMode==="spatial"&&match.fullCatalog?tryBotConstruction(match,player):null;
     const decision=planned?"build "+planned.kind:
       tryResearch(player,match)??tryWorker(player,settings.workerGoal,match)??
       tryBaseExpansion(match,player)??tryInfantry(player,match)??
