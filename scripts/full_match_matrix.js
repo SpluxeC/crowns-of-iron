@@ -72,8 +72,10 @@ matches.push(run(1901,4,2).result);
 const deterministic=run(1301,2,0);
 assert.equal(deterministic.checksum,run(1301,2,0).checksum,
  "Same-seed complete game diverged");
-assert.deepEqual(deterministic.result,matches[0],
- "Repeated result differs from first complete game except for runtime");
+assert.deepEqual(
+ {...deterministic.result,executionMs:0},
+ {...matches[0],executionMs:0},
+ "Repeated complete game statistics diverged");
 const progressCount=matches.filter(m=>m.ageIIPlayers.length>0).length;
 const summary={pass:true,headlessOnly:true,
  fullGames:matches.length,ageIIProgressMatches:progressCount,
