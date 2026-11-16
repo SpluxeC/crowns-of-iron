@@ -13,7 +13,13 @@ export function createRenderQuality({mobile=false,devicePixelRatio=1,mode="Auto"
  let interval=mobile?1000/30:1000/45;
  let slow=0,fast=0,lastAdjustment=0,lastObserved=-Infinity,average=0,samples=0;
  function observe(ms,atMs){
-  if(!Number.isFinite(ms)||ms<0||!Number.isFinite(atMs)||atMs<lastObserved)return false;
+  if(!Number.isFinite(ms)||ms<0||!Number.isFinite(atMs)||atMs<=lastObserved)return false;
+  // A suspended mobile tab may resume many seconds later. Old slow/fast
+  // streaks and frame averages must not drive a fresh scene's resolution.
+  if(lastObserved!==-Infinity&&atMs-lastObserved>10000){
+   average=0;samples=slow=fast=0;
+   lastAdjustment=atMs;
+  }
   lastObserved=atMs;
   average=average?average*.85+ms*.15:ms;
   samples++;
