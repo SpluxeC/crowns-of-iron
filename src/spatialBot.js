@@ -40,6 +40,9 @@ export function uncoveredMandatoryResource(priority,deficits,assignedResources){
  return priority.find(resource=>(deficits[resource]??0)>0&&
   !assignedResources.includes(resource))??null;
 }
+export function harvestResourceOptions(priority,forcedResource=null){
+ return forcedResource===null?[...priority]:[forcedResource];
+}
 export function assignSpatialBotWorker(match,owner){
  if(match.economyMode!=="spatial"||!match.battlefield)return null;
  const p=getPlayer(match,owner),jobs=match.harvestJobs??{},
@@ -73,7 +76,8 @@ export function assignSpatialBotWorker(match,owner){
   // An already-assigned worker is rebalanced *only* for the uncovered
   // mandatory input. Otherwise the generic preference loop could send it
   // back to the same optional resource and indefinitely stall advancement.
-  for(const resource of worker.id===reassignedWorkerId?[requiredResource]:priority){
+  for(const resource of harvestResourceOptions(priority,
+   worker.id===reassignedWorkerId?requiredResource:null)){
    const sites=match.battlefield.tiles.filter(t=>t.resource===resource&&t.amount>0&&
     walkable(match.battlefield,t.x,t.y)).sort((a,b)=>
      Math.abs(worker.x-a.x)+Math.abs(worker.y-a.y)-
