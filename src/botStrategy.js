@@ -13,10 +13,11 @@ export function assessBotThreat(match,owner){
   .flatMap(p=>p.units.filter(u=>u.alive&&Number.isInteger(u.x)));
  const radius=DEPTH[match.bots?.[owner]?.difficulty]??10;
  const protectedPoints=match.fullCatalog?threatenedLocations(match,owner):[start];
- const nearby=enemies.filter(u=>protectedPoints.some(pt=>distance(u,pt)<=radius));
+ const hostileMilitary=enemies.filter(u=>u.attack>0&&u.archetype!=="Worker");
+ const nearby=hostileMilitary.filter(u=>protectedPoints.some(pt=>distance(u,pt)<=radius));
  const workers=player.units.filter(u=>u.alive&&u.archetype==="Worker"&&Number.isInteger(u.x));
- return {nearby:nearby.filter(u=>u.attack>0).length,
-  workersThreatened:workers.filter(w=>enemies.some(e=>distance(e,w)<=4)).length,
+ return {nearby:nearby.length,
+  workersThreatened:workers.filter(w=>hostileMilitary.some(e=>distance(e,w)<=4)).length,
   army:military.length,enemyArmy:enemies.filter(u=>u.attack>0).length,
   nearest:enemies.reduce((n,u)=>Math.min(n,distance(start,u)),Infinity)};
 }
@@ -26,10 +27,14 @@ export function chooseBotStrategy(match,owner){
  const t=assessBotThreat(match,owner),prior=bot.stance??"assault";
  // Preserve decisions for a minimum interval to avoid order thrashing.
  const cooldown=bot.stanceChangedAtMs??-Infinity;
- if(match.elapsedMs-cooldown<15000)return {stance:prior,changed:false,threat:t};
+ // Emergency defense preempts an offensive stance even inside its cooldown.
+ // The cooldown still prevents premature retreat from defense or raid thrashing.
+ const emergency=t.workersThreatened>0||
+  t.nearby>=Math.max(2,Math.floor(t.army*.65));
+ if(match.elapsedMs-cooldown<15000&&!(emergency&&prior!=="defend"))
+  return {stance:prior,changed:false,threat:t};
  let stance="assault";
- if(t.workersThreatened>0||t.nearby>=Math.max(2,Math.floor(t.army*.65)))
-  stance="defend";
+ if(emergency)stance="defend";
  else if(bot.difficulty!=="Easy"&&t.army>=6&&t.army>=t.enemyArmy+2)
   stance="raid";
  if(prior!==stance){
