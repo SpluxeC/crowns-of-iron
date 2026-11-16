@@ -9,7 +9,7 @@ import {attachBattlefield} from "../src/battlefield.js";
 import {installFullCatalog} from "../src/fullCatalog.js";
 import {enableUnitCollision} from "../src/unitCollision.js";
 import {setEconomyMode} from "../src/spatialEconomy.js";
-import {enableBot} from "../src/ai.js";
+import {enableBot,disableBot} from "../src/ai.js";
 import {applySkirmishVictory,skirmishReport,SKIRMISH_LIMIT_MS} from "../web/skirmishRules.js";
 const balance=JSON.parse(readFileSync(new URL("../data/balance-v0.2.json",import.meta.url)));
 const factions=["Humans","Orcs","Dwarfs","Tree Elves","Corrupt Elves","Ursa"];
@@ -76,8 +76,22 @@ assert.deepEqual(
  {...deterministic.result,executionMs:0},
  {...matches[0],executionMs:0},
  "Repeated complete game statistics diverged");
+// Real 1,800 one-second steps: exercise the time-limit resolution path
+// without setting match.elapsedMs directly or forcing a winner.
+const timed=setup(2401,2,0);
+for(const p of timed.players)disableBot(timed,p.id);
+let timedSteps=0;
+while(timed.winner===null&&timedSteps<1800){
+ step(timed,1000);applySkirmishVictory(timed);timedSteps++;
+}
+assert.equal(timedSteps,1800);
+assert.ok(timed.winner!==null);
+assert.equal(skirmishReport(timed).reason,"time limit");
 const progressCount=matches.filter(m=>m.ageIIPlayers.length>0).length;
+assert.ok(progressCount>=5,"Age II progression regressed in full-match matrix");
+assert.ok(matches.some(m=>m.highestAge>=3),
+ "No AI match reached Age III");
 const summary={pass:true,headlessOnly:true,
  fullGames:matches.length,ageIIProgressMatches:progressCount,
- deterministicCompleteGame:true,matches};
+ deterministicCompleteGame:true,full1800SecondTimeLimitVerified:true,matches};
 console.log("FULL_MATCH_MATRIX_RESULT="+JSON.stringify(summary));
