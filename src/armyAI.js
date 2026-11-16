@@ -38,6 +38,16 @@ export function shouldDefenderRetarget(unit,currentTarget,objective){
  return score(objective,unit,"defend",objective.id)+25<
   score(currentTarget,unit,"defend",null);
 }
+/** A defensive order is only worth retaining against an armed enemy near
+ * a protected location. Offensive stances retain their normal targets. */
+export function shouldRetainBotAttackTarget(unit,target,stance,protectedPoints,base){
+ if(!target||!eligible(unit,target))return false;
+ if(stance!=="defend")return true;
+ if(target.archetype==="Worker"||!(target.attack>0))return false;
+ return protectedPoints
+  ?protectedPoints.some(pt=>gridDistance(pt,target)<=9)
+  :distance(target,base)<=12;
+}
 /** One deterministic tactical decision; does not issue unvalidated client commands. */
 export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  assert(STANCES.has(stance),"Invalid army stance");
@@ -60,14 +70,13 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
    let previousTarget=null;
    if(current?.kind==="attack"&&current.aiIssued){
      previousTarget=enemies.find(e=>e.owner.id===current.targetPlayer&&e.unit.id===current.targetId);
-     const withinDefense=stance!=="defend"||(points?
-      points.some(pt=>gridDistance(pt,previousTarget?.unit??{x:Infinity,y:Infinity})<=9):
-      previousTarget&&distance(previousTarget.unit,start)<=12);
-     if(previousTarget&&eligible(unit,previousTarget.unit)&&withinDefense&&
+     const retainable=shouldRetainBotAttackTarget(unit,previousTarget?.unit,
+      stance,points,start);
+     if(retainable&&
        !(stance==="defend"&&shouldDefenderRetarget(unit,previousTarget.unit,objective?.unit)))
       continue;
-     // Preserve a viable fallback while checking replacement paths. Never
-     // discard a legitimate existing attack just because a new path fails.
+     // Keep a valid, in-zone fallback while checking candidate routes.
+     // Out-of-zone/illegal orders are discarded if no replacement is reachable.
    }else if(current)continue;
    const candidates=enemies.filter(e=>eligible(unit,e.unit)&&
       (stance!=="defend"||(points?points.some(pt=>gridDistance(pt,e.unit)<=9):distance(e.unit,start)<=12)))
@@ -93,7 +102,7 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
    }
    // Cleanup an invalid stale order only when there is no valid target left.
    if(current?.aiIssued&&current.kind==="attack"&&!issued.some(x=>x.unitId===unit.id)&&
-    (!previousTarget||!eligible(unit,previousTarget.unit)))
+    !shouldRetainBotAttackTarget(unit,previousTarget?.unit,stance,points,start))
     delete match.orders[unit.id];
  }
  return issued;
