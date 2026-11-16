@@ -40,6 +40,9 @@ export function uncoveredMandatoryResource(priority,deficits,assignedResources){
  return priority.find(resource=>(deficits[resource]??0)>0&&
   !assignedResources.includes(resource))??null;
 }
+export function harvestResourceOptions(priority,forcedResource=null){
+ return forcedResource===null?[...priority]:[forcedResource];
+}
 export function assignSpatialBotWorker(match,owner){
  if(match.economyMode!=="spatial"||!match.battlefield)return null;
  const p=getPlayer(match,owner),jobs=match.harvestJobs??{},
@@ -49,6 +52,7 @@ export function assignSpatialBotWorker(match,owner){
   Number.isInteger(u.x)&&!busy.has(u.id));
  const eligible=workers.filter(u=>!jobs[u.id]&&!(u.cargo?.amount>0));
  const priority=resourcePriorities(match,owner);
+ let reassignedWorkerId=null,requiredResource=null;
  // If all workers are busy on optional resources, rebalance an empty-handed
  // worker only when mandatory tech has an unmet resource requirement.
  if(!eligible.length&&match.fullCatalog){
@@ -65,11 +69,15 @@ export function assignSpatialBotWorker(match,owner){
     const tile=match.battlefield.tiles[job.y*match.battlefield.width+job.x];
     return (deficits[tile?.resource]??0)===0;
    }).sort((a,b)=>a.id.localeCompare(b.id))[0];
-   if(candidate)eligible.push(candidate);
+   if(candidate){eligible.push(candidate);reassignedWorkerId=candidate.id;requiredResource=needed;}
   }
  }
  for(const worker of eligible){
-  for(const resource of priority){
+  // An already-assigned worker is rebalanced *only* for the uncovered
+  // mandatory input. Otherwise the generic preference loop could send it
+  // back to the same optional resource and indefinitely stall advancement.
+  for(const resource of harvestResourceOptions(priority,
+   worker.id===reassignedWorkerId?requiredResource:null)){
    const sites=match.battlefield.tiles.filter(t=>t.resource===resource&&t.amount>0&&
     walkable(match.battlefield,t.x,t.y)).sort((a,b)=>
      Math.abs(worker.x-a.x)+Math.abs(worker.y-a.y)-

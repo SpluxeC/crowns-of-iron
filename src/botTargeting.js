@@ -3,6 +3,12 @@
  * mutates the economy or unit stats. */
 import {canEngage} from "./engagementRules.js";
 export const gridDistance=(a,b)=>Math.abs(a.x-b.x)+Math.abs(a.y-b.y);
+/** Deterministic risk measure: count vulnerable allied workers near an intruder. */
+export function endangeredWorkerCount(enemy,workers,radius=4){
+ return workers.filter(w=>w.alive&&w.archetype==="Worker"&&
+  Number.isInteger(w.x)&&Number.isInteger(w.y)&&
+  gridDistance(w,enemy)<=radius).length;
+}
 export function threatenedLocations(match,owner,radius=12){
  const p=match.players.find(x=>x.id===owner);
  if(!p||!match.battlefield)return [];
@@ -20,6 +26,7 @@ export function selectSquadObjective(match,owner,stance,army){
  if(!p||!army?.length)return null;
  const start=match.battlefield.starts[match.players.indexOf(p)];
  const defenders=threatenedLocations(match,owner);
+ const workers=p.units.filter(u=>u.alive&&u.archetype==="Worker"&&Number.isInteger(u.x));
  const enemies=match.players.filter(x=>x.team!==p.team&&!x.defeated)
   .flatMap(foe=>foe.units.filter(u=>u.alive&&Number.isInteger(u.x)&&
    !u.garrisonedAt&&!u.embarkedAt).map(unit=>({owner:foe.id,unit})));
@@ -41,7 +48,8 @@ export function selectSquadObjective(match,owner,stance,army){
    const threat=defenders.reduce((best,pt)=>
     Math.min(best,gridDistance(pt,u)),Infinity);
    const workerBonus=stance==="raid"&&u.archetype==="Worker"?-45:0;
-   const defensive=stance==="defend"?threat*12:nearBase*.15;
+   const defensive=stance==="defend"?threat*12-
+    Math.min(3,endangeredWorkerCount(u,workers))*28:nearBase*.15;
    const siegeBonus=["Heavy Artillery","Bomber"].includes(u.archetype)?-15:0;
    // Prefer objectives that more of the existing squad can legally engage.
    // A mixed land/air army should not converge on an inaccessible air target

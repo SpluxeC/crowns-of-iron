@@ -19,9 +19,15 @@ export function createRenderQuality({mobile=false,devicePixelRatio=1,mode="Auto"
   if(lastObserved!==-Infinity&&atMs-lastObserved>10000){
    average=0;samples=slow=fast=0;
    lastAdjustment=atMs;
+   // Restore the normal cadence; preserve lower resolution until the new
+   // scene proves it can sustain the target frame rate.
+   interval=mobile?1000/30:1000/45;
   }
   lastObserved=atMs;
-  average=average?average*.85+ms*.15:ms;
+  // A backgrounded WebView can report enormous single-frame durations.
+  // Preserve slow-frame pressure but bound its impact on the rolling mean.
+  const boundedMs=Math.min(ms,250);
+  average=average?average*.85+boundedMs*.15:boundedMs;
   samples++;
   if(mode!=="Auto"||samples<12||atMs-lastAdjustment<3500)return false;
   // Sustained slow draw calls lower resolution before lowering the target rate.
