@@ -7,10 +7,14 @@ import {canFundOptionalSpend} from "./botResearchPlanner.js";
 const PLANS={
  I:["Club Fighter","Stone Spearman","Stone Slinger","Scout"],
  II:["Swordsman","Archer","Raider","Pikeman","Club Fighter"],
- III:["Heavy Infantry","Archer","Swordsman","Raider","Pikeman"],
- IV:["Gunner","Heavy Infantry","Anti-Air Infantry","Archer"],
- V:["Mechanized Infantry","Heavy Infantry","Gunner","Anti-Air Infantry"]
+ III:["Heavy Infantry","Archer","Heavy Artillery","Swordsman","Raider","Pikeman"],
+ IV:["Gunner","Heavy Infantry","Anti-Air Infantry","Heavy Artillery","Interceptor","Archer"],
+ V:["Mechanized Infantry","Heavy Infantry","Gunner","Anti-Air Infantry",
+    "Heavy War Machine","Gunship","Heavy Artillery"]
 };
+export function botRecruitmentPlan(age){
+ return [...(PLANS[age]??PLANS.I)];
+}
 export function tryBotRecruitment(match,player,desiredArmy=12){
  if(!match.fullCatalog||player.defeated)return null;
  const troops=player.units.filter(u=>u.alive&&u.archetype!=="Worker").length;
