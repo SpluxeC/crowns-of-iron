@@ -6,7 +6,7 @@ import {constructionDefinition} from "./structureCatalog.js";
 import {STRUCTURES} from "./construction.js";
 import {ageIndex,affordable} from "./util.js";
 import {cancelHarvestJob} from "./spatialEconomy.js";
-const MAX_SITES={Shelter:3,"Training Camp":1,Barracks:2,"Archery Range":1,
+const MAX_SITES={Shelter:3,"Training Camp":1,Farm:2,Barracks:2,"Archery Range":1,
  "Resource Depot":2,Forge:1};
 const ageAllowed=(p,def)=>ageIndex(p.age)>=ageIndex(def.age);
 function siteCount(match,p,kind){
@@ -19,7 +19,7 @@ export function desiredBotBuilding(match,player){
  const want=[
   ...(player.popCap-alive-waiting<=4?[ "Shelter" ]:[]),
   "Training Camp",
-  ...(player.age!=="I"?["Barracks","Archery Range","Forge"]:[]),
+  ...(player.age!=="I"?["Farm","Barracks","Archery Range","Forge"]:[]),
   ...(player.age!=="I"?["Resource Depot"]:[]),
   ...(alive+waiting>=player.popCap-3?["Shelter"]:[])
  ];
