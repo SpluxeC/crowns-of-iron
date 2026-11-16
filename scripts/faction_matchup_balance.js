@@ -1,6 +1,7 @@
 /** Reproducible mirrored faction matchup diagnostics, not a proof of balance.
  * Full catalog, collisions, harvesting and AI; no combat modifiers applied. */
 import assert from "node:assert/strict";
+import {analyzeMirroredMatchups} from "../src/mirroredMatchupDiagnostics.js";
 import {readFileSync} from "node:fs";
 import {createMatch,step} from "../src/simulation.js";
 import {makeMap} from "../src/map.js";
@@ -51,11 +52,14 @@ const report=factions.map(faction=>{
   scoreLeads:appearances.filter(t=>t.leader===faction).length,
   reachedII:appearances.filter(t=>(t.left===faction?t.ages[0]:t.ages[1])!=="I").length};
 });
+const diagnostics=analyzeMirroredMatchups(trials,factions);
 const resolved=trials.filter(t=>!t.unresolved).length;
+assert.equal(diagnostics.resolved,resolved);
+assert.equal(diagnostics.mirroredPairs,15);
 assert.ok(trials.every(t=>t.ticks>0&&t.ticks<=seconds));
 assert.ok(report.every(r=>r.games===10));
 console.log("FACTION_BALANCE_RESULT="+JSON.stringify({
  pass:true,headlessOnly:true,fullCatalog:true,
  mirroredPairs:15,trials:30,horizonSeconds:seconds,resolved,
- factionSummary:report,fixtures:trials
+ factionSummary:report,sideDiagnostics:diagnostics,fixtures:trials
 }));
