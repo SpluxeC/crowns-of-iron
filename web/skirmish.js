@@ -60,6 +60,8 @@ function showEmpire(open){
 empireToggle.addEventListener("click",()=>showEmpire(empirePanel.hidden));
 $("closeEmpire").addEventListener("click",()=>showEmpire(false));
 function resizeBattlefield(){
+ // Mobile orientation and external displays can change DPR without a reload.
+ graphics.updateDevicePixelRatio(window.devicePixelRatio);
  const r=canvas.getBoundingClientRect();
  if(!r.width||!r.height)return;
  const pixelRatio=graphics.scale();
