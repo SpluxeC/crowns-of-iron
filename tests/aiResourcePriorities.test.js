@@ -30,6 +30,7 @@ test("AI avoids age-locked resources in Age I",()=>{
 });
 test("full-catalog workers collect and deliver real inventory instead of ghost income",()=>{
  const m=fixture(),p=m.players[1],initial={...p.resources};
+ for(let i=0;i<3;i++)assignSpatialBotWorker(m,p.id);
  for(let i=0;i<130;i++)step(m,1000);
  assert.ok(Object.values(p.resources).some((value,i)=>
   value>Object.values(initial)[i]));
