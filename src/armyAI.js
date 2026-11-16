@@ -30,6 +30,14 @@ function score(target,unit,stance,allyFocus){
  if(allyFocus===target.id)s-=25;
  return s;
 }
+/** Favor the current target unless the squad focus is materially more urgent.
+ * Pure comparison: military navigation/engagement legality is still validated
+ * by planArmyOrders before any new attack order is issued. */
+export function shouldDefenderRetarget(unit,currentTarget,objective){
+ if(!objective||objective.id===currentTarget?.id)return false;
+ return score(objective,unit,"defend",objective.id)+25<
+  score(currentTarget,unit,"defend",null);
+}
 /** One deterministic tactical decision; does not issue unvalidated client commands. */
 export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  assert(STANCES.has(stance),"Invalid army stance");
@@ -54,10 +62,8 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
      if(target&&(stance!=="defend"||(points?points.some(pt=>gridDistance(pt,target.unit)<=9):distance(target.unit,start)<=12))){
        // An existing raid/assault order must not distract defenders from a
        // more urgent attacker threatening the base or its workers.
-       const needsDefenseRetarget=stance==="defend"&&objective&&
-        objective.unit.id!==target.unit.id&&
-        score(objective.unit,unit,"defend",objective.unit.id)+25<
-          score(target.unit,unit,"defend",null);
+       const needsDefenseRetarget=stance==="defend"&&
+        shouldDefenderRetarget(unit,target.unit,objective?.unit);
        if(!needsDefenseRetarget)continue;
      }
      delete match.orders[unit.id];
