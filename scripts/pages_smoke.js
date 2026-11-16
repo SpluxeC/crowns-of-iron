@@ -77,6 +77,18 @@ try{
  await page.click("#workers");
  await page.waitForFunction(()=>document.querySelector("#selection")?.textContent
   ?.includes("Worker"),null,{timeout:15000});
+ assert.ok((await page.locator("#selectedDetail").textContent()).includes("unit"),
+  "Selection detail panel does not describe selected workers");
+ for(const name of ["smart","attackMove","formation","patrol","harvest"]){
+  await page.locator("#"+name).click();
+  assert.equal(await page.locator("#"+name).getAttribute("class"),"active",
+   "Order button did not activate: "+name);
+ }
+ await page.locator("#select").click();
+ await page.locator("#toggleEmpire").click();
+ assert.equal(await page.locator("#stanceChoice").count(),1);
+ assert.equal(await page.locator("#buildHelp").count(),1);
+ await page.locator("#closeEmpire").click();
  // Verify the primary 3D camera responds to keyboard and wheel input.
  await page.waitForFunction(()=>document.querySelector("#cameraStatus")?.textContent
   ?.includes("Zoom"),null,{timeout:15000});
@@ -143,6 +155,22 @@ try{
  assert.equal(await phone.locator("#empirePanel").isVisible(),true);
  await phone.click("#closeEmpire");
  assert.equal(await phone.locator("#empirePanel").isHidden(),true);
+ await phone.locator("#workers").click();
+ await phone.locator("#smart").click();
+ assert.equal(await phone.locator("#smart").getAttribute("class"),"active");
+ const zoomBefore=await phone.locator("#cameraStatus").textContent();
+ await phone.evaluate(()=>{
+  const el=document.querySelector("#map3d");
+  const emit=(type,id,x,y)=>el.dispatchEvent(new PointerEvent(type,{
+   bubbles:true,cancelable:true,pointerId:id,pointerType:"touch",
+   button:0,clientX:x,clientY:y}));
+  emit("pointerdown",101,300,220);emit("pointerdown",102,360,220);
+  emit("pointermove",101,250,220);emit("pointermove",102,410,220);
+  emit("pointerup",101,250,220);emit("pointerup",102,410,220);
+ });
+ await phone.waitForFunction(before=>
+  document.querySelector("#cameraStatus")?.textContent.match(/Zoom ([0-9]+)/)?.[1]!==
+  before.match(/Zoom ([0-9]+)/)?.[1],zoomBefore,{timeout:8000});
  await phone.locator("#map3d").tap({position:{x:300,y:210}});
  await phone.setViewportSize({width:390,height:844});
  await phone.waitForFunction(()=>getComputedStyle(
