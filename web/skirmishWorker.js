@@ -8,7 +8,7 @@ import {setEconomyMode} from "../src/spatialEconomy.js";
 import {installFullCatalog} from "../src/fullCatalog.js";
 import {playerCommandCatalog} from "../src/commandCatalog.js";
 import {exportSave,importSave} from "../src/persistence.js";
-import {applySkirmishVictory,SKIRMISH_LIMIT_MS} from "./skirmishRules.js";
+import {applySkirmishVictory,SKIRMISH_LIMIT_MS,skirmishReport} from "./skirmishRules.js";
 const FACTIONS=["Humans","Orcs","Dwarfs","Tree Elves","Corrupt Elves","Ursa"];
 let match=null,interval=null,paused=false,speed=1,seq=0;
 function send(type,payload={}){postMessage({type,...payload});}
@@ -47,6 +47,7 @@ function view(){
   humanDefeated:player.defeated,faction:player.faction,age:player.age,
   resources:player.resources,popUsed:player.popUsed,popCap:player.popCap,
   skirmishLimitMs:SKIRMISH_LIMIT_MS,
+  result:match.winner===null?null:skirmishReport(match),
   players,world:{width:map.width,height:map.height,tiles,structures},
   catalog:playerCommandCatalog(match,player.id),
   economyMode:match.economyMode,harvestJobs:match.harvestJobs?

@@ -16,6 +16,22 @@ export function skirmishScore(player){
   Object.values(player.facilities??{}).reduce((a,v)=>a+Math.max(0,v)*24,0)+
   resources*.015);
 }
+/** Read-only match-end report. Never expose hidden enemy armies before game end. */
+export function skirmishReport(match){
+ if(!match||match.winner===null)return null;
+ const players=match.players.map(p=>({
+  id:p.id,faction:p.faction,age:p.age,defeated:p.defeated,
+  score:skirmishScore(p),
+  units:p.units.filter(u=>u.alive).length,
+  workers:p.units.filter(u=>u.alive&&u.archetype==="Worker").length,
+  buildings:Object.values(match.constructions??{})
+   .filter(s=>s.owner===p.id&&s.completed).length,
+  researched:p.completed.length
+ })).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
+ return {winner:match.winner,elapsedMs:match.elapsedMs,
+  reason:match.elapsedMs>=SKIRMISH_LIMIT_MS?"time limit":"elimination",
+  players};
+}
 export function applySkirmishVictory(match){
  if(!match?.players||match.players.length<2)throw Error("Invalid skirmish state");
  if(match.winner!==null)return match.winner;

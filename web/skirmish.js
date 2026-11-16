@@ -16,6 +16,35 @@ const feedback=$("feedback"),placement=$("placement"),
 let feedbackReset=null;
 const camera=createRtsCamera();
 let previousFrame=0,lastRender=0,orientationPaused=false;
+let reportedWinner=null;
+function displayResults(report){
+ if(!report||reportedWinner===report.winner)return;
+ reportedWinner=report.winner;
+ const summary=$("matchEnd"),body=$("resultBody");
+ $("resultHeading").textContent=report.winner==="human"?"Victory!":
+  report.winner==="draw"?"Draw!":"Defeat";
+ $("resultSubhead").textContent=(report.reason==="time limit"?
+  "30-minute skirmish complete · Highest score wins":
+  "Match ended by elimination")+" · "+Math.floor(report.elapsedMs/60000)+"m "+
+  Math.floor(report.elapsedMs/1000)%60+"s";
+ body.replaceChildren();
+ for(const player of report.players){
+  const tr=document.createElement("tr");
+  if(player.id===report.winner)tr.className="winner";
+  for(const cell of [player.faction+(player.id==="human"?" (You)":""),
+   player.score,player.units,player.buildings,player.researched]){
+   const td=document.createElement("td");td.textContent=String(cell);tr.append(td);
+  }
+  body.append(tr);
+ }
+ summary.hidden=false;
+}
+$("closeResults").onclick=()=>$("matchEnd").hidden=true;
+$("newFromResults").onclick=()=>{
+ $("matchEnd").hidden=true;
+ $("setup").hidden=false;$("launch").disabled=false;
+};
+
 const empirePanel=$("empirePanel"),empireToggle=$("toggleEmpire");
 function showEmpire(open){
  empirePanel.hidden=!open;
@@ -441,7 +470,7 @@ $("launch").onclick=()=>{
  faction:$("faction").value,difficulty:$("difficulty").value,
  enemies:Number($("enemies").value),seed:Number($("seed").value)}});
 };
-$("newGame").onclick=()=>{$("setup").hidden=false;$("launch").disabled=false;};
+$("newGame").onclick=()=>{$("matchEnd").hidden=true;$("setup").hidden=false;$("launch").disabled=false;};
 $("saveGame").onclick=()=>worker.postMessage({type:"save"});
 $("loadGame").onclick=async()=>{
  try{const save=await stored("read");
@@ -541,14 +570,18 @@ worker.onmessage=async({data})=>{
    selected=new Set([...selected].filter(id=>state.players[0].units.some(x=>x.id===id)));
    if(selectedStructure&&!state.world.structures.some(site=>site.id===selectedStructure))
     selectedStructure=null;
-   updateSidebar(state);draw();break;
+   updateSidebar(state);draw();
+   if(state.result)displayResults(state.result);
+   break;
   case "started":$("setup").hidden=true;$("launch").disabled=false;
+   reportedWinner=null;$("matchEnd").hidden=true;
    showEmpire(false);checkOrientation();
    selected.clear();selectedStructure=null;paused=false;setTool("select");
    log("Started "+data.faction+" vs "+data.enemies+" AI · "+data.difficulty);break;
   case "paused":paused=data.paused;$("pause").textContent=paused?"Resume":"Pause";
    $("step").disabled=!paused;if(state)updateSidebar(state);break;
   case "loaded":$("setup").hidden=true;paused=true;focusInitial=false;
+   reportedWinner=null;
    showEmpire(false);
    $("pause").textContent="Resume";$("step").disabled=false;log("Saved match loaded (paused)");break;
   case "save":
