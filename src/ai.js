@@ -9,6 +9,7 @@ import {startConstruction} from "./construction.js";
 import {canPlace} from "./map.js";
 import {unitDefinition,researchCatalog} from "./fullCatalog.js";
 import {assignSpatialBotWorker} from "./spatialBot.js";
+import {tryBotConstruction} from "./botBasePlanner.js";
 
 const BOT_LEVELS=Object.freeze({
   Easy:{decisionMs:10000,workerGoal:8},
@@ -104,8 +105,11 @@ export function tickBots(match,deltaMs){
     if(match.economyMode!=="spatial")assignWorkers(player);
     // AI is economy/tech only. Tactical pathing and full-combat behaviors are later milestones.
     const harvest=match.economyMode==="spatial"?assignSpatialBotWorker(match,id):null;
-    const decision=tryResearch(player,match)??tryWorker(player,settings.workerGoal,match)??
-      tryBaseExpansion(match,player)??tryInfantry(player,match)??(harvest?"harvest "+harvest.resource:null);
+    const planned=match.economyMode==="spatial"?tryBotConstruction(match,player):null;
+    const decision=planned?"build "+planned.kind:
+      tryResearch(player,match)??tryWorker(player,settings.workerGoal,match)??
+      tryBaseExpansion(match,player)??tryInfantry(player,match)??
+      (harvest?"harvest "+harvest.resource:null);
     if(match.battlefield)planArmyOrders(match,id,{stance:bot.stance??"assault",maxOrders:bot.difficulty==="Hard"?12:bot.difficulty==="Normal"?6:3});
     bot.decisions++;
     if(decision)events.push({id,decision,atMs:match.elapsedMs});
