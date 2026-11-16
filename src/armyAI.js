@@ -63,6 +63,11 @@ export function selectReachableBotTarget(candidates,canReach,maxChecks=16){
 export function nextBotSquadFocus(previousFocus,reachableTarget){
  return reachableTarget?.id??previousFocus??null;
 }
+/** Discourage excessive fresh commands against a single defended target. */
+export function botTargetSaturationPenalty(assignedCount,softCap=3){
+ assert(Number.isSafeInteger(assignedCount)&&assignedCount>=0,"Invalid assigned count");
+ return Math.max(0,assignedCount-softCap+1)*85;
+}
 /** One deterministic tactical decision; does not issue unvalidated client commands. */
 export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  assert(STANCES.has(stance),"Invalid army stance");
@@ -79,6 +84,16 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  const objective=match.fullCatalog?selectSquadObjective(match,owner,stance,attackers):null;
  const points=stance==="defend"&&match.fullCatalog?threatenedLocations(match,owner):null;
  const issued=[];let focus=objective?.unit.id??null;
+ const targetKey=(playerId,targetId)=>playerId+"|"+targetId;
+ const load=new Map(),count=key=>load.get(key)??0;
+ const adjust=(key,delta)=>load.set(key,Math.max(0,count(key)+delta));
+ // Count existing orders for live targets to avoid over-concentrating a squad.
+ for(const unit of attackers){
+  const order=match.orders?.[unit.id];
+  if(order?.aiIssued&&order.kind==="attack"&&
+    enemies.some(e=>e.owner.id===order.targetPlayer&&e.unit.id===order.targetId))
+   adjust(targetKey(order.targetPlayer,order.targetId),1);
+ }
  for(const unit of attackers){
    if(issued.length>=maxOrders)break;
    const current=match.orders?.[unit.id];
@@ -93,13 +108,18 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
      // Keep a valid, in-zone fallback while checking candidate routes.
      // Out-of-zone/illegal orders are discarded if no replacement is reachable.
    }else if(current)continue;
+   const candidateScore=entry=>{
+    const key=targetKey(entry.owner.id,entry.unit.id);
+    const selfAssigned=Number(Boolean(current?.aiIssued&&
+     current.targetPlayer===entry.owner.id&&current.targetId===entry.unit.id));
+    return score(entry.unit,unit,stance,focus)-
+     (objective?.unit.id===entry.unit.id?85:0)+
+     botTargetSaturationPenalty(Math.max(0,count(key)-selfAssigned));
+   };
    const candidates=enemies.filter(e=>eligible(unit,e.unit)&&
       (stance!=="defend"||(points?points.some(pt=>gridDistance(pt,e.unit)<=9):distance(e.unit,start)<=12)))
-     .sort((a,b)=>(score(a.unit,unit,stance,focus)-
-      (objective?.unit.id===a.unit.id?85:0))-
-      (score(b.unit,unit,stance,focus)-
-      (objective?.unit.id===b.unit.id?85:0))||
-       a.owner.id.localeCompare(b.owner.id)||a.unit.id.localeCompare(b.unit.id));
+     .sort((a,b)=>candidateScore(a)-candidateScore(b)||
+      a.owner.id.localeCompare(b.owner.id)||a.unit.id.localeCompare(b.unit.id));
    const [fallbackRange]=ATTACK_PROFILE[unit.archetype]??[1];
    const range=unit.range??fallbackRange;
    if(range<=0)continue;
@@ -107,6 +127,9 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
     Boolean(pathForUnit(match,p.id,unit.archetype,{x:unit.x,y:unit.y},
      {x:entry.unit.x,y:entry.unit.y},{range})));
    if(candidate){
+    if(current?.aiIssued&&current.kind==="attack")
+     adjust(targetKey(current.targetPlayer,current.targetId),-1);
+    adjust(targetKey(candidate.owner.id,candidate.unit.id),1);
     match.orders??={};
     match.orders[unit.id]={kind:"attack",targetPlayer:candidate.owner.id,
       targetId:candidate.unit.id,carryMs:0,aiIssued:true};
@@ -118,7 +141,8 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
    // Cleanup an invalid stale order only when there is no valid target left.
    if(current?.aiIssued&&current.kind==="attack"&&!issued.some(x=>x.unitId===unit.id)&&
     !shouldRetainBotAttackTarget(unit,previousTarget?.unit,stance,points,start))
-    delete match.orders[unit.id];
+    {adjust(targetKey(current.targetPlayer,current.targetId),-1);
+     delete match.orders[unit.id];}
  }
  return issued;
 }

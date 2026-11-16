@@ -5,10 +5,13 @@ export function createRenderQuality({mobile=false,devicePixelRatio=1,mode="Auto"
  if(!["Auto","Performance","Quality"].includes(mode))throw Error("Invalid graphics mode");
  // Browsers may temporarily report zero or nonfinite DPR during resize,
  // orientation transitions or WebView lifecycle changes.
- const safeDpr=Number.isFinite(devicePixelRatio)&&devicePixelRatio>0
-  ?devicePixelRatio:1;
- const maximum=mobile?Math.min(1.35,safeDpr):Math.min(1.75,safeDpr);
- const minimum=mobile?Math.min(.7,maximum):Math.min(.85,maximum);
+ const normalizeDpr=value=>Number.isFinite(value)&&value>0?value:1;
+ let currentDpr=normalizeDpr(devicePixelRatio);
+ const bounds=value=>{
+  const max=mobile?Math.min(1.35,value):Math.min(1.75,value);
+  return {maximum:max,minimum:mobile?Math.min(.7,max):Math.min(.85,max)};
+ };
+ let {maximum,minimum}=bounds(currentDpr);
  let scale=mode==="Performance"?minimum:maximum;
  let interval=mobile?1000/30:1000/45;
  let slow=0,fast=0,lastAdjustment=0,lastObserved=-Infinity,average=0,samples=0;
@@ -49,12 +52,27 @@ export function createRenderQuality({mobile=false,devicePixelRatio=1,mode="Auto"
   }
   return false;
  }
+ /** Re-read pixel density after orientation / display / browser zoom changes.
+  * Preserve the current Auto quality fraction within safe new bounds. */
+ function updateDevicePixelRatio(next){
+  const dpr=normalizeDpr(next);
+  if(dpr===currentDpr)return false;
+  const previousMinimum=minimum,previousMaximum=maximum;
+  const progress=previousMaximum>previousMinimum
+   ?(scale-previousMinimum)/(previousMaximum-previousMinimum):1;
+  currentDpr=dpr;
+  ({minimum,maximum}=bounds(currentDpr));
+  scale=mode==="Performance"?minimum:mode==="Quality"?maximum:
+   Math.max(minimum,Math.min(maximum,
+    Math.round((minimum+progress*(maximum-minimum))*100)/100));
+  return true;
+ }
  function setMode(next){
   if(!["Auto","Performance","Quality"].includes(next))throw Error("Invalid graphics mode");
   mode=next;scale=next==="Performance"?minimum:maximum;average=0;
   samples=slow=fast=0;lastAdjustment=0;lastObserved=-Infinity;interval=mobile?1000/30:1000/45;
  }
- return {observe,setMode,scale:()=>scale,frameInterval:()=>interval,
+ return {observe,setMode,updateDevicePixelRatio,scale:()=>scale,frameInterval:()=>interval,
   stats:()=>({mode,mobile,scale,averageMs:Math.round(average*10)/10,
    targetFps:Math.round(1000/interval),samples})};
 }
