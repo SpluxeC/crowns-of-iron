@@ -294,52 +294,104 @@ const pointAt=e=>{
 };
 function stopRotation(){rotationHeld=false;camera.resetRotation();}
 canvas.addEventListener("contextmenu",e=>e.preventDefault());
+function pickAt(e,context=false){
+ if(!renderer||!state)return;
+ const rect=canvas.getBoundingClientRect();
+ const x=(e.clientX-rect.left)*canvas.width/rect.width,
+  y=(e.clientY-rect.top)*canvas.height/rect.height;
+ const hit=projectedEntityHit(state.world,state.players,pose(),
+  x,y,canvas.width,canvas.height);
+ const ground=renderer.pick(x,y);
+ if(hit||ground){
+  const tile=hit?.kind==="unit"?{x:hit.unit.x,y:hit.unit.y}:
+   hit?.kind==="structure"?{x:hit.site.x,y:hit.site.y}:ground;
+  tileClick(tile.x,tile.y,e.shiftKey,hit,context);
+ }
+}
+function touchSpan(){
+ const list=[...activeTouches.values()];
+ return list.length>=2?Math.hypot(list[0].x-list[1].x,list[0].y-list[1].y):0;
+}
+function finishDrag(e){
+ if(!dragOrigin||!state){clearRect();dragOrigin=null;return;}
+ const a=dragOrigin,b=pointAt(e);
+ const width=canvas.width/Math.max(1,b.width),height=canvas.height/Math.max(1,b.height);
+ const ids=rectangleUnits(state.players,state.world,pose(),{
+  x1:a.x*width,y1:a.y*height,x2:b.x*width,y2:b.y*height
+ },canvas.width,canvas.height,projected);
+ selected=new Set(clampSelection(ids,state.players[0].units.map(u=>u.id),
+  e.shiftKey,[...selected]));
+ selectedStructure=null;updateSidebar(state);draw();
+ notify("Selected "+selected.size+" units");
+ clearRect();dragOrigin=null;
+}
 canvas.addEventListener("pointerdown",e=>{
- if(e.pointerType==="mouse"&&e.button!==0&&e.button!==1)return;
+ if(e.pointerType==="mouse"&&![0,1,2].includes(e.button))return;
+ if(e.pointerType==="touch"){
+  activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activeTouches.size>=2){pinchDistance=touchSpan();panning=null;dragOrigin=null;clearRect();return;}
+ }
  const rotation=e.button===1||e.altKey||altDown;
- panning={x:e.clientX,y:e.clientY,moved:false,rotating:rotation,
+ panning={x:e.clientX,y:e.clientY,
+  startX:e.clientX,startY:e.clientY,moved:false,rotating:rotation,
   pointerType:e.pointerType,button:e.button};
  if(rotation)rotationHeld=true;
+ if(e.button===0&&e.pointerType==="mouse"&&tool==="select")
+  dragOrigin=pointAt(e);
  try{canvas.setPointerCapture(e.pointerId);}catch{}
  e.preventDefault();
 });
 canvas.addEventListener("pointermove",e=>{
- // Edge pan is tracked in screen coordinates even while no button is held.
  edgePointer=pointAt(e);
+ if(e.pointerType==="touch"&&activeTouches.has(e.pointerId)){
+  activeTouches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(activeTouches.size>=2){
+   const distance=touchSpan();
+   if(pinchDistance&&distance>1)camera.zoom(-200*Math.log(distance/pinchDistance));
+   pinchDistance=distance;return;
+  }
+ }
+ if(tool==="build"&&state&&renderer){
+  const rect=canvas.getBoundingClientRect();
+  const p=renderer.pick((e.clientX-rect.left)*canvas.width/rect.width,
+   (e.clientY-rect.top)*canvas.height/rect.height);
+  if(p)placementPreview(p.x,p.y,e.clientX,e.clientY);
+  else placement.style.display="none";
+ }
  if(!panning)return;
  const dx=e.clientX-panning.x,dy=e.clientY-panning.y;
- if(Math.hypot(dx,dy)>1.5)panning.moved=true;
- if(panning.rotating){
-  camera.rotate(dx);
- }else if(panning.pointerType==="touch"&&panning.moved){
-  // Touch drag is a camera translation; a stationary touch is a unit tap.
-  const target=camera.target(),scale=camera.state().radius*.0022,
-   yaw=target.yaw;
+ if(Math.hypot(e.clientX-panning.startX,e.clientY-panning.startY)>7)panning.moved=true;
+ if(panning.rotating)camera.rotate(dx);
+ else if(dragOrigin&&panning.moved&&panning.pointerType==="mouse"&&tool==="select")
+  showRect(dragOrigin,pointAt(e));
+ else if(panning.pointerType==="touch"&&panning.moved){
+  const target=camera.target(),scale=camera.state().radius*.0022,yaw=target.yaw;
   camera.focus(target.x-scale*(dx*Math.cos(yaw)-dy*Math.sin(yaw)),
    target.z+scale*(dx*Math.sin(yaw)+dy*Math.cos(yaw)));
  }
  panning.x=e.clientX;panning.y=e.clientY;
 });
 canvas.addEventListener("pointerup",e=>{
- if(panning?.rotating)stopRotation();
- else if(panning&&!panning.moved&&renderer&&state){
-  const rect=canvas.getBoundingClientRect();
-  const x=(e.clientX-rect.left)*canvas.width/rect.width,
-   y=(e.clientY-rect.top)*canvas.height/rect.height;
-  const hit=projectedEntityHit(state.world,state.players,
-   camera.pose((world,a,b)=>sampleTerrain(world,a,b,heightFor)),
-   x,y,canvas.width,canvas.height);
-  const pick=renderer.pick(x,y);
-  if(hit||pick){
-   const tile=hit?.kind==="unit"?{x:hit.unit.x,y:hit.unit.y}:
-    hit?.kind==="structure"?{x:hit.site.x,y:hit.site.y}:pick;
-   tileClick(tile.x,tile.y,e.shiftKey,hit);
+ if(e.pointerType==="touch"){
+  activeTouches.delete(e.pointerId);
+  if(pinchDistance!==null){
+   if(activeTouches.size<2)pinchDistance=null;
+   panning=null;dragOrigin=null;clearRect();return;
   }
  }
- panning=null;
+ if(panning?.rotating)stopRotation();
+ else if(dragOrigin&&panning?.moved)finishDrag(e);
+ else if(panning&&renderer&&state)pickAt(e,panning.button===2);
+ panning=null;dragOrigin=null;clearRect();
 });
-canvas.addEventListener("pointercancel",()=>{stopRotation();panning=null;edgePointer=null;});
-canvas.addEventListener("pointerleave",()=>{edgePointer=null;});
+canvas.addEventListener("pointercancel",e=>{
+ activeTouches.delete(e.pointerId);pinchDistance=null;
+ stopRotation();panning=null;dragOrigin=null;clearRect();edgePointer=null;
+});
+canvas.addEventListener("pointerleave",()=>{
+ edgePointer=null;
+ if(tool==="build")placement.style.display="none";
+});
 canvas.addEventListener("wheel",e=>{
  e.preventDefault();
  camera.zoom(e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?canvas.height:1));
