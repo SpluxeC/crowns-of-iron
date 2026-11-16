@@ -48,6 +48,16 @@ export function shouldRetainBotAttackTarget(unit,target,stance,protectedPoints,b
   ?protectedPoints.some(pt=>gridDistance(pt,target)<=9)
   :distance(target,base)<=12;
 }
+/** Probe ranked targets in order with a strict pathfinding budget.
+ * The old eight-candidate cutoff could strand an army when its first eight
+ * targets were unreachable even though the ninth had a legal route. */
+export function selectReachableBotTarget(candidates,canReach,maxChecks=16){
+ assert(Number.isSafeInteger(maxChecks)&&maxChecks>=1&&maxChecks<=32,
+  "Invalid AI pathfinding budget");
+ for(const candidate of candidates.slice(0,maxChecks))
+  if(canReach(candidate))return candidate;
+ return null;
+}
 /** One deterministic tactical decision; does not issue unvalidated client commands. */
 export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
  assert(STANCES.has(stance),"Invalid army stance");
@@ -88,17 +98,15 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
    const [fallbackRange]=ATTACK_PROFILE[unit.archetype]??[1];
    const range=unit.range??fallbackRange;
    if(range<=0)continue;
-   for(const candidate of candidates.slice(0,8)){
-     // Real reachability check avoids ordering melee armies into sealed targets.
-     const path=pathForUnit(match,p.id,unit.archetype,{x:unit.x,y:unit.y},
-      {x:candidate.unit.x,y:candidate.unit.y},{range});
-     if(!path)continue;
-     match.orders??={};
-     match.orders[unit.id]={kind:"attack",targetPlayer:candidate.owner.id,
-       targetId:candidate.unit.id,carryMs:0,aiIssued:true};
-     focus??=candidate.unit.id;
-     issued.push({unitId:unit.id,targetId:candidate.unit.id});
-     break;
+   const candidate=selectReachableBotTarget(candidates,entry=>
+    Boolean(pathForUnit(match,p.id,unit.archetype,{x:unit.x,y:unit.y},
+     {x:entry.unit.x,y:entry.unit.y},{range})));
+   if(candidate){
+    match.orders??={};
+    match.orders[unit.id]={kind:"attack",targetPlayer:candidate.owner.id,
+      targetId:candidate.unit.id,carryMs:0,aiIssued:true};
+    focus??=candidate.unit.id;
+    issued.push({unitId:unit.id,targetId:candidate.unit.id});
    }
    // Cleanup an invalid stale order only when there is no valid target left.
    if(current?.aiIssued&&current.kind==="attack"&&!issued.some(x=>x.unitId===unit.id)&&
