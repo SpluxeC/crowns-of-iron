@@ -27,12 +27,9 @@ export function dropoffCandidates(match,owner){
   const k=x+","+y;if(seen.has(k))return;seen.add(k);points.push({x,y});
  }
  // Prefer the Town Center origin, then a small pedestrian approach ring.
- add(start.x,start.y);
- for(let radius=1;radius<=3;radius++)
-  for(let dy=-radius;dy<=radius;dy++)
-   for(let dx=-radius;dx<=radius;dx++)
-    if(Math.max(Math.abs(dx),Math.abs(dy))===radius)
-     add(start.x+dx,start.y+dy);
+ if(walkable(map,start.x,start.y))add(start.x,start.y);
+ else for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)
+  if(Math.max(Math.abs(dx),Math.abs(dy))===2)add(start.x+dx,start.y+dy);
  for(const site of map.structures.filter(s=>s.owner===owner&&
   match.constructions?.[s.id]?.completed&&s.kind==="Resource Depot")){
   for(let y=site.y-1;y<=site.y+site.height;y++)
