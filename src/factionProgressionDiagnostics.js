@@ -35,6 +35,7 @@ export function analyzeFactionProgression(trials,factions){
      r.ageIIObservations++;
      if(firstAgeII[i]===null)firstAgeII[i]=checkpoint.second;
     }
+    if(AGE[point.age]>=3&&firstAgeIII[i]===null)firstAgeIII[i]=checkpoint.second;
     const key=faction+"|"+checkpoint.second;
     const aggregate=byTime.get(key)??{faction,second:checkpoint.second,n:0,army:0,workers:0,tech:0};
     aggregate.n++;aggregate.army+=point.activeArmy;
@@ -48,6 +49,10 @@ export function analyzeFactionProgression(trials,factions){
    if(firstAgeII[i]!==null){
     row.fixturesWithAgeII++;
     row.firstObservedAgeIISecondsTotal+=firstAgeII[i];
+   }
+   if(firstAgeIII[i]!==null){
+    row.fixturesWithAgeIII++;
+    row.firstObservedAgeIIISecondsTotal+=firstAgeIII[i];
    }
   }
  }
