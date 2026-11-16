@@ -41,7 +41,7 @@ for(const file of jsFiles.filter(x=>x.endsWith(".js"))){
 }
 await writeFile(join(target,".nojekyll"),"");
 await writeFile(join(target,"404.html"),html);
-const info={siteBase:base,version:"13.9.0",mode:"single-player-ai-3d-only",
+const info={siteBase:base,version:"13.12.0",mode:"single-player-ai-3d-only",
  prebuilt:{humanoids:people.length,vehicles:vehicles.length},
  gameplayRuntime:"browser-web-worker",multiplayerServerShipped:false};
 await writeFile(join(target,"site-manifest.json"),JSON.stringify(info,null,2)+"\n");
