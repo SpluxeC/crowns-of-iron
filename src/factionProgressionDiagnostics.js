@@ -5,14 +5,15 @@ export function analyzeFactionProgression(trials,factions){
  const rows=Object.fromEntries(factions.map(f=>[f,{
   faction:f,observations:0,armyTotal:0,workersTotal:0,techTotal:0,
   constructionTotal:0,highestAge:1,ageIIObservations:0,
-  fixturesObserved:0,fixturesWithAgeII:0,firstObservedAgeIISecondsTotal:0
+  fixturesObserved:0,fixturesWithAgeII:0,firstObservedAgeIISecondsTotal:0,
+  fixturesWithAgeIII:0,firstObservedAgeIIISecondsTotal:0
  }]));
  const byTime=new Map();
  for(const trial of trials){
   if(!rows[trial.left]||!rows[trial.right]||trial.left===trial.right)
    throw Error("Unknown faction in progression fixture");
   let prior=0;
-  const firstAgeII=[null,null];
+  const firstAgeII=[null,null],firstAgeIII=[null,null];
   for(const checkpoint of trial.checkpoints??[]){
    if(!Number.isInteger(checkpoint.second)||checkpoint.second<=prior||
       checkpoint.second>trial.ticks||checkpoint.second%120!==0||
@@ -34,6 +35,7 @@ export function analyzeFactionProgression(trials,factions){
      r.ageIIObservations++;
      if(firstAgeII[i]===null)firstAgeII[i]=checkpoint.second;
     }
+    if(AGE[point.age]>=3&&firstAgeIII[i]===null)firstAgeIII[i]=checkpoint.second;
     const key=faction+"|"+checkpoint.second;
     const aggregate=byTime.get(key)??{faction,second:checkpoint.second,n:0,army:0,workers:0,tech:0};
     aggregate.n++;aggregate.army+=point.activeArmy;
@@ -48,6 +50,10 @@ export function analyzeFactionProgression(trials,factions){
     row.fixturesWithAgeII++;
     row.firstObservedAgeIISecondsTotal+=firstAgeII[i];
    }
+   if(firstAgeIII[i]!==null){
+    row.fixturesWithAgeIII++;
+    row.firstObservedAgeIIISecondsTotal+=firstAgeIII[i];
+   }
   }
  }
  const round=(total,n)=>n?Math.round(total/n*100)/100:null;
@@ -61,7 +67,9 @@ export function analyzeFactionProgression(trials,factions){
     highestAgeReached:Object.keys(AGE).find(age=>AGE[age]===r.highestAge),
     ageIIObservationShare:round(r.ageIIObservations,r.observations),
     fixturesObserved:r.fixturesObserved,fixturesWithAgeII:r.fixturesWithAgeII,
-    meanFirstObservedAgeIISeconds:round(r.firstObservedAgeIISecondsTotal,r.fixturesWithAgeII)};
+    meanFirstObservedAgeIISeconds:round(r.firstObservedAgeIISecondsTotal,r.fixturesWithAgeII),
+    fixturesWithAgeIII:r.fixturesWithAgeIII,
+    meanFirstObservedAgeIIISeconds:round(r.firstObservedAgeIIISecondsTotal,r.fixturesWithAgeIII)};
   }),
   timeline:[...byTime.values()].map(r=>({
    faction:r.faction,second:r.second,samples:r.n,
