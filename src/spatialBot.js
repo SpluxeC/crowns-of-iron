@@ -51,6 +51,17 @@ export function uncoveredMandatoryResource(priority,deficits,assignedResources){
 export function harvestResourceOptions(priority,forcedResource=null){
  return forcedResource===null?[...priority]:[forcedResource];
 }
+/** Build resource site buckets once per bot decision to avoid repeatedly
+ * traversing the entire battlefield for every resource and eligible worker. */
+export function viableHarvestSites(map){
+ const grouped=new Map();
+ for(const tile of map.tiles){
+  if(!tile.resource||tile.amount<=0||!walkable(map,tile.x,tile.y))continue;
+  if(!grouped.has(tile.resource))grouped.set(tile.resource,[]);
+  grouped.get(tile.resource).push(tile);
+ }
+ return grouped;
+}
 export function assignSpatialBotWorker(match,owner){
  if(match.economyMode!=="spatial"||!match.battlefield)return null;
  const p=getPlayer(match,owner),jobs=match.harvestJobs??{},
@@ -69,6 +80,7 @@ export function assignSpatialBotWorker(match,owner){
  const eligible=workers.filter(u=>!jobs[u.id]&&!(u.cargo?.amount>0));
  const priority=resourcePriorities(match,owner);
  let reassignedWorkerId=null,requiredResource=null;
+ const deposits=viableHarvestSites(match.battlefield);
  // If all workers are busy on optional resources, rebalance an empty-handed
  // worker only when mandatory tech has an unmet resource requirement.
  if(!eligible.length&&match.fullCatalog){
@@ -95,8 +107,7 @@ export function assignSpatialBotWorker(match,owner){
   // back to the same optional resource and indefinitely stall advancement.
   for(const resource of harvestResourceOptions(priority,
    worker.id===reassignedWorkerId?requiredResource:null)){
-   const sites=match.battlefield.tiles.filter(t=>t.resource===resource&&t.amount>0&&
-    walkable(match.battlefield,t.x,t.y)).sort((a,b)=>
+   const sites=[...(deposits.get(resource)??[])].sort((a,b)=>
      Math.abs(worker.x-a.x)+Math.abs(worker.y-a.y)-
      Math.abs(worker.x-b.x)-Math.abs(worker.y-b.y)||a.y-b.y||a.x-b.x);
    for(const site of sites){
