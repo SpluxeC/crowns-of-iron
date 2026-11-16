@@ -4,7 +4,7 @@ import {createRtsCamera,sampleTerrain,edgeAxis} from "./rtsCamera.js";
 import {projectedEntityHit} from "./rtsPicking.js";
 import {cameraForMap,projectWorld,heightFor as terrainHeight} from "./webgl3d.js";
 import {clampSelection,rectangleUnits,smartOrder,placementValid,MAX_SELECTION} from "./rtsInteraction.js";
-import {createRenderQuality} from "./mobilePerformance.js";
+import {createRenderQuality,battlefieldRenderSize} from "./mobilePerformance.js";
 const $=id=>document.getElementById(id);
 const canvas=$("map3d");
 const worker=new Worker(new URL("./skirmishWorker.js",import.meta.url),{type:"module"});
@@ -64,10 +64,8 @@ function resizeBattlefield(){
  graphics.updateDevicePixelRatio(window.devicePixelRatio);
  const r=canvas.getBoundingClientRect();
  if(!r.width||!r.height)return;
- const pixelRatio=graphics.scale();
- const maxDimension=2048,limit=Math.min(pixelRatio,maxDimension/r.width,maxDimension/r.height);
- const w=Math.max(1,Math.round(r.width*limit)),
-  h=Math.max(1,Math.round(r.height*limit));
+ const {width:w,height:h}=battlefieldRenderSize(
+  r.width,r.height,graphics.scale(),{mobile:mobileDevice});
  if(canvas.width!==w||canvas.height!==h){
   canvas.width=w;canvas.height=h;
   if(renderer&&state)requestAnimationFrame(()=>render3d());
