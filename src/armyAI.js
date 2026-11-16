@@ -105,7 +105,9 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
     match.orders??={};
     match.orders[unit.id]={kind:"attack",targetPlayer:candidate.owner.id,
       targetId:candidate.unit.id,carryMs:0,aiIssued:true};
-    focus??=candidate.unit.id;
+    // Coordinate subsequent units around an objective that was actually
+    // reachable; do not keep favoring a squad objective nobody can path to.
+    focus=candidate.unit.id;
     issued.push({unitId:unit.id,targetId:candidate.unit.id});
    }
    // Cleanup an invalid stale order only when there is no valid target left.
