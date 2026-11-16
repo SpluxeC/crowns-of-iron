@@ -41,6 +41,14 @@ export function analyzeFactionProgression(trials,factions){
     byTime.set(key,aggregate);
    }
   }
+  for(let i=0;i<2;i++){
+   const row=rows[i===0?trial.left:trial.right];
+   row.fixturesObserved++;
+   if(firstAgeII[i]!==null){
+    row.fixturesWithAgeII++;
+    row.firstObservedAgeIISecondsTotal+=firstAgeII[i];
+   }
+  }
  }
  const round=(total,n)=>n?Math.round(total/n*100)/100:null;
  return {
