@@ -21,6 +21,12 @@ export function setArmyStance(match,owner,stance){
 function eligible(u,target){
  return canEngage(u,target);
 }
+/** Defensive units protect the base from armed attackers, including in
+ * legacy matches that do not use the full research catalog. */
+export function defensiveAttackAllowed(target,stance){
+ return stance!=="defend"||
+  Boolean(target?.attack>0&&target.archetype!=="Worker");
+}
 function score(target,unit,stance,allyFocus){
  let s=distance(target,unit)*10;
  if(stance==="raid"&&target.archetype==="Worker")s-=80;
@@ -43,7 +49,7 @@ export function shouldDefenderRetarget(unit,currentTarget,objective){
 export function shouldRetainBotAttackTarget(unit,target,stance,protectedPoints,base){
  if(!target||!eligible(unit,target))return false;
  if(stance!=="defend")return true;
- if(target.archetype==="Worker"||!(target.attack>0))return false;
+ if(!defensiveAttackAllowed(target,stance))return false;
  return protectedPoints
   ?protectedPoints.some(pt=>gridDistance(pt,target)<=9)
   :distance(target,base)<=12;
@@ -122,6 +128,7 @@ export function planArmyOrders(match,owner,{stance="assault",maxOrders=12}={}){
      botTargetSaturationPenalty(Math.max(0,count(key)-selfAssigned));
    };
    const candidates=enemies.filter(e=>eligible(unit,e.unit)&&
+      defensiveAttackAllowed(e.unit,stance)&&
       (stance!=="defend"||(points?points.some(pt=>gridDistance(pt,e.unit)<=9):distance(e.unit,start)<=12)))
      .sort((a,b)=>candidateScore(a)-candidateScore(b)||
       a.owner.id.localeCompare(b.owner.id)||a.unit.id.localeCompare(b.unit.id));
