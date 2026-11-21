@@ -10,8 +10,10 @@ export function battlefieldRenderSize(width,height,scale,{mobile=false}={}){
  const pixels=mobile?1500000:3000000;
  const limit=Math.min(scale,2048/width,2048/height,
   Math.sqrt(pixels/(width*height)));
- return {width:Math.max(1,Math.round(width*limit)),
-  height:Math.max(1,Math.round(height*limit))};
+ // Floor rather than round: rounding both edges up can exceed the GPU
+ // memory cap on boundary sizes, particularly during phone rotation.
+ return {width:Math.max(1,Math.floor(width*limit)),
+  height:Math.max(1,Math.floor(height*limit))};
 }
 export function createRenderQuality({mobile=false,devicePixelRatio=1,mode="Auto"}={}){
  if(!["Auto","Performance","Quality"].includes(mode))throw Error("Invalid graphics mode");
