@@ -51,6 +51,12 @@ export function uncoveredMandatoryResource(priority,deficits,assignedResources){
 export function harvestResourceOptions(priority,forcedResource=null){
  return forcedResource===null?[...priority]:[forcedResource];
 }
+/** Idle workers address real mandatory tech shortages before nonessential
+ * collection. Preserve relative ordering within deficit and surplus groups. */
+export function mandatoryHarvestOrder(priority,deficits={}){
+ return [...priority.filter(resource=>(deficits[resource]??0)>0),
+  ...priority.filter(resource=>(deficits[resource]??0)<=0)];
+}
 /** Build resource site buckets once per bot decision to avoid repeatedly
  * traversing the entire battlefield for every resource and eligible worker. */
 export function viableHarvestSites(map){
@@ -79,18 +85,19 @@ export function assignSpatialBotWorker(match,owner){
  }
  const eligible=workers.filter(u=>!jobs[u.id]&&!(u.cargo?.amount>0));
  const priority=resourcePriorities(match,owner);
+ const deficits=match.fullCatalog?ageResearchDeficit(match,p):{};
+ const economicPriority=mandatoryHarvestOrder(priority,deficits);
  let reassignedWorkerId=null,requiredResource=null;
  const deposits=viableHarvestSites(match.battlefield);
  // If all workers are busy on optional resources, rebalance an empty-handed
  // worker only when mandatory tech has an unmet resource requirement.
  if(!eligible.length&&match.fullCatalog){
-  const deficits=ageResearchDeficit(match,p);
   const assigned=workers.map(u=>{
    const job=jobs[u.id];
    return harvestDepositAvailable(match.battlefield,job)?
     match.battlefield.tiles[job.y*match.battlefield.width+job.x].resource:null;
   }).filter(Boolean);
-  const needed=uncoveredMandatoryResource(priority,deficits,assigned);
+  const needed=uncoveredMandatoryResource(economicPriority,deficits,assigned);
   if(needed){
    const candidate=workers.filter(u=>{
     const job=jobs[u.id];if(!job||u.cargo?.amount>0||job.phase!=="harvest")return false;
@@ -105,7 +112,7 @@ export function assignSpatialBotWorker(match,owner){
   // An already-assigned worker is rebalanced *only* for the uncovered
   // mandatory input. Otherwise the generic preference loop could send it
   // back to the same optional resource and indefinitely stall advancement.
-  for(const resource of harvestResourceOptions(priority,
+  for(const resource of harvestResourceOptions(economicPriority,
    worker.id===reassignedWorkerId?requiredResource:null)){
    const sites=[...(deposits.get(resource)??[])].sort((a,b)=>
      Math.abs(worker.x-a.x)+Math.abs(worker.y-a.y)-
